@@ -5,6 +5,8 @@ members = [
     "crates/rtx-buffer",
     "crates/rtx-wire",
     "crates/rtx-crypto",
+    "crates/rtx-rtp",
+    "crates/rtx-rtcp",
 ]
 
 [workspace.package]

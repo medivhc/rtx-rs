@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable toolchain with embedded target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabihf
+
+      # 1. Full workspace test suite with the std feature enabled
+      #    (M0 contract tests + M1 wire codec tests).
+      - name: Test workspace (std feature)
+        run: cargo test --workspace --features std
+
+      # 2. Without default features the codec must compile with zero
+      #    tests (no_std mode, pattern A test gating).
+      - name: Test workspace (no features, expect zero tests)
+        run: cargo test --workspace
+
+      # 3. Host no_std build check.
+      - name: Check workspace (no default features, host)
+        run: cargo check --workspace --no-default-features
+
+      # 4. Bare-metal no_std build check.
+      - name: Check workspace (no default features, thumbv7em)
+        run: cargo check --workspace --no-default-features --target thumbv7em-none-eabihf
+
+      # 5. Lint gate: clippy pedantic, warnings as errors.
+      - name: Clippy (all targets, all features)
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      # 6. Format gate.
+      - name: Format check
+        run: cargo fmt --all -- --check
