@@ -224,15 +224,25 @@ mod tests {
             }
             other => panic!("want Goodbye, got {other:?}"),
         }
-        // PSFB (206, FMT 1) and TSFB (205, FMT 5) are unmodelled → Raw.
-        for (index, want_type, want_count) in [(3, PacketType::Psfb, 1), (4, PacketType::Tsfb, 5)] {
-            match &packets[index] {
-                RtcpPacket::Raw(raw) => {
-                    assert_eq!(raw.header().packet_type, want_type);
-                    assert_eq!(raw.header().count, want_count);
-                }
-                other => panic!("want Raw, got {other:?}"),
+        // PSFB (206, FMT 1) → Pli 与 TSFB (205, FMT 5) → RapidResync
+        // （M1-2 起反馈包有类型化变体，不再是 Raw）。
+        match &packets[3] {
+            RtcpPacket::Pli(pli) => {
+                assert_eq!(pli.header().packet_type, PacketType::Psfb);
+                assert_eq!(pli.header().count, 1);
+                assert_eq!(pli.sender_ssrc, 0x902f_9e2e);
+                assert_eq!(pli.media_ssrc, 0x902f_9e2e);
             }
+            other => panic!("want Pli, got {other:?}"),
+        }
+        match &packets[4] {
+            RtcpPacket::RapidResync(rrr) => {
+                assert_eq!(rrr.header().packet_type, PacketType::Tsfb);
+                assert_eq!(rrr.header().count, 5);
+                assert_eq!(rrr.sender_ssrc, 0x902f_9e2e);
+                assert_eq!(rrr.media_ssrc, 0x902f_9e2e);
+            }
+            other => panic!("want RapidResync, got {other:?}"),
         }
 
         // RFC validation passes on this real capture.
@@ -274,7 +284,9 @@ mod tests {
             compound.packets().collect::<Result<_, _>>().expect("walk");
         assert_eq!(packets.len(), 2);
         assert!(matches!(packets[0], RtcpPacket::Goodbye(_)));
-        assert!(matches!(packets[1], RtcpPacket::Raw(_)));
+        // REAL_PACKET[84..104] = BYE(8) + PLI(12)：PSFB (206, FMT 1) → Pli
+        // （M1-2 起为类型化变体）。
+        assert!(matches!(packets[1], RtcpPacket::Pli(_)));
         assert_eq!(compound.validate(), Err(WireError::InvalidValue));
     }
 
