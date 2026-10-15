@@ -1,0 +1,17 @@
+[package]
+name = "rtx-stun"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+std = []
+
+[dependencies]
+rtx-core = { path = "../rtx-core" }
+rtx-wire = { path = "../rtx-wire" }
+
+[lints]
+workspace = true
