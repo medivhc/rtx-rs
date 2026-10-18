@@ -1,3 +1,4 @@
 ﻿timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-10-16T01:49	baseline	rtx-rs/m1-3-stun	-	243	baseline	-	基线：243 tests / clippy 0 warn / no_std 双目标通过	full_test
 2026-10-16T02:14	R1	rtx-stun/m1-3-stun	message.rs+attributes.rs	271	keep	-	R1：271 tests / clippy 0 warn / no_std 双目标通过；message 层 + attribute TLV 框架 + MessageWriter	full_test
+2026-10-16T02:52	R2	rtx-stun/m1-3-stun	addr+xoraddr+textattrs+uattrs+error_code(+message.rs push_with)	308	keep	-	R2：308 tests / clippy 0 warn / no_std 双目标通过；typed attributes 五模块 + push_with 流式写属性；上游差分向量（base64 tx / XOR / ERROR-CODE 线上字节 / stringer）	full_test

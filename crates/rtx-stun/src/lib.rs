@@ -43,8 +43,13 @@
 //! Each attribute is a Type-Length-Value unit padded to a 32-bit boundary,
 //! see [`attributes`].
 
+pub mod addr;
 pub mod attributes;
+pub mod error_code;
 pub mod message;
+pub mod textattrs;
+pub mod uattrs;
+pub mod xoraddr;
 
 pub use attributes::{ATTRIBUTE_HEADER_SIZE, AttrType, RawAttribute};
 pub use message::{

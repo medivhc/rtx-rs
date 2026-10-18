@@ -452,8 +452,29 @@ impl<'a> MessageWriter<'a> {
     /// `u16::MAX`, and [`WireError::OutputTooSmall`] when `out` lacks room.
     /// Nothing is written and the length field is left untouched on error.
     pub fn push(&mut self, typ: AttrType, value: &[u8]) -> Result<(), WireError> {
-        let value_len = u16::try_from(value.len()).map_err(|_| WireError::Overflow)?;
-        let total = ATTRIBUTE_HEADER_SIZE + nearest_padded_value_length(value.len());
+        self.push_with(typ, value.len(), |region| region.copy_from_slice(value))
+    }
+
+    /// Appends one attribute TLV whose value is produced by `fill`.
+    ///
+    /// `value_len` is the exact value length in bytes; `fill` receives a
+    /// mutable slice of that length positioned where the value belongs, and
+    /// the writer zeroes the padding after it. This streams values that do
+    /// not fit a fixed scratch buffer — `UNKNOWN-ATTRIBUTES` with many
+    /// types, for example — without allocating.
+    ///
+    /// # Errors
+    ///
+    /// Same contract as [`MessageWriter::push`]: on error nothing is
+    /// written and the length field is left untouched.
+    pub fn push_with(
+        &mut self,
+        typ: AttrType,
+        value_len: usize,
+        fill: impl FnOnce(&mut [u8]),
+    ) -> Result<(), WireError> {
+        let length_field = u16::try_from(value_len).map_err(|_| WireError::Overflow)?;
+        let total = ATTRIBUTE_HEADER_SIZE + nearest_padded_value_length(value_len);
         let new_length = usize::from(self.length)
             .checked_add(total)
             .ok_or(WireError::Overflow)?;
@@ -468,13 +489,14 @@ impl<'a> MessageWriter<'a> {
 
         self.out[first..first + 2].copy_from_slice(&typ.value().to_be_bytes());
         self.out[first + 2..first + ATTRIBUTE_HEADER_SIZE]
-            .copy_from_slice(&value_len.to_be_bytes());
-        self.out[first + ATTRIBUTE_HEADER_SIZE..first + ATTRIBUTE_HEADER_SIZE + value.len()]
-            .copy_from_slice(value);
-        // Zero the padding so no buffer content leaks into the message.
-        for byte in &mut self.out[first + ATTRIBUTE_HEADER_SIZE + value.len()..end] {
+            .copy_from_slice(&length_field.to_be_bytes());
+        let value_start = first + ATTRIBUTE_HEADER_SIZE;
+        let value_end = value_start + value_len;
+        // Zero the padding first so no buffer content leaks into the message.
+        for byte in &mut self.out[value_end..end] {
             *byte = 0;
         }
+        fill(&mut self.out[value_start..value_end]);
 
         #[allow(clippy::cast_possible_truncation)]
         let length = new_length as u16; // checked against u16::MAX above
