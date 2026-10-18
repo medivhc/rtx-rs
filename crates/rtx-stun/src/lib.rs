@@ -46,12 +46,19 @@
 pub mod addr;
 pub mod attributes;
 pub mod error_code;
+pub mod fingerprint;
+pub mod integrity;
 pub mod message;
 pub mod textattrs;
 pub mod uattrs;
 pub mod xoraddr;
 
 pub use attributes::{ATTRIBUTE_HEADER_SIZE, AttrType, RawAttribute};
+pub use fingerprint::{
+    FINGERPRINT_SIZE, FINGERPRINT_XOR_VALUE, check as check_fingerprint, fingerprint_value,
+    push_fingerprint,
+};
+pub use integrity::{MESSAGE_INTEGRITY_SIZE, MacFn, MessageIntegrity};
 pub use message::{
     MAGIC_COOKIE, MESSAGE_HEADER_SIZE, Message, MessageClass, MessageType, MessageWriter, Method,
     TRANSACTION_ID_SIZE, TransactionId, is_stun_message,

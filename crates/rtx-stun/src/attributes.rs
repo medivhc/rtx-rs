@@ -280,9 +280,32 @@ impl<'a> Decode<'a> for RawAttribute<'a> {
     }
 }
 
+/// Walks an attribute region and returns the first attribute of type
+/// `typ` as `(offset, value)`, where `offset` is its byte offset within
+/// the region.
+///
+/// The region must be a validated attribute section — [`Message::decode`]
+/// validates eagerly — so stepping never fails; a malformed region simply
+/// ends the search. Used by the trailer attributes (`FINGERPRINT`,
+/// `MESSAGE-INTEGRITY`), which need the position of the attribute they
+/// check, and by `MESSAGE-INTEGRITY` signing, which must reject a message
+/// that already carries `FINGERPRINT`.
+///
+/// [`Message::decode`]: crate::message::Message::decode
+pub(crate) fn find_attribute(region: &[u8], typ: AttrType) -> Option<(usize, &[u8])> {
+    let mut offset = 0;
+    while offset < region.len() {
+        let (attr, consumed) = RawAttribute::decode(&region[offset..]).ok()?;
+        if attr.typ == typ {
+            return Some((offset, attr.value));
+        }
+        offset += consumed;
+    }
+    None
+}
+
 impl Encode for RawAttribute<'_> {
     type Error = WireError;
-
     /// Writes the TLV plus zero padding up to the next 32-bit boundary.
     ///
     /// Re-encoding a decoded attribute reproduces its bytes exactly for

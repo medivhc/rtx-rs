@@ -398,6 +398,25 @@ impl<'a> Iterator for AttributeIter<'a> {
     }
 }
 
+/// Rebuilds the 20-byte header with the given attribute-section length.
+///
+/// The trailer attributes (`FINGERPRINT`, `MESSAGE-INTEGRITY`) verify
+/// their value over a header whose length field differs from the decoded
+/// one — the full length for `FINGERPRINT`, and the length up to and
+/// including the `MESSAGE-INTEGRITY` TLV for that one (RFC 5389 §15.4/§15.5).
+pub(crate) fn header_bytes(
+    typ: MessageType,
+    length: u16,
+    transaction_id: TransactionId,
+) -> [u8; MESSAGE_HEADER_SIZE] {
+    let mut header = [0u8; MESSAGE_HEADER_SIZE];
+    header[0..2].copy_from_slice(&typ.value().to_be_bytes());
+    header[2..4].copy_from_slice(&length.to_be_bytes());
+    header[4..8].copy_from_slice(&MAGIC_COOKIE.to_be_bytes());
+    header[8..MESSAGE_HEADER_SIZE].copy_from_slice(&transaction_id.0);
+    header
+}
+
 /// Builds a STUN message into a caller-owned buffer.
 ///
 /// The header is written on construction and each [`MessageWriter::push`]
@@ -528,6 +547,38 @@ impl<'a> MessageWriter<'a> {
     #[must_use]
     pub fn written(&self) -> usize {
         MESSAGE_HEADER_SIZE + usize::from(self.length)
+    }
+
+    /// The attribute section written so far, borrowed from the output
+    /// buffer. Used by trailer attributes to inspect what precedes them.
+    pub(crate) fn written_attributes(&self) -> &[u8] {
+        &self.out[MESSAGE_HEADER_SIZE..self.written()]
+    }
+
+    /// Runs `f` over the bytes written so far with the header length field
+    /// temporarily increased by `extra`, then restores the field.
+    ///
+    /// Trailer attributes — `FINGERPRINT` and `MESSAGE-INTEGRITY` — compute
+    /// their value over the message including a header whose length field
+    /// accounts for their own TLV (RFC 5389 §15.4 and §15.5).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WireError::Overflow`] when `self.length + extra` does not
+    /// fit `u16`.
+    pub(crate) fn with_trailer_length<R>(
+        &mut self,
+        extra: usize,
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> Result<R, WireError> {
+        let adjusted = usize::from(self.length)
+            .checked_add(extra)
+            .ok_or(WireError::Overflow)?;
+        let adjusted = u16::try_from(adjusted).map_err(|_| WireError::Overflow)?;
+        self.out[2..4].copy_from_slice(&adjusted.to_be_bytes());
+        let result = f(&self.out[..self.written()]);
+        self.out[2..4].copy_from_slice(&self.length.to_be_bytes());
+        Ok(result)
     }
 
     /// Returns the message bytes written so far, header included.
