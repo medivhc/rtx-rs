@@ -12,5 +12,8 @@ std = []
 [dependencies]
 rtx-wire = { path = "../rtx-wire" }
 
+[dev-dependencies]
+rtx-rtp = { path = "../rtx-rtp" }
+
 [lints]
 workspace = true
