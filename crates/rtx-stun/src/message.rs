@@ -199,7 +199,7 @@ impl MessageType {
     ///
     /// The two reserved most significant bits ([RFC 5389] §6) are dropped:
     /// callers that must reject a non-zero reserved field — such as
-    /// [`Message`]'s [`Decode`] — check [`MessageType::has_reserved_bits`]
+    /// [`Message`]'s [`Decode`] — check [`MessageType::is_valid_raw_value`]
     /// first.
     pub fn read_value(&mut self, value: u16) {
         // Class: first bit from bit 4, second from bit 7.

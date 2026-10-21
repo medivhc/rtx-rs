@@ -1,0 +1,41 @@
+[package]
+name = "rtx-crypto-rustcrypto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "RustCrypto-backed rtx-crypto provider (no_std, constant-time)"
+
+[features]
+default = ["std", "os-rng"]
+std = ["rtx-crypto/std"]
+
+# Entropy source for `RandomProvider`.
+#
+# `getrandom` cannot pick a backend for a bare-metal target on its own, so it
+# is opt-in: on a host build `os-rng` pulls the OS CSPRNG, while an MCU
+# firmware image selects its own entropy peripheral and leaves this off. With
+# it off, `fill_random` returns `Unsupported` instead of failing to link.
+os-rng = ["dep:getrandom", "getrandom/std"]
+
+[dependencies]
+rtx-crypto = { path = "../rtx-crypto" }
+
+# Pure-Rust, no_std-capable primitives. `alloc` is required by the AEAD
+# `Payload`/`Aead` traits; every feature is pinned so the crate never
+# accidentally pulls a backend that needs a C toolchain or an OS RNG.
+aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+sha1 = { version = "0.10", default-features = false }
+sha2 = { version = "0.10", default-features = false }
+hmac = { version = "0.12", default-features = false }
+
+# Optional because `getrandom` refuses to build on a bare-metal target that
+# registers no entropy backend. Firmware that does have one enables `os-rng`
+# (or swaps in its own provider) instead.
+getrandom = { version = "0.2", default-features = false, optional = true }
+
+[dev-dependencies]
+hex = "0.4"
+
+[lints]
+workspace = true

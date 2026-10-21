@@ -5,6 +5,7 @@ members = [
     "crates/rtx-buffer",
     "crates/rtx-wire",
     "crates/rtx-crypto",
+    "crates/rtx-crypto-rustcrypto",
     "crates/rtx-rtp",
     "crates/rtx-rtcp",
     "crates/rtx-stun",

@@ -127,8 +127,8 @@ jobs:
       - name: Collect coverage
         run: cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info --summary-only
 
-      - name: Enforce the line-coverage floor (baseline 96.32%)
-        run: cargo llvm-cov --workspace --all-features --fail-under-lines 96
+      - name: Enforce the line-coverage floor (baseline 96.38%)
+        run: cargo llvm-cov --workspace --all-features --fail-under-lines 96.3
 
       - name: Upload the coverage report
         uses: codecov/codecov-action@v4
@@ -136,6 +136,41 @@ jobs:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+
+  # -------------------------------------------------------------------
+  # Gate 3b — the real cryptography backend.
+  #
+  # The rest of the suite pins the trait contracts against a deterministic
+  # reference backend, which cannot catch a provider that is
+  # self-consistent but wrong. This job checks the RustCrypto backend
+  # against the published FIPS / RFC / NIST vectors, and separately
+  # confirms the crate still builds for bare metal with no entropy
+  # backend.
+  # -------------------------------------------------------------------
+  crypto-vectors:
+    name: crypto vectors (published)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable toolchain with embedded target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabihf
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: crypto-vectors
+
+      - name: Published vectors + contract conformance
+        run: cargo test -p rtx-crypto-rustcrypto --all-features
+
+      - name: Bare-metal build without an OS RNG backend
+        run: |
+          cargo check -p rtx-crypto-rustcrypto --no-default-features \
+            --target thumbv7em-none-eabihf
+          cargo clippy -p rtx-crypto-rustcrypto --no-default-features -- -D warnings
 
   # -------------------------------------------------------------------
   # Gate 4 — deep property-based sweep.
