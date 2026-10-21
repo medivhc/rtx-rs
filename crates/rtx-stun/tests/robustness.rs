@@ -154,24 +154,19 @@ fn stun_rob_005_lcg_byte_blob_fuzz() {
 
         if let Ok((msg, consumed)) = Message::decode(&blob) {
             assert!(consumed <= blob.len(), "consumed within input");
-            let reencoded = encode_msg(&msg);
-            if blob[0] & 0xF0 == 0 {
-                // A canonical type field re-encodes byte for byte.
-                assert_eq!(reencoded, blob[..consumed], "verbatim, iter {iteration}");
-            } else {
-                // Bits 12-15 of the type field are reserved zero and get
-                // normalised on re-encode; everything after the type
-                // field must still round-trip and the result must decode.
-                assert_eq!(
-                    reencoded[2..],
-                    blob[2..consumed],
-                    "body verbatim, iter {iteration}"
-                );
-                assert!(
-                    Message::decode(&reencoded).is_ok(),
-                    "re-encoded decodes, iter {iteration}"
-                );
-            }
+            // Decode rejects a non-zero reserved field (RFC 5389 section 6,
+            // the two most significant bits of the type), so every message
+            // that decodes has a canonical type and must re-encode verbatim.
+            assert_eq!(
+                blob[0] & 0xc0,
+                0,
+                "decode accepted reserved type bits, iter {iteration}"
+            );
+            assert_eq!(
+                encode_msg(&msg),
+                blob[..consumed],
+                "verbatim, iter {iteration}"
+            );
         }
     }
 }

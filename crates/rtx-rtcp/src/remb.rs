@@ -250,8 +250,16 @@ impl<'a> Decode<'a> for Remb<'a> {
         }
 
         let ssrc_count = cursor.u8()? as usize;
-        if input.len() < REMB_SSRC_OFFSET + ssrc_count * 4 {
+        // The SSRC list is the last field, so `ssrc_count` fixes its length.
+        // Fewer bytes than the count announces is a truncated packet.
+        if total < REMB_SSRC_OFFSET + ssrc_count * 4 {
             return Err(WireError::UnexpectedEnd);
+        }
+        // More bytes than the count accounts for would be silently dropped on
+        // re-encode, breaking the byte-exact round trip every packet type
+        // upholds, so the extra tail is rejected rather than discarded.
+        if total > REMB_SSRC_OFFSET + ssrc_count * 4 {
+            return Err(WireError::InvalidValue);
         }
 
         let b17 = cursor.u8()?;
@@ -567,5 +575,27 @@ mod tests {
         assert_eq!(decoded.ssrc_count(), 3);
         // 200000 < 2^18，故 exp=0 且 mantissa=200000，往返无损。
         assert_f32_eq(decoded.bitrate(), 200_000.0);
+    }
+
+    // RTCP-REMB-012 — 回归：SSRC 列表是最后一个字段，length 声称的长度必须
+    // 与 `20 + ssrc_count * 4` 精确一致。原先只校验 `input.len()` 下限，
+    // 导致 length 与 count 矛盾时模型长度和 consumed 不符。
+    #[test]
+    fn rtcp_remb_012_inconsistent_length_and_ssrc_count_rejected() {
+        // length 声称 24 字节（1 个 SSRC 的尺寸），但 ssrc_count 写成 2，
+        // 模型需要 28 字节。
+        let mut packet = REMB_MARSHAL;
+        packet[2..4].copy_from_slice(&5u16.to_be_bytes()); // length 5 -> 24 bytes
+        packet[16] = 2; // num = 2
+        assert_eq!(Remb::decode(&packet), Err(WireError::UnexpectedEnd));
+
+        // 反向：length 声称 28 字节（2 个 SSRC 的尺寸），count 却是 1。
+        let mut longer = [0u8; 28];
+        longer[..24].copy_from_slice(&REMB_MARSHAL);
+        longer[2..4].copy_from_slice(&6u16.to_be_bytes()); // length 6 -> 28 bytes
+        assert_eq!(Remb::decode(&longer), Err(WireError::InvalidValue));
+
+        // 自洽的原始向量不受影响。
+        assert!(Remb::decode(&REMB_MARSHAL).is_ok());
     }
 }

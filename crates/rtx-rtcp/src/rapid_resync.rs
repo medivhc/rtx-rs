@@ -94,6 +94,13 @@ impl<'a> Decode<'a> for RapidResync {
         if total < RAPID_RESYNC_LENGTH || input.len() < total {
             return Err(WireError::UnexpectedEnd);
         }
+        // RRR carries no FCI, so the model is exactly
+        // `RAPID_RESYNC_LENGTH`. An announced length beyond that would be
+        // dropped on re-encode, so it is rejected instead of silently
+        // truncated.
+        if total != RAPID_RESYNC_LENGTH {
+            return Err(WireError::InvalidValue);
+        }
 
         let mut cursor = Cursor::new(&input[consumed..]);
         let sender_ssrc = cursor.u32_be()?;
@@ -227,5 +234,17 @@ mod tests {
         );
         let (decoded, _) = RapidResync::decode(&output).expect("decode default");
         assert_eq!(decoded, rrr);
+    }
+
+    // RTCP-RRR-005 — 回归：RRR 无 FCI，length 声称超过 12 字节的包必须被
+    // 拒绝。原先只做下限校验，24 字节的包能解出但只写回 12 字节。
+    #[test]
+    fn rtcp_rrr_005_oversized_length_field_rejected() {
+        let mut packet = [0x14u8; 24];
+        packet[0] = 0x85; // v=2, p=0, FMT=5
+        packet[1] = 0xcd; // TSFB
+        packet[2..4].copy_from_slice(&5u16.to_be_bytes()); // length 5 -> 24 bytes
+        assert_eq!(RapidResync::decode(&packet), Err(WireError::InvalidValue));
+        assert!(crate::packet::RtcpPacket::decode(&packet).is_err());
     }
 }

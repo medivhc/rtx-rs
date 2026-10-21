@@ -829,15 +829,22 @@ impl<'a> Decode<'a> for Twcc<'a> {
             pos += TWCC_STATUS_CHUNK_LENGTH;
         }
 
-        // The delta region must fit inside the packet; trailing bytes
-        // (padding or an upstream padding-count inconsistency) are
-        // ignored.
+        // The delta region must fit inside the packet.
         if pos + delta_octets > total {
             return Err(WireError::UnexpectedEnd);
         }
 
+        // Whatever the announced total leaves over must be exactly the
+        // alignment padding `Encode` appends. Anything else (an extra word,
+        // or padding the model would not generate) would be dropped or
+        // invented on re-encode, breaking the verbatim round trip.
+        let raw_len = pos + delta_octets;
+        if raw_len + padding_size(raw_len) != total {
+            return Err(WireError::InvalidValue);
+        }
+
         let chunks = &input[TWCC_CHUNK_OFFSET..pos];
-        let recv_deltas = &input[pos..pos + delta_octets];
+        let recv_deltas = &input[pos..raw_len];
 
         let twcc = Twcc {
             sender_ssrc,
@@ -1647,5 +1654,41 @@ mod tests {
         let (twcc, _) = Twcc::decode(&buf[..written]).expect("decode wrapping report");
         let seqs: Vec<u16> = twcc.status_iter().map(|s| s.seq).collect();
         assert_eq!(seqs, vec![u16::MAX - 1, u16::MAX, 0, 1]);
+    }
+
+    // RTCP-TWCC-020 — 回归：delta 区之后剩余的字节必须恰好是 Encode 追加的
+    // 32-bit 对齐填充。多一个或少一个字都会让 re-encode 长度与 decode 的
+    // consumed 不符，破坏 `encode(decode(bytes)) == bytes`。
+    #[test]
+    fn rtcp_twcc_020_residual_bytes_must_be_exact_padding() {
+        // 一个最小报告：TWCC_CHUNK_OFFSET + 2 字节 run-length chunk，
+        // 零 delta，raw_len = 22，padding 补 2 字节，total = 24。
+        let report = TwccRunLengthReport {
+            sender_ssrc: 1,
+            media_ssrc: 2,
+            base_sequence_number: 0,
+            reference_time: 0,
+            feedback_packet_count: 0,
+            symbol: SymbolTypeTcc::PacketNotReceived,
+            run_length: 4,
+            recv_deltas: &[],
+        };
+        let mut buf = [0u8; 64];
+        let written = {
+            let mut writer = Writer::new(&mut buf);
+            write_run_length_report(&mut writer, &report).expect("write report");
+            writer.offset()
+        };
+        assert_eq!(written, 24);
+        assert!(Twcc::decode(&buf[..written]).is_ok());
+
+        // 多出一个 32-bit 字（length 谎报）必须被拒绝。
+        let mut padded = [0u8; 64];
+        padded[..written].copy_from_slice(&buf[..written]);
+        padded[2..4].copy_from_slice(&6u16.to_be_bytes()); // length 6 -> 28 bytes
+        assert_eq!(Twcc::decode(&padded[..28]), Err(WireError::InvalidValue));
+
+        // 少一个 padding 字节（total 未对齐到模型要求）也必须被拒绝。
+        assert_eq!(Twcc::decode(&buf[..23]), Err(WireError::UnexpectedEnd));
     }
 }

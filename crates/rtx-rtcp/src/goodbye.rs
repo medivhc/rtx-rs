@@ -23,6 +23,7 @@
 use rtx_wire::{Cursor, Decode, Encode, WireError, Writer};
 
 use crate::header::{COUNT_MAX, Header, PacketType, SSRC_LENGTH};
+use crate::util::padding_size;
 
 /// Maximum length of the reason string (one length octet).
 pub const REASON_MAX_OCTET_COUNT: usize = 255;
@@ -55,7 +56,7 @@ impl Goodbye<'_> {
             padding: false,
             count,
             packet_type: PacketType::Bye,
-            length: u16::try_from(self.raw_len() / 4 - 1).unwrap_or(u16::MAX),
+            length: u16::try_from(self.aligned_len() / 4 - 1).unwrap_or(u16::MAX),
         }
     }
 
@@ -66,6 +67,19 @@ impl Goodbye<'_> {
             len += 1 + reason.len();
         }
         len
+    }
+
+    /// Wire size rounded up to the next 32-bit boundary.
+    ///
+    /// RFC 3550 section 6.4.4 requires the reason to be followed by null
+    /// octets up to a 32-bit boundary, and section 6.1 requires every RTCP
+    /// packet to be a multiple of 32 bits. Without this rounding the
+    /// `length` field would disagree with the number of bytes actually
+    /// written (a 3-octet reason yields 11 bytes but would claim 8), and
+    /// a receiver slicing by `length` would drop or mis-parse the tail.
+    fn aligned_len(&self) -> usize {
+        let raw = self.raw_len();
+        raw + padding_size(raw)
     }
 
     /// Encodes the packet into `writer`.
@@ -88,7 +102,7 @@ impl Goodbye<'_> {
                 return Err(WireError::InvalidValue);
             }
         }
-        let length = u16::try_from(self.raw_len() / 4 - 1).map_err(|_| WireError::Overflow)?;
+        let length = u16::try_from(self.aligned_len() / 4 - 1).map_err(|_| WireError::Overflow)?;
 
         let header = Header {
             padding: false,
@@ -100,9 +114,16 @@ impl Goodbye<'_> {
 
         writer.put(self.sources)?;
         if let Some(reason) = self.reason {
+            const ZEROS: [u8; 3] = [0, 0, 0];
             let len = u8::try_from(reason.len()).map_err(|_| WireError::InvalidValue)?;
             writer.u8(len)?;
             writer.put(reason)?;
+            // RFC 3550 section 6.4.4: the reason is followed by null
+            // octets up to the next 32-bit boundary. These are *not* the
+            // generic RTCP padding of section 6.1 (no P bit, no trailing
+            // count), so plain zero octets are written here.
+            let pad = padding_size(self.raw_len());
+            writer.put(&ZEROS[..pad])?;
         }
         Ok(())
     }
@@ -145,6 +166,16 @@ impl<'a> Decode<'a> for Goodbye<'a> {
         };
 
         let bye = Goodbye { sources, reason };
+
+        // A BYE packet has no field after the optional reason and its
+        // 32-bit alignment padding, so the announced total length must match
+        // exactly what this model can represent. Accepting a longer packet
+        // would mean silently dropping trailing octets on re-encode, which
+        // breaks the byte-exact round trip every other packet type upholds.
+        if input.len() != bye.aligned_len() {
+            return Err(WireError::InvalidValue);
+        }
+
         Ok((bye, input.len()))
     }
 }
@@ -153,7 +184,7 @@ impl Encode for Goodbye<'_> {
     type Error = WireError;
 
     fn encoded_len(&self) -> usize {
-        self.raw_len()
+        self.aligned_len()
     }
 
     fn encode(&self, output: &mut [u8]) -> Result<usize, Self::Error> {
@@ -318,5 +349,79 @@ mod tests {
         assert_eq!(consumed, written);
         let collected: Vec<u32> = decoded.source_iter().collect();
         assert_eq!(collected, vec![0x1111_1111, 0x2222_2222, 0x3333_3333]);
+    }
+
+    // RTCP-BYE-010 — 回归：reason 非 4 字节倍数时必须补零对齐，且
+    // `length` 字段与实际写入字节数自洽（fuzz 发现的真实缺陷）。
+    #[test]
+    fn rtcp_bye_010_reason_is_zero_padded_to_32bit_boundary() {
+        // 4 header + 4 SSRC + 1 length octet + 1-octet reason = 10 raw,
+        // padded to 12 so that `length` == 2.
+        let sources = 0x902f_9e2eu32.to_be_bytes();
+        let bye = Goodbye {
+            sources: &sources,
+            reason: Some(b"F"),
+        };
+        assert_eq!(bye.encoded_len(), 12);
+        assert_eq!(bye.header().length, 2);
+
+        let mut buffer = [0xffu8; 12];
+        let written = bye.encode(&mut buffer).expect("encode padded BYE");
+        assert_eq!(written, 12);
+        assert_eq!(
+            &buffer[..],
+            &[
+                0x81, 0xcb, 0x00, 0x02, 0x90, 0x2f, 0x9e, 0x2e, 0x01, 0x46, 0x00, 0x00
+            ]
+        );
+
+        // Byte-exact round trip through the decoder.
+        let (decoded, consumed) = Goodbye::decode(&buffer).expect("decode padded BYE");
+        assert_eq!(consumed, 12);
+        assert_eq!(decoded, bye);
+        assert_eq!(decoded.encoded_len(), consumed);
+    }
+
+    // RTCP-BYE-011 — 回归：空 reason（长度 0）同样需要 3 字节零填充，
+    // 这是 fuzz 崩溃输入 `80 cb 00 01 00 7b c9 28 3a` 的形态。
+    #[test]
+    fn rtcp_bye_011_empty_reason_pads_to_32bit_boundary() {
+        let bye = Goodbye {
+            sources: &[],
+            reason: Some(b""),
+        };
+        assert_eq!(bye.encoded_len(), 8);
+        assert_eq!(bye.header().length, 1);
+
+        let mut buffer = [0u8; 8];
+        let written = bye.encode(&mut buffer).expect("encode empty reason");
+        assert_eq!(written, 8);
+        assert_eq!(
+            &buffer[..],
+            &[0x80, 0xcb, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+        );
+        assert_eq!(bye.encode(&mut buffer).expect("re-encode"), 8);
+    }
+
+    // RTCP-BYE-012 — 回归：reason 之后的多余尾部字节必须被拒绝。BYE 没有
+    // reason 之后的字段，若 decode 接受更长的包，re-encode 就会静默丢弃
+    // 尾部，破坏逐字节往返（fuzz 输入 `80 cb 00 0c 00 ...` 形态）。
+    #[test]
+    fn rtcp_bye_012_trailing_bytes_after_reason_rejected() {
+        // count=0, reason_len=0 -> model size is 8, but length announces 52.
+        let mut packet = [0u8; 52];
+        packet[0] = 0x80;
+        packet[1] = 0xcb; // BYE
+        packet[2..4].copy_from_slice(&12u16.to_be_bytes()); // length 12 -> 52 bytes
+        assert_eq!(Goodbye::decode(&packet), Err(WireError::InvalidValue));
+
+        // The same shape truncated to the modelled size decodes fine.
+        let mut exact = [0u8; 8];
+        exact[0] = 0x80;
+        exact[1] = 0xcb;
+        exact[2..4].copy_from_slice(&1u16.to_be_bytes()); // length 1 -> 8 bytes
+        let (bye, consumed) = Goodbye::decode(&exact).expect("exact-size BYE decodes");
+        assert_eq!(consumed, 8);
+        assert_eq!(bye.reason, Some(&b""[..]));
     }
 }

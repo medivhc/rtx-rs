@@ -35,5 +35,33 @@ path = "../crates/rtx-wire"
 all = "warn"
 pedantic = "warn"
 
+[[bin]]
+name = "crypto_aead"
+path = "fuzz_targets/crypto_aead.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "stun_message"
+path = "fuzz_targets/stun_message.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rtp_header"
+path = "fuzz_targets/rtp_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rtcp_compound"
+path = "fuzz_targets/rtcp_compound.rs"
+test = false
+doc = false
+bench = false
+
 [profile.release]
 debug = 1

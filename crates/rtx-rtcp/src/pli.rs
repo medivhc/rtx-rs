@@ -88,6 +88,12 @@ impl<'a> Decode<'a> for Pli {
         if total < PLI_LENGTH || input.len() < total {
             return Err(WireError::UnexpectedEnd);
         }
+        // PLI carries no FCI, so the model is exactly `PLI_LENGTH`. An
+        // announced length beyond that would be dropped on re-encode, so it
+        // is rejected instead of silently truncated.
+        if total != PLI_LENGTH {
+            return Err(WireError::InvalidValue);
+        }
 
         let mut cursor = Cursor::new(&input[consumed..]);
         let sender_ssrc = cursor.u32_be()?;
@@ -194,5 +200,21 @@ mod tests {
         assert_eq!(written, 12);
         let (decoded, _) = Pli::decode(&output).expect("decode default");
         assert_eq!(decoded, pli);
+    }
+
+    // RTCP-PLI-006 — 回归：PLI 无 FCI，length 声称超过 12 字节的包必须被
+    // 拒绝。原先只做下限校验，24 字节的包能解出但只写回 12 字节，破坏了
+    // `encode(decode(bytes)) == bytes`（fuzz 输入 `85 cd 00 05 ...` 形态）。
+    #[test]
+    fn rtcp_pli_006_oversized_length_field_rejected() {
+        let mut packet = [0x14u8; 24];
+        packet[0] = 0x81; // v=2, p=0, FMT=1
+        packet[1] = 0xce; // PSFB
+        packet[2..4].copy_from_slice(&5u16.to_be_bytes()); // length 5 -> 24 bytes
+        assert_eq!(Pli::decode(&packet), Err(WireError::InvalidValue));
+
+        // Via the dispatcher the same input must fail too, so a compound
+        // packet cannot smuggle it in.
+        assert!(crate::packet::RtcpPacket::decode(&packet).is_err());
     }
 }

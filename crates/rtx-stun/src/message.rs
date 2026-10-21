@@ -196,6 +196,11 @@ impl MessageType {
     }
 
     /// Decodes the 16-bit message type field back into class and method.
+    ///
+    /// The two reserved most significant bits ([RFC 5389] §6) are dropped:
+    /// callers that must reject a non-zero reserved field — such as
+    /// [`Message`]'s [`Decode`] — check [`MessageType::has_reserved_bits`]
+    /// first.
     pub fn read_value(&mut self, value: u16) {
         // Class: first bit from bit 4, second from bit 7.
         let c0 = (value >> CLASS_C0SHIFT) & C0BIT;
@@ -210,6 +215,22 @@ impl MessageType {
         let b = (value >> METHOD_BSHIFT) & METHOD_BBITS;
         let d = (value >> METHOD_DSHIFT) & METHOD_DBITS;
         self.method = Method(a + b + d);
+    }
+
+    /// Returns `true` when a raw 16-bit type field is a legal STUN message type,
+    /// i.e. when neither reserved bit is set.
+    ///
+    /// [RFC 5389] §6 reserves the two most significant bits: `00` marks a
+    /// STUN message and `01` a TURN `ChannelData`. A raw value that sets either
+    /// bit is therefore not a STUN message and must be rejected rather than
+    /// silently normalised — normalising would break
+    /// `encode(decode(bytes)) == bytes` and let a peer smuggle a non-STUN
+    /// type past the demultiplex boundary. [`MessageType`] itself keeps no
+    /// room for the original bits, so the check has to happen on the raw
+    /// field, which is what [`Message`]'s [`Decode`] does.
+    #[must_use]
+    pub const fn is_valid_raw_value(value: u16) -> bool {
+        value & RESERVED_TYPE_BITS == 0
     }
 }
 
@@ -235,6 +256,15 @@ const C1BIT: u16 = 0x2;
 // Class bit positions inside the 16-bit message type field.
 const CLASS_C0SHIFT: u16 = 4;
 const CLASS_C1SHIFT: u16 = 7;
+
+/// The two most significant bits of the message type field.
+///
+/// [RFC 5389] §6 reserves them: `00` marks a STUN message, `01` a TURN
+/// `ChannelData`. A type with either bit set is therefore not a STUN message
+/// at all and must be rejected rather than silently normalised, otherwise
+/// `encode(decode(bytes)) == bytes` would not hold and the type field could
+/// be spoofed across the STUN/ChannelData demultiplex boundary.
+const RESERVED_TYPE_BITS: u16 = 0xc000;
 
 /// A decoded STUN message that borrows its attribute region from the input.
 ///
@@ -306,6 +336,16 @@ impl<'a> Decode<'a> for Message<'a> {
             return Err(WireError::UnexpectedEnd);
         }
         let typ_value = u16::from_be_bytes([input[0], input[1]]);
+        // RFC 5389 section 6: the two most significant bits of the type
+        // field are reserved and must be zero for STUN (`01` there means a
+        // TURN ChannelData). Rejecting is mandatory rather than cosmetic:
+        // `MessageType` cannot retain the discarded bits, so accepting the
+        // packet would make re-encoding normalise the header and break the
+        // byte-exact round trip that MESSAGE-INTEGRITY and FINGERPRINT
+        // verification rely on.
+        if !MessageType::is_valid_raw_value(typ_value) {
+            return Err(WireError::InvalidValue);
+        }
         let length = u16::from_be_bytes([input[2], input[3]]);
         let cookie = u32::from_be_bytes([input[4], input[5], input[6], input[7]]);
         if cookie != MAGIC_COOKIE {
@@ -675,6 +715,46 @@ mod tests {
             got.read_value(typ.value());
             assert_eq!(got, typ, "roundtrip through {:#06x}", typ.value());
         }
+    }
+
+    // MSG-TYPE-004 — 回归：保留位（bits 14-15）非 0 的 type 必须被拒绝。
+    // 这是 fuzz 发现的真实缺陷：`read_value` 会丢弃这两位，若 decode
+    // 接受，re-encode 就会把首字节从 0x40 归一化成 0x00，破坏
+    // `encode(decode(bytes)) == bytes`（fuzz 输入首字节 0x40 vs 0x00）。
+    #[test]
+    fn stun_msg_004_reserved_type_bits_rejected() {
+        // 0x4000 = TURN ChannelData marker per RFC 5389 section 6; 0x8000
+        // and 0xc000 are the other reserved combinations.
+        for raw in [0x4000u16, 0x8000, 0xc000, 0xffff] {
+            assert!(
+                !MessageType::is_valid_raw_value(raw),
+                "{raw:#06x} must be rejected"
+            );
+
+            // A full 20-byte header with the offending type field: the
+            // cookie is valid and the length is 0, so only the reserved
+            // bits can cause the rejection.
+            let mut packet = [0u8; MESSAGE_HEADER_SIZE];
+            packet[0..2].copy_from_slice(&raw.to_be_bytes());
+            packet[2..4].copy_from_slice(&0u16.to_be_bytes());
+            packet[4..8].copy_from_slice(&MAGIC_COOKIE.to_be_bytes());
+            assert_eq!(
+                Message::decode(&packet),
+                Err(WireError::InvalidValue),
+                "{raw:#06x} must not decode"
+            );
+        }
+
+        // The canonical Binding request type (0x0001) must still decode.
+        assert!(MessageType::is_valid_raw_value(0x0001));
+        let mut good = [0u8; MESSAGE_HEADER_SIZE];
+        good[0..2].copy_from_slice(&BINDING_REQUEST.value().to_be_bytes());
+        good[4..8].copy_from_slice(&MAGIC_COOKIE.to_be_bytes());
+        let Ok((msg, consumed)) = Message::decode(&good) else {
+            panic!("Binding request header must decode");
+        };
+        assert_eq!(consumed, MESSAGE_HEADER_SIZE);
+        assert_eq!(msg.typ, BINDING_REQUEST);
     }
 
     // ---- MSG-CODEC --------------------------------------------------------

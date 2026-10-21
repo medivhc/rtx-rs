@@ -35,7 +35,7 @@ fuzz_target!(|data: &[u8]| {
     }
 
     // --- compound walk ---
-    let Ok((compound, consumed)) = CompoundPacket::decode(data) else {
+    let Ok((_compound, consumed)) = CompoundPacket::decode(data) else {
         return;
     };
     assert_eq!(consumed, data.len(), "compound must consume all of its input");

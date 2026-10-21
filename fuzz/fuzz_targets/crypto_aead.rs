@@ -13,8 +13,8 @@
 
 use libfuzzer_sys::fuzz_target;
 use rtx_crypto::{
-    AeadAlgorithm, AeadProvider, CryptoError, HashAlgorithm, HashProvider, HmacProvider,
-    KeyExchangeAlgorithm, KeyExchangeProvider, RandomProvider, SignatureAlgorithm, SignatureProvider,
+    AeadAlgorithm, AeadProvider, CryptoError, HashAlgorithm, HmacProvider, KeyExchangeAlgorithm,
+    KeyExchangeProvider, SignatureAlgorithm, SignatureProvider,
 };
 
 /// Minimal deterministic reference backend (same shape as the integration
@@ -322,7 +322,11 @@ mod ref_backend {
             self.next_private
                 .set(current.wrapping_add(0x9E37_79B9_7F4A_7C15));
             let public = current.wrapping_mul(KEX_G);
-            public_key_out[..PUB_LEN].copy_from_slice(&public.to_le_bytes());
+            // Same 8-byte scalar + stretched tail shape as
+            // `RefSigningKey::public_key`, so the 32-byte public key matches
+            // what `agree` derives on the peer side.
+            public_key_out[..8].copy_from_slice(&public.to_le_bytes());
+            stretch(public, &mut public_key_out[8..PUB_LEN]);
             Ok((RefKexKey(current), PUB_LEN))
         }
 
@@ -364,14 +368,19 @@ fuzz_target!(|data: &[u8]| {
     let selector = data[0];
     let body = &data[1..];
 
-    match selector % 4 {
+    match selector % 5 {
         0 => {
             // AEAD round-trip with fuzzer-controlled lengths.
             let plaintext_len = body.len().min(512);
             let key_len = body.first().map_or(0, |b| usize::from(*b) % 40);
             let nonce_len = body.get(1).map_or(0, |b| usize::from(*b) % 20);
             let aad_len = body.get(2).map_or(0, |b| usize::from(*b) % 40);
-            let plaintext = &body[3.min(body.len())..3.min(body.len()) + plaintext_len];
+            // The plaintext starts after the three length selectors and is
+            // clamped to what is actually left, so a short input yields a
+            // short plaintext rather than an out-of-range slice.
+            let plaintext_start = 3.min(body.len());
+            let plaintext_end = plaintext_start.saturating_add(plaintext_len).min(body.len());
+            let plaintext = &body[plaintext_start..plaintext_end];
 
             let key = &body[..key_len.min(body.len())];
             let nonce = &body[..nonce_len.min(body.len())];
@@ -435,6 +444,35 @@ fuzz_target!(|data: &[u8]| {
             let _ = crypto.hmac(algorithm, body, body, &mut out);
             if out != snapshot && out.len() < ref_backend::digest_len(algorithm) {
                 panic!("rejected hmac wrote into the output buffer");
+            }
+        }
+        3 => {
+            // Signature round-trip over a fuzzer-controlled message, plus a
+            // tamper check: the fuzzer flips a bit, `verify` must refuse.
+            let message_len = body.first().map_or(0, |b| usize::from(*b) % 128);
+            let message = &body[..message_len.min(body.len())];
+            let key = ref_backend::RefSigningKey(0x1234_5678_9ABC_DEF0);
+            let public = key.public_key();
+
+            let mut signature = [0u8; ref_backend::SIG_LEN];
+            let written = crypto
+                .sign(SignatureAlgorithm::Ed25519, &key, message, &mut signature)
+                .expect("sign into an exactly sized buffer");
+            assert_eq!(written, ref_backend::SIG_LEN);
+            crypto
+                .verify(SignatureAlgorithm::Ed25519, &public, message, &signature)
+                .expect("verify own signature");
+
+            // 任意签名长度：要么恰为标称长度且通过，要么 InvalidSignature。
+            // 长度覆盖 0..=SIG_LEN，覆盖截断、超长与恰好相等三种情况。
+            if let Some(truncated) = body.get(1) {
+                let len = usize::from(*truncated) % (ref_backend::SIG_LEN + 1);
+                let short = signature[..len].to_vec();
+                match crypto.verify(SignatureAlgorithm::Ed25519, &public, message, &short) {
+                    Ok(()) => assert_eq!(len, ref_backend::SIG_LEN),
+                    Err(CryptoError::InvalidSignature) => {}
+                    Err(other) => panic!("unexpected error {other:?}"),
+                }
             }
         }
         _ => {
