@@ -15,13 +15,14 @@ HEAD：`e5cdba2` M1-4: layered integration suite (120 tests, 4 crates, 5 levels)
 | M1-3b | rtx-stun typed attributes（addr/xoraddr/text/uattr/error_code） | ✅ 完成 |
 | M1-3c | rtx-stun trailer（FINGERPRINT + MESSAGE-INTEGRITY） | ✅ 完成 |
 | M1-3 | 实现笔记 + 测试向量文档 | ✅ 完成 |
-| M1-4 | 五层分层集成测试套件（120 条） | ✅ 完成 |
+| M1-4 | 五层分层集成测试套件（120 条，4 crate） | ✅ 完成 |
+| M1-5 | rtx-crypto 分层集成测试套件（96 条，五层） | ✅ 完成 |
 
 ## 2. 代码规模
 
 - crates：7 个（rtx-buffer / core / crypto / wire / stun / rtp / rtcp）
 - 总行数：20,245 行 Rust
-- 测试代码：4,931 行（18 个新文件，M1-4 新增）
+- 测试代码：约 6,900 行（23 个文件，M1-4/5 新增）
 
 ## 3. 测试现状
 
@@ -29,7 +30,8 @@ HEAD：`e5cdba2` M1-4: layered integration suite (120 tests, 4 crates, 5 levels)
 |---|---|
 | 单元 + 契约测试（src） | 327 |
 | 新增分层集成测试（M1-4） | 120 |
-| 合计（--all-features） | **447 passed / 0 failed** |
+| M1-5 新增（rtx-crypto） | 96 |
+| 合计（--all-features） | **543 passed / 0 failed** |
 | 默认 features 下 | 120 passed / 0 failed（集成层） |
 
 ### M1-4 分层测试分布（五层）
@@ -40,7 +42,7 @@ HEAD：`e5cdba2` M1-4: layered integration suite (120 tests, 4 crates, 5 levels)
 | L2 | 跨 crate 协作 | addr_core_bridge / twcc_rtp_cross / codec_contract | 23 |
 | L3 | 协议场景（ICE / TURN / RTCP 反馈） | ice_scenarios / turn_scenarios / feedback_reports | 35 |
 | L4 | 健壮性与畸形输入 | 3× robustness.rs | 20 |
-| L5 | 不变式与字节级往返 | `assert_verbatim` 家族 / padding & length 不变式 | 内嵌各层 |
+| L5 | 不变式与字节级往返 | `assert_verbatim` 家族 / crypto invariants.rs | 内嵌各层 + 17 |
 
 ### 按 crate 分布
 
@@ -50,10 +52,11 @@ HEAD：`e5cdba2` M1-4: layered integration suite (120 tests, 4 crates, 5 levels)
 | rtx-rtcp | compound_pipeline 10 / feedback_reports 9 / twcc_rtp_cross 6 / robustness 5 | 30 |
 | rtx-rtp | header_pipeline 8 / extension_pipeline 4 / robustness 6 | 18 |
 | rtx-wire | codec_contract 10 | 10 |
+| rtx-crypto | capability_pipeline 30 / robustness 21 / invariants 17 / handshake_scenarios 15 / buffer_core_bridge 13 | 96 |
 
 ## 4. 质量门禁（当前全绿）
 
-- `cargo test --workspace --all-features`：447 passed / 0 failed
+- `cargo test --workspace --all-features`：543 passed / 0 failed
 - `cargo clippy --all-targets --all-features -- -D warnings`：0 warnings
 - `cargo fmt --check`：clean
 - `cargo build --workspace --no-default-features`：通过（no_std 兼容）
@@ -68,7 +71,7 @@ HEAD：`e5cdba2` M1-4: layered integration suite (120 tests, 4 crates, 5 levels)
 
 ## 6. 下一步建议
 
-1. **M1-5**：rtx-crypto 补齐（当前仅骨架，无独立测试层）
+1. ✅ M1-5 已完成：rtx-crypto 补齐 96 条五层测试
 2. **L5 深化**：把字节级不变式从内嵌断言提升为独立 property-based 测试（proptest / quickcheck）
 3. **fuzz 常态化**：把 L4 的畸形输入样例沉淀为 `fuzz/` target，纳入 CI nightly
 4. **no_std 深化**：rtx-rtp / rtx-rtcp 补 `#![no_std]` 单元测试覆盖（`--no-default-features` 下目前仅验证可编译）
