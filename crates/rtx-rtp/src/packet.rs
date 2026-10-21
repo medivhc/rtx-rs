@@ -84,7 +84,7 @@ impl Encode for RtpPacket<'_> {
     /// # Errors
     ///
     /// Propagates the header validation errors of
-    /// [`Header::write_to`](crate::header::Header::write_to) and returns
+    /// [`RtpPacket::encoded_len`] and returns
     /// [`WireError::OutputTooSmall`] when `output` is smaller than
     /// [`Encode::encoded_len`].
     fn encode(&self, output: &mut [u8]) -> Result<usize, WireError> {

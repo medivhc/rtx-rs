@@ -13,13 +13,13 @@ use crate::attributes::{ATTR_NONCE, ATTR_REALM, ATTR_SOFTWARE, ATTR_USERNAME, At
 use crate::message::MessageWriter;
 
 /// `USERNAME` ceiling, in bytes (RFC 5389 §15.3: 513 bytes with `SASLprep`).
-const MAX_USERNAME_B: usize = 513;
+pub const MAX_USERNAME_B: usize = 513;
 /// `REALM` ceiling, in bytes (RFC 5389 §15.7).
-const MAX_REALM_B: usize = 763;
+pub const MAX_REALM_B: usize = 763;
 /// `SOFTWARE` ceiling, in bytes (RFC 5389 §15.10).
-const MAX_SOFTWARE_B: usize = 763;
+pub const MAX_SOFTWARE_B: usize = 763;
 /// `NONCE` ceiling, in bytes (RFC 5389 §15.8).
-const MAX_NONCE_B: usize = 763;
+pub const MAX_NONCE_B: usize = 763;
 
 /// `USERNAME` attribute ([RFC 5389] §15.3).
 pub type Username<'a> = TextAttribute<'a>;

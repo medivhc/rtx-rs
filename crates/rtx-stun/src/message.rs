@@ -261,7 +261,7 @@ impl<'a> Message<'a> {
     /// Iterates over the attributes in declaration order.
     ///
     /// The legacy `0x8020` code is translated to `XOR-MAPPED-ADDRESS` on the
-    /// way, see [`crate::attributes::compat_attr_type`]. Messages decoded
+    /// way; see the module documentation of [`crate::attributes`]. Messages decoded
     /// through [`Decode`] are validated eagerly, so iteration never fails;
     /// for a hand-constructed message with a malformed region, iteration
     /// stops at the first bad attribute.

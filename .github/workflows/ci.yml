@@ -2,14 +2,23 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'dev/**']
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # -------------------------------------------------------------------
+  # Gate 1 — the original no_std / cross-compilation / lint gates.
+  # -------------------------------------------------------------------
   test:
+    name: build / lint (stable)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +28,9 @@ jobs:
         with:
           targets: thumbv7em-none-eabihf
 
-      # 1. Full workspace test suite with the std feature enabled
-      #    (M0 contract tests + M1 wire codec tests).
+      - uses: Swatinem/rust-cache@v2
+
+      # 1. Full workspace test suite with the std feature enabled.
       - name: Test workspace (std feature)
         run: cargo test --workspace --features std
 
@@ -41,6 +51,159 @@ jobs:
       - name: Clippy (all targets, all features)
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-      # 6. Format gate.
+      # 6. Lint gate for the no_std path.
+      - name: Clippy (no default features)
+        run: cargo clippy --workspace --no-default-features -- -D warnings
+
+      # 7. Format gate.
       - name: Format check
         run: cargo fmt --all -- --check
+
+      # 8. Doc build. `private_intra_doc_links` is denied so a public doc
+      #    comment cannot link to a private constant: that link silently breaks
+      #    for downstream users even though it renders here.
+      - name: Documentation
+        env:
+          RUSTDOCFLAGS: -D warnings -D rustdoc::private_intra_doc_links
+        run: cargo doc --workspace --all-features --no-deps
+
+  # -------------------------------------------------------------------
+  # Gate 2 — the full suite on the declared MSRV and on stable, using the
+  # process-per-test runner so a hung test cannot wedge the whole job.
+  # -------------------------------------------------------------------
+  suite:
+    name: suite (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [msrv, stable]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ${{ matrix.profile }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.profile == 'msrv' && '1.85.0' || 'stable' }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.profile }}
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked
+
+      - name: nextest (all features)
+        run: cargo nextest run --workspace --all-features --no-fail-fast
+
+      - name: nextest (no default features)
+        run: cargo nextest run --workspace --no-default-features --no-fail-fast
+
+  # -------------------------------------------------------------------
+  # Gate 3 — coverage floor.
+  #
+  # The threshold is the measured baseline minus a small margin, so the gate
+  # fails on *regression*, not on ordinary churn. Raise it deliberately when
+  # new tests land; never lower it to make a red build green.
+  # -------------------------------------------------------------------
+  coverage:
+    name: coverage gate
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: coverage
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Collect coverage
+        run: cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info --summary-only
+
+      - name: Enforce the line-coverage floor (baseline 96.32%)
+        run: cargo llvm-cov --workspace --all-features --fail-under-lines 96
+
+      - name: Upload the coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # -------------------------------------------------------------------
+  # Gate 4 — deep property-based sweep.
+  #
+  # The default suite already runs the properties; this job raises the case
+  # count so rare counterexamples become likely, and seeds deterministically
+  # so a red run is reproducible.
+  # -------------------------------------------------------------------
+  proptest:
+    name: property tests (deep sweep)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Deep property sweep
+        env:
+          PROPTEST_CASES: '4096'
+        run: cargo test -p rtx-crypto --test properties --all-features
+
+  # -------------------------------------------------------------------
+  # Gate 5 — nightly fuzz smoke.
+  #
+  # Proves every target still builds and stays panic-free for a few seconds
+  # on each push. Long campaigns belong in a scheduled job with a corpus.
+  # -------------------------------------------------------------------
+  fuzz:
+    name: fuzz smoke (nightly)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nightly + cargo-fuzz
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: llvm-tools-preview
+        run: |
+          cargo install cargo-fuzz --locked
+          rustup component add llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: fuzz
+
+      - name: Build every fuzz target
+        working-directory: fuzz
+        run: cargo fuzz build
+
+      - name: Smoke-run each target for 20 seconds
+        working-directory: fuzz
+        run: |
+          set -euo pipefail
+          for target in crypto_aead stun_message rtp_header rtcp_compound; do
+            echo "::group::$target"
+            cargo fuzz run "$target" -- -max_total_time=20 -rss_limit_mb=4096
+            echo "::endgroup::"
+          done
+
+      - name: Upload any crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: fuzz/artifacts
+          if-no-files-found: ignore

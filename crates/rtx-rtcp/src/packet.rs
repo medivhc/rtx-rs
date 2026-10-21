@@ -4,7 +4,7 @@
 //! to slice exactly one sub-packet out of the input, and dispatches to the
 //! matching typed decoder. Packet types this crate does not model
 //! (APP, XR, unknown) are preserved verbatim as [`RawPacket`], which is
-//! also how [`CompoundPacket`] walks back-to-back packets.
+//! also how [`CompoundPacket`](crate::compound::CompoundPacket) walks back-to-back packets.
 //!
 //! Feedback messages (PT=205 TSFB / PT=206 PSFB, RFC 4585) are further
 //! dispatched on the FMT value carried in the header `count` field:

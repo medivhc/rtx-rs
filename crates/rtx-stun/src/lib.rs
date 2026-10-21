@@ -6,12 +6,12 @@
 //! NAT behaviour discovery extensions ([RFC 5780]) add, on top of the
 //! allocation-free [`rtx_wire`] codec contract ([`Decode`] and [`Encode`]).
 //!
-//! Decoding is zero-copy: [`Message`](message::Message) borrows its attribute
+//! Decoding is zero-copy: [`Message`] borrows its attribute
 //! region directly from the input slice and every attribute is validated
 //! eagerly, so a decoded message is always well-formed. Re-encoding a decoded
 //! message reproduces its bytes verbatim.
 //!
-//! Building a message goes through [`MessageWriter`](message::MessageWriter),
+//! Building a message goes through [`MessageWriter`],
 //! which writes into a caller-owned buffer: attributes are appended in order,
 //! and the two attributes whose value covers the message itself —
 //! `MESSAGE-INTEGRITY` and `FINGERPRINT` — are therefore appended last.

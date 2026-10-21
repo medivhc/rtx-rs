@@ -695,7 +695,7 @@ impl Twcc<'_> {
     /// Header implied by the current field values.
     ///
     /// `count` is the FMT value (15), never the packet count, and the
-    /// padding flag reflects the padding [`Twcc::write_to`] appends.
+    /// padding flag reflects the padding [`Encode::encode`] appends.
     #[must_use]
     pub fn header(&self) -> Header {
         let pad = padding_size(self.raw_len());

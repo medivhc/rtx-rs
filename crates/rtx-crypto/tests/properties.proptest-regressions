@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 794ada3c7893c37035d2ecdf29f9bf3d87d8422536ef118b8d6e3b9c3754a5bc # shrinks to algorithm = Sha1, input = [], slack = 0

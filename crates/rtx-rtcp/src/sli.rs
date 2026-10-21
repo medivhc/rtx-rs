@@ -103,7 +103,7 @@ impl Sli<'_> {
     /// Iterates over the SLI entries.
     ///
     /// Each entry decodes infallibly because the region is a multiple
-    /// of 4 bytes by construction ([`Sli::write_to`] rejects anything
+    /// of 4 bytes by construction ([`Encode::encoded_len`] rejects anything
     /// else) or by dispatcher slicing (the region always ends on the
     /// 32-bit boundary given by the `length` field).
     pub fn entries(&self) -> impl Iterator<Item = SliEntry> + '_ {

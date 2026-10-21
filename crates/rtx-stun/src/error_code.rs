@@ -33,7 +33,7 @@ const ERROR_CODE_CLASS_BYTE: usize = 2;
 const ERROR_CODE_NUMBER_BYTE: usize = 3;
 const ERROR_CODE_REASON_START: usize = 4;
 /// Reason phrase ceiling, in bytes.
-const ERROR_CODE_REASON_MAX_B: usize = 763;
+pub const ERROR_CODE_REASON_MAX_B: usize = 763;
 /// Error codes split as `class * 100 + number`.
 const ERROR_CODE_MODULO: u16 = 100;
 

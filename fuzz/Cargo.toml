@@ -1,0 +1,39 @@
+[package]
+name = "rtx-rs-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+# The fuzz crate is intentionally excluded from the main workspace: it pulls
+# `libfuzzer-sys` (nightly-only, sanitizer-instrumented) and must never be
+# built by an ordinary `cargo test --workspace`.
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.rtx-crypto]
+path = "../crates/rtx-crypto"
+
+[dependencies.rtx-rtcp]
+path = "../crates/rtx-rtcp"
+
+[dependencies.rtx-rtp]
+path = "../crates/rtx-rtp"
+
+[dependencies.rtx-stun]
+path = "../crates/rtx-stun"
+
+[dependencies.rtx-wire]
+path = "../crates/rtx-wire"
+
+# Same lint budget as the main workspace.
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+
+[profile.release]
+debug = 1

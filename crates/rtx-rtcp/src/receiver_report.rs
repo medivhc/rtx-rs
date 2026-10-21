@@ -18,7 +18,7 @@
 //! +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //! ```
 //!
-//! As with [`SenderReport`], the report block count comes from the header
+//! As with [`SenderReport`](crate::sender_report::SenderReport), the report block count comes from the header
 //! `count` field and the extension region is kept verbatim.
 
 use rtx_wire::{Cursor, Decode, Encode, WireError, Writer};

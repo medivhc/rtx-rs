@@ -109,7 +109,7 @@ impl<'a> Header<'a> {
         self.extensions().find(|item| item.id == id)
     }
 
-    /// Number of bytes [`Header::write_to`] produces.
+    /// Number of bytes [`Header::encoded_len`] reports.
     #[must_use]
     pub fn encoded_len(&self) -> usize {
         FIXED_HEADER_LENGTH
