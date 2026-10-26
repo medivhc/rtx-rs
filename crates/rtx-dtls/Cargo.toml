@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
-description = "DTLS 1.2 record layer: sans-IO state machine, replay window and AEAD records (no_std)"
+description = "DTLS 1.2 record layer and handshake: sans-IO state machines, AEAD records and DTLS-SRTP export (no_std)"
 
 [features]
 default = []
@@ -15,6 +15,10 @@ std = ["rtx-core/std", "rtx-crypto/std", "rtx-wire/std"]
 rtx-core = { path = "../rtx-core" }
 rtx-crypto = { path = "../rtx-crypto" }
 rtx-wire = { path = "../rtx-wire" }
+# Safe, no_std zeroization for transient shared secrets and master keys. The
+# crate forbids `unsafe`, so a hand-written `fill(0)` drop could be optimized
+# away; `zeroize` uses volatile writes and a compiler fence on every target.
+zeroize = { version = "1", default-features = false }
 
 [dev-dependencies]
 # Test-only independent AES-GCM reference used to pin the RFC 5246 / RFC 5288

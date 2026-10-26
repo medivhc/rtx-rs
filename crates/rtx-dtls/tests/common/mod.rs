@@ -4,6 +4,8 @@
 
 #![allow(dead_code)]
 
+pub mod handshake;
+
 use rtx_crypto::AeadAlgorithm;
 use rtx_crypto_rustcrypto::RustCryptoProvider;
 use rtx_dtls::{
