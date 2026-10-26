@@ -75,11 +75,12 @@ impl<P> ReceiverContext<P> {
 impl<P: Aes128BlockProvider + HmacProvider> ReceiverContext<P> {
     /// Authenticates and decrypts one `SRTP` packet into `output`.
     ///
-    /// The tag is verified first: on [`Error::AuthenticationFailed`] the
-    /// caller's output buffer is untouched. The replay window is checked next,
-    /// so a duplicate returns [`Error::Replay`] and an index below the window
-    /// returns [`Error::TooOld`], both without writing. Only then is the packet
-    /// copied into `output` and decrypted.
+    /// The packet is matched to this context's `SSRC` first. The tag is then
+    /// verified: on [`Error::AuthenticationFailed`] the caller's output buffer
+    /// is untouched. The replay window is checked next, so a duplicate returns
+    /// [`Error::Replay`] and an index below the window returns
+    /// [`Error::TooOld`], both without writing. Only then is the packet copied
+    /// into `output` and decrypted.
     ///
     /// The `ROC` is estimated with the `RFC 3711` Appendix A algorithm from the
     /// context's `ROC` and `s_l`; `s_l`/`ROC` are updated only after the packet

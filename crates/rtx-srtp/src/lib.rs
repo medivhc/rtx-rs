@@ -73,13 +73,13 @@
 //!
 //! # Receiver order
 //!
-//! [`ReceiverContext::unprotect`] authenticates first, then checks the replay
-//! window, then decrypts. A tag failure leaves the caller's output buffer
-//! untouched. The replay window is 64 indices wide: duplicates return
-//! [`Error::Replay`], indices older than the window return [`Error::TooOld`].
-//! The receiver derives the missing `ROC` bits with the `RFC 3711` Appendix A
-//! algorithm and updates `s_l`/`ROC` only after successful authentication and
-//! decryption.
+//! [`ReceiverContext::unprotect`] matches the packet's `SSRC`, authenticates
+//! it, then checks the replay window and decrypts. A tag failure leaves the
+//! caller's output buffer untouched. The replay window is 64 indices wide:
+//! duplicates return [`Error::Replay`], indices older than the window return
+//! [`Error::TooOld`]. The receiver derives the missing `ROC` bits with the
+//! `RFC 3711` Appendix A algorithm and updates `s_l`/`ROC` only after
+//! successful authentication and decryption.
 //!
 //! # Sender `ROC`
 //!
