@@ -27,13 +27,14 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
+use aes::cipher::{Block, BlockEncrypt};
 use aes_gcm::aead::consts::U16 as TagLen;
 use aes_gcm::aead::{AeadInPlace, KeyInit};
 use aes_gcm::{Aes128Gcm, Aes256Gcm, Nonce, Tag};
 use hmac::{Hmac, Mac};
 use rtx_crypto::{
-    AeadAlgorithm, AeadProvider, CryptoError, HashAlgorithm, HashProvider, HmacProvider,
-    KeyExchangeAlgorithm, KeyExchangeProvider, RandomProvider, SignatureAlgorithm,
+    AeadAlgorithm, AeadProvider, Aes128BlockProvider, CryptoError, HashAlgorithm, HashProvider,
+    HmacProvider, KeyExchangeAlgorithm, KeyExchangeProvider, RandomProvider, SignatureAlgorithm,
     SignatureProvider,
 };
 use sha1::Sha1;
@@ -226,6 +227,25 @@ impl HmacProvider for RustCryptoProvider {
 }
 
 // ---------------------------------------------------------------------------
+// Raw AES block
+// ---------------------------------------------------------------------------
+
+impl Aes128BlockProvider for RustCryptoProvider {
+    fn encrypt_aes128_block(
+        &self,
+        key: &[u8; 16],
+        block: &mut [u8; 16],
+    ) -> Result<(), CryptoError> {
+        let cipher = aes::Aes128::new_from_slice(key).map_err(|_| CryptoError::InvalidKey)?;
+        // `Block` is a 16-byte `GenericArray`; the caller's array lends its
+        // storage for exactly this call.
+        let block = Block::<aes::Aes128>::from_mut_slice(block);
+        cipher.encrypt_block(block);
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
 // AEAD
 // ---------------------------------------------------------------------------
 
@@ -362,5 +382,8 @@ impl KeyExchangeProvider for RustCryptoProvider {
 /// supertrait bundle whose `sign` / `generate_key` return opaque handles, and
 /// this provider deliberately declines those suites. The static assertion
 /// below is what the capability matrix in `docs/m2-crypto-backend.md` cites.
-trait _AssertCapabilities: HashProvider + HmacProvider + AeadProvider + RandomProvider {}
+trait _AssertCapabilities:
+    HashProvider + HmacProvider + AeadProvider + RandomProvider + Aes128BlockProvider
+{
+}
 impl _AssertCapabilities for RustCryptoProvider {}

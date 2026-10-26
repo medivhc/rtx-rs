@@ -26,6 +26,10 @@ rtx-crypto = { path = "../rtx-crypto" }
 # `Payload`/`Aead` traits; every feature is pinned so the crate never
 # accidentally pulls a backend that needs a C toolchain or an OS RNG.
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+# Raw AES-128 block primitive for counter-mode constructions such as SRTP
+# AES-CM. `aes-gcm` already pulls this crate in; the direct dependency only
+# makes the block cipher importable. No new algorithm is introduced.
+aes = { version = "0.8", default-features = false }
 sha1 = { version = "0.10", default-features = false }
 sha2 = { version = "0.10", default-features = false }
 hmac = { version = "0.12", default-features = false }
