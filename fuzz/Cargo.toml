@@ -18,6 +18,9 @@ libfuzzer-sys = "0.4"
 [dependencies.rtx-crypto]
 path = "../crates/rtx-crypto"
 
+[dependencies.rtx-dtls]
+path = "../crates/rtx-dtls"
+
 [dependencies.rtx-rtcp]
 path = "../crates/rtx-rtcp"
 
@@ -59,6 +62,13 @@ bench = false
 [[bin]]
 name = "rtcp_compound"
 path = "fuzz_targets/rtcp_compound.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "dtls_record"
+path = "fuzz_targets/dtls_record.rs"
 test = false
 doc = false
 bench = false
