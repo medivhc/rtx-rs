@@ -306,10 +306,8 @@ fn parse_client_hello_extensions(
                     offers.insert(OfferedAlgorithms::ED25519);
                 }
             }
-            EXT_USE_SRTP => {
-                if use_srtp_contains_aes128_cm_sha1_80(data)? {
-                    offers.insert(OfferedAlgorithms::SRTP_AES128_CM_HMAC_SHA1_80);
-                }
+            EXT_USE_SRTP if use_srtp_contains_aes128_cm_sha1_80(data)? => {
+                offers.insert(OfferedAlgorithms::SRTP_AES128_CM_HMAC_SHA1_80);
             }
             _ => {}
         }
