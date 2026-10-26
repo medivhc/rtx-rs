@@ -15,6 +15,12 @@ std = []
 proptest = "1"
 rtx-buffer = { path = "../rtx-buffer" }
 rtx-core = { path = "../rtx-core" }
+# Test-only: lets the property suite in `tests/properties.rs` run the same
+# invariants against the deterministic reference backend and the real
+# RustCrypto provider. This is a dev-dependency cycle on purpose — the real
+# backend depends on this crate for the traits, and only the test target sees
+# the dependency in the other direction.
+rtx-crypto-rustcrypto = { path = "../rtx-crypto-rustcrypto" }
 
 [lints]
 workspace = true
