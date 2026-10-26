@@ -16,7 +16,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.85"
-repository = "https://github.com/your-org/rtx"
+repository = "https://github.com/medivhc/rtx-rs"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
