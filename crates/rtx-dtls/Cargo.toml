@@ -1,0 +1,26 @@
+[package]
+name = "rtx-dtls"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "DTLS 1.2 record layer: sans-IO state machine, replay window and AEAD records (no_std)"
+
+[features]
+default = []
+std = ["rtx-core/std", "rtx-crypto/std", "rtx-wire/std"]
+
+[dependencies]
+rtx-core = { path = "../rtx-core" }
+rtx-crypto = { path = "../rtx-crypto" }
+rtx-wire = { path = "../rtx-wire" }
+
+[dev-dependencies]
+# Test-only independent AES-GCM reference used to pin the RFC 5246 / RFC 5288
+# nonce and additional-data construction against a second implementation.
+aes-gcm = { version = "0.10", default-features = false, features = ["aes"] }
+rtx-crypto-rustcrypto = { path = "../rtx-crypto-rustcrypto" }
+
+[lints]
+workspace = true
