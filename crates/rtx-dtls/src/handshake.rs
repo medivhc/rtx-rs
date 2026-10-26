@@ -556,25 +556,39 @@ where
     }
 
     /// Keeps the last completed flight retransmittable while waiting for the
-    /// peer's next flight. Used after `ClientKeyExchange`: the client may have
-    /// lost its CCS/Finished, and a retransmitted server flight prompts the
-    /// client to resend its own flight.
+    /// peer's next flight. Used after `ClientKeyExchange` and after receiving
+    /// the peer's CCS: a CCS is not handshake progress and must not cancel the
+    /// retransmission timer (RFC 6347 section 4.2.4).
     fn retain_flight_for_retransmit(&mut self) {
         if self.flight.len == 0 {
             return;
         }
-        self.flight.next = self.flight.len;
+        if self.flight.next < self.flight.len {
+            // The flight is still being emitted; do not mark it sent.
+            self.deadline = None;
+            return;
+        }
         self.deadline = Some(self.now + self.config.initial_retransmit);
         self.retransmissions = 0;
         self.retransmit_interval = self.config.initial_retransmit;
     }
 
     fn resend_last_flight(&mut self) {
-        if self.flight.len > 0 {
-            self.flight.next = 0;
-            self.deadline = None;
+        if self.flight.len == 0 {
+            return;
+        }
+        if self.state == HandshakeState::Established {
+            // The established server's final-flight responses count against
+            // the same retransmission budget instead of resetting it forever.
+            if self.retransmissions >= self.config.max_retransmissions {
+                return;
+            }
+            self.retransmissions = self.retransmissions.saturating_add(1);
+        } else {
             self.retransmissions = 0;
         }
+        self.flight.next = 0;
+        self.deadline = None;
     }
 
     fn handle_timeout(&mut self, at: Timestamp) -> Result<(), HandshakeError> {
@@ -609,6 +623,7 @@ where
 
     fn handle_datagram(&mut self, payload: &[u8]) -> Result<(), HandshakeError> {
         if self.state == HandshakeState::Established {
+            self.handle_established_datagram(payload);
             return Ok(());
         }
         let mut remaining = payload;
@@ -623,6 +638,35 @@ where
                 .ok_or(HandshakeError::Record(RecordError::UnexpectedEnd))?;
         }
         Ok(())
+    }
+
+    /// Handles datagrams after establishment. Application data and alerts are
+    /// outside this handshake machine and are ignored. A retransmitted
+    /// handshake flight from the peer triggers a bounded retransmission of the
+    /// local final flight (RFC 6347 section 4.2.4); a replay of the exact same
+    /// record is treated the same way. Record errors are ignored here so a
+    /// stray packet cannot tear down an established handshake.
+    fn handle_established_datagram(&mut self, payload: &[u8]) {
+        let mut remaining = payload;
+        while !remaining.is_empty() {
+            let Ok((record, consumed)) = Record::decode_prefix(remaining) else {
+                return;
+            };
+            if record.header.content_type == ContentType::Handshake {
+                match self.replay.check(record.header.sequence_number) {
+                    Err(RecordError::Replay | RecordError::TooOld) => {
+                        self.resend_last_flight();
+                    }
+                    _ => {
+                        let _ = self.process_record(&record);
+                    }
+                }
+            }
+            let Some(rest) = remaining.get(consumed..) else {
+                return;
+            };
+            remaining = rest;
+        }
     }
 
     fn process_record(&mut self, record: &Record<'_>) -> Result<(), HandshakeError> {
@@ -686,7 +730,11 @@ where
         self.read_cipher = Some(cipher);
         self.read_epoch = 1;
         self.replay.reset();
-        self.begin_progress();
+        // CCS is not handshake progress: keep the last flight and reset the
+        // retransmission timer instead of cancelling them. A lost Finished
+        // must still be recoverable by retransmission, and a peer that never
+        // completes must drive the state machine to Timeout.
+        self.retain_flight_for_retransmit();
         Ok(())
     }
 

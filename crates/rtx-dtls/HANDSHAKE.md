@@ -24,9 +24,9 @@ queued by the transition that produces it; the runtime drains
 | `WaitServerKeyExchange` | client | `ServerKeyExchange` (message_seq 1); signature verified against the provisioned peer key | none | resend disabled: the peer owns the last flight |
 | `WaitServerHelloDone` | client | `ServerHelloDone` (message_seq 2) | `ClientKeyExchange` (seq 1, epoch 0), `ChangeCipherSpec` (epoch 0), `Finished` (seq 2, epoch 1) | resend the client flight |
 | `WaitClientKeyExchange` | server | `ClientKeyExchange` (message_seq 1) | none (keys derived; server waits for the client CCS) | resend the server flight |
-| `WaitClientFinished` | server | `ChangeCipherSpec` (epoch 0), then `Finished` (message_seq 2, epoch 1) | `ChangeCipherSpec` (epoch 0), `Finished` (seq 3, epoch 1) after verifying the client Finished | resend the server flight |
-| `WaitServerFinished` | client | `ChangeCipherSpec` (epoch 0), then `Finished` (message_seq 3, epoch 1) | `HandshakeEvent::Established` after verifying the server Finished | resend the client flight until CCS |
-| `Established` | both | datagrams are ignored | none | server keeps retransmitting its final flight for the configured retry budget; client has no timer |
+| `WaitClientFinished` | server | `ChangeCipherSpec` (epoch 0), then `Finished` (message_seq 2, epoch 1) | `ChangeCipherSpec` (epoch 0), `Finished` (seq 3, epoch 1) after verifying the client Finished | resend the server flight while waiting; receiving CCS keeps the flight and timer, and budget exhaustion reaches `Timeout` → `Failed` |
+| `WaitServerFinished` | client | `ChangeCipherSpec` (epoch 0), then `Finished` (message_seq 3, epoch 1) | `HandshakeEvent::Established` after verifying the server Finished | resend the client flight (including its Finished) until the server Finished arrives; receiving CCS does not cancel it |
+| `Established` | both | application data and alerts are ignored; a retransmitted peer handshake flight is processed | server resends its final flight within the retry budget; client has no further handshake output | server keeps a final-flight timer; client has none |
 | `Failed` | both | nothing; every input returns `HandshakeError::Failed` | none | none |
 
 Message sequence numbers are per sender: each side starts at 0 and increments
@@ -49,6 +49,9 @@ Additional transitions:
   `UnexpectedMessageSequence`.
 - A record that fails replay/too-old/stale-epoch classification is ignored.
   Every other record error aborts.
+- `ChangeCipherSpec` is **not** handshake progress: receiving it does not
+  cancel the last flight or its retransmission timer. A peer that stops after
+  CCS is driven to `Timeout` → `Failed` after the retry budget.
 - Any error moves the machine to `Failed`, drops the ephemeral key handle and
   zeroizes master-secret/key-schedule buffers. There is no recovery path.
 
@@ -66,7 +69,9 @@ R2-1's record API is reused as-is; no record API signature is changed.
   `RecordCipher`.
 - A datagram may carry several records. The machine walks them in order and
   installs the read cipher between records, so a CCS and a Finished in one
-  datagram are handled correctly.
+  datagram are handled correctly, provided CCS precedes Finished. A protected
+  epoch-1 record that arrives before CCS is rejected rather than buffered
+  (recorded as a gap in section 7).
 - Record sequence numbers are owned by two `RecordEncoder`s (epoch 0 and
   epoch 1); retransmissions always use fresh record sequence numbers while
   keeping the original handshake `message_seq` and bytes.
@@ -97,8 +102,9 @@ Profile:
 - version: DTLS 1.2 `{254, 253}`;
 - cipher suite: 0xC02B (ECDHE-ECDSA-AES128-GCM-SHA256);
 - key exchange: X25519 (supported_groups 0x001D);
-- signature: Ed25519 (signature_algorithms 0x0807), strict verification of
-  exactly `public_key || message || signature`;
+- signature: Ed25519 (signature_algorithms 0x0807); strict Ed25519
+  verification of the `(public_key, message, signature)` triple, with the
+  signed message `client_random || server_random || ServerECDHParams`;
 - SRTP: use_srtp extension, profile 0x0001, MKI length 0.
 
 `ServerKeyExchange` signs `client_random || server_random || ServerECDHParams`
@@ -215,8 +221,15 @@ Differential limitations, recorded rather than hidden:
 - Handshake fragmentation/reassembly; one message per record only.
 - Extended Master Secret (RFC 7627), renegotiation, alerts beyond aborting,
   application-data forwarding after establishment.
-- Final-flight acknowledgement: the server retransmits its final flight for a
-  bounded retry budget, but there is no handshake-level ACK.
+- Final-flight acknowledgement: there is no handshake-level ACK. The server
+  retransmits its final flight for a bounded retry budget, and after
+  establishment it responds to a peer's retransmitted final flight with the
+  same bounded budget. Once the budget is exhausted it stops responding; the
+  peer still has its own `Timeout` → `Failed` exit.
+- CCS/Finished reordering: a protected epoch-1 record received before CCS is
+  rejected with `RecordError::UnexpectedEpoch`; it is not buffered. CCS must be
+  processed first. Loss of CCS or Finished is handled by the retransmission
+  timer, not by reordering support.
 - `RecordCipher` (owned by R2-1) drops its AEAD key and fixed IV without an
   explicit zeroization hook. This PR zeroizes the master secret, key block,
   shared secret and SRTP material, but cannot change R2-1's record type; that

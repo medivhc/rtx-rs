@@ -969,3 +969,175 @@ fn server_retransmits_while_waiting_for_client_finished() {
     }
     assert_eq!(records, 3);
 }
+
+// DTLS-HS-INT-031 — B-1: receiving the client CCS must not cancel the
+// server's retransmission timer or flight. The server retransmits and, after
+// the retry budget, reaches Timeout -> Failed.
+#[test]
+fn server_ccs_keeps_timer_and_times_out() {
+    let mut client = make_client(HandshakeCrypto::new(0xB1B1));
+    let mut config = HandshakeConfig::server();
+    config.max_retransmissions = 1;
+    let mut server = HandshakeMachine::new(
+        HandshakeCrypto::new(0xB2B2),
+        config,
+        Some(&SERVER_SIGNING_KEY),
+    )
+    .expect("server");
+    deliver_server_flight(&mut client, &mut server, 1_000);
+
+    let mut buffer = [0u8; MAX_HANDSHAKE_RECORD_LEN];
+    let cke_len = client
+        .poll_transmit(&mut buffer)
+        .expect("client flight")
+        .expect("CKE");
+    server
+        .handle_input(datagram(1_001, &buffer[..cke_len]))
+        .expect("CKE");
+    assert_eq!(server.state(), HandshakeState::WaitClientFinished);
+
+    let ccs = plaintext_record(ContentType::ChangeCipherSpec, 0, 100, &[1]);
+    server
+        .handle_input(datagram(1_002, &ccs))
+        .expect("client CCS");
+    let deadline = server
+        .next_wakeup()
+        .expect("timer and flight must survive CCS");
+
+    server
+        .handle_input(Input::Timeout(deadline))
+        .expect("retransmit after CCS");
+    let mut records = 0usize;
+    while server
+        .poll_transmit(&mut buffer)
+        .expect("retransmission")
+        .is_some()
+    {
+        records += 1;
+    }
+    assert_eq!(records, 3, "ServerHello, SKE, ServerHelloDone");
+
+    let deadline = server.next_wakeup().expect("timer after retransmission");
+    assert_eq!(
+        server.handle_input(Input::Timeout(deadline)),
+        Err(HandshakeError::Timeout)
+    );
+    assert_eq!(server.state(), HandshakeState::Failed);
+    assert!(server.poll_transmit(&mut buffer).is_err());
+}
+
+// DTLS-HS-INT-032 — B-2: receiving the server CCS must not cancel the client
+// flight/timer; retransmitted Finished reaches an established server, which
+// resends its final flight, and the client completes.
+#[test]
+fn client_ccs_keeps_finished_flight_and_established_server_responds() {
+    let mut client = make_client(HandshakeCrypto::new(0xC1C1));
+    let mut server = make_server(HandshakeCrypto::new(0xC2C2));
+    let mut buffer = [0u8; MAX_HANDSHAKE_RECORD_LEN];
+
+    // ClientHello -> server, server flight -> client.
+    while let Some(len) = client.poll_transmit(&mut buffer).expect("client hello") {
+        server
+            .handle_input(datagram(1_000, &buffer[..len]))
+            .expect("hello");
+    }
+    while let Some(len) = server.poll_transmit(&mut buffer).expect("server flight") {
+        client
+            .handle_input(datagram(1_000, &buffer[..len]))
+            .expect("server flight");
+    }
+
+    // Complete client flight -> server; the server becomes established and
+    // queues its final flight.
+    let mut client_flight = Vec::new();
+    while let Some(len) = client.poll_transmit(&mut buffer).expect("client flight") {
+        let record = buffer[..len].to_vec();
+        server
+            .handle_input(datagram(1_001, &record))
+            .expect("client flight");
+        client_flight.push(record);
+    }
+    assert_eq!(client_flight.len(), 3);
+    assert_eq!(server.state(), HandshakeState::Established);
+
+    let mut server_final = Vec::new();
+    while let Some(len) = server.poll_transmit(&mut buffer).expect("server final") {
+        server_final.push(buffer[..len].to_vec());
+    }
+    assert_eq!(server_final.len(), 2, "CCS and Finished");
+
+    // Deliver only the server CCS: the client installs the read cipher but
+    // must keep its own flight and timer.
+    client
+        .handle_input(datagram(1_002, &server_final[0]))
+        .expect("server CCS");
+    assert_eq!(client.state(), HandshakeState::WaitServerFinished);
+    let deadline = client
+        .next_wakeup()
+        .expect("client timer and flight must survive CCS");
+
+    client
+        .handle_input(Input::Timeout(deadline))
+        .expect("client retransmits");
+    let mut retransmitted = Vec::new();
+    while let Some(len) = client.poll_transmit(&mut buffer).expect("retransmit") {
+        retransmitted.push(buffer[..len].to_vec());
+    }
+    assert_eq!(retransmitted.len(), 3, "CKE, CCS, Finished");
+
+    // The established server must answer the peer's last flight.
+    for record in &retransmitted {
+        server
+            .handle_input(datagram(1_003, record))
+            .expect("established server handles retransmission");
+    }
+    let mut response = Vec::new();
+    while let Some(len) = server.poll_transmit(&mut buffer).expect("response") {
+        response.push(buffer[..len].to_vec());
+    }
+    assert_eq!(response.len(), 2, "server resends CCS and Finished");
+
+    for record in &response {
+        client
+            .handle_input(datagram(1_004, record))
+            .expect("server final flight");
+    }
+    assert!(client.is_established());
+    let client_material = established_material(&mut client);
+    let server_material = established_material(&mut server);
+    assert_eq!(client_material, server_material);
+
+    // An exact-record replay of the original Finished is also a retransmission
+    // signal for the established server, not a silent drop.
+    server
+        .handle_input(datagram(1_005, &client_flight[2]))
+        .expect("exact replay");
+    let mut replay_response = 0usize;
+    while server
+        .poll_transmit(&mut buffer)
+        .expect("replay response")
+        .is_some()
+    {
+        replay_response += 1;
+    }
+    assert_eq!(replay_response, 2, "server resends CCS and Finished");
+}
+
+// DTLS-HS-INT-033 — N-1: epoch-1 before CCS is rejected, not buffered. The
+// documented behavior is a terminal UnexpectedEpoch.
+#[test]
+fn future_epoch_before_ccs_is_rejected() {
+    let mut client = make_client(HandshakeCrypto::new(0xD1D1));
+    let mut server = make_server(HandshakeCrypto::new(0xD2D2));
+    deliver_server_flight(&mut client, &mut server, 1_000);
+    assert_eq!(client.state(), HandshakeState::WaitServerFinished);
+
+    let protected = plaintext_record(ContentType::Handshake, 1, 0, &[0u8; 24]);
+    assert_eq!(
+        client.handle_input(datagram(1_001, &protected)),
+        Err(HandshakeError::Record(
+            rtx_dtls::RecordError::UnexpectedEpoch
+        ))
+    );
+    assert_eq!(client.state(), HandshakeState::Failed);
+}
