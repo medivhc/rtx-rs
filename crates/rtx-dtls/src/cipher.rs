@@ -133,7 +133,9 @@ impl RecordCipher {
     /// Returns [`RecordError::RecordTooLong`] when `plaintext` exceeds 2^14,
     /// [`RecordError::OutputTooSmall`] when `output` is too short, and the
     /// provider error mapped through [`RecordError::Crypto`] when sealing
-    /// fails. All structural and size checks happen before the first write.
+    /// fails. All structural and size checks happen before the first write;
+    /// if the provider itself fails, `output` may hold a partially written
+    /// record and must be treated as invalid.
     pub fn seal<P: AeadProvider + ?Sized>(
         &self,
         provider: &P,
