@@ -199,8 +199,10 @@ jobs:
   # -------------------------------------------------------------------
   # Gate 5 — nightly fuzz smoke.
   #
-  # Proves every target still builds and stays panic-free for a few seconds
-  # on each push. Long campaigns belong in a scheduled job with a corpus.
+  # Proves every target still builds, that the committed regression corpus
+  # is replayed deterministically (each historical crash input must still
+  # pass), and that every target stays panic-free for a few seconds on each
+  # push. Long campaigns belong in a scheduled job with a corpus.
   # -------------------------------------------------------------------
   fuzz:
     name: fuzz smoke (nightly)
@@ -224,6 +226,21 @@ jobs:
       - name: Build every fuzz target
         working-directory: fuzz
         run: cargo fuzz build
+
+      # `-runs=0` executes every corpus input once and exits; it does not
+      # start a campaign. The corpus is the committed regression set from
+      # `fuzz/corpus/<target>` (docs/progress-report.md §6 defects), so a
+      # reintroduced bug fails here in seconds instead of waiting for a new
+      # crash to be rediscovered.
+      - name: Replay the regression corpus (deterministic)
+        working-directory: fuzz
+        run: |
+          set -euo pipefail
+          for target in crypto_aead stun_message rtp_header rtcp_compound; do
+            echo "::group::$target corpus"
+            cargo fuzz run "$target" "corpus/$target" -- -runs=0 -rss_limit_mb=4096
+            echo "::endgroup::"
+          done
 
       - name: Smoke-run each target for 20 seconds
         working-directory: fuzz

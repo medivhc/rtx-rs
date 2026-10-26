@@ -1,6 +1,12 @@
 /target
 /fuzz/target
 /fuzz/artifacts
-/fuzz/corpus
+# libFuzzer writes generated units into the corpus directories. Keep those out
+# of git, but track the curated regression seeds and their notes.
+/fuzz/corpus/**
+!/fuzz/corpus/*/
+!/fuzz/corpus/*/*.bin
+!/fuzz/corpus/*/README.md
+!/fuzz/corpus/README.md
 /fuzz/coverage
 Cargo.lock
