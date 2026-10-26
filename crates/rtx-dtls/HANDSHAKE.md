@@ -236,3 +236,26 @@ Differential limitations, recorded rather than hidden:
   residual is recorded as an R2-1 limitation rather than silently claimed.
 - Changes to R2-1's record API, provider traits, CI, or any crate outside
   `rtx-dtls`.
+
+## 8. Interoperability evidence and gaps (R2-3)
+
+This section records what the repository actually proves about running this
+profile against another DTLS endpoint. "Proven" means a test in this tree
+exercises the listed surface; it never means a third-party stack completed a
+handshake with this profile. The UDP pump is a transport proof, not an
+interoperability proof: both endpoints are this crate's machines.
+
+| Peer | Evidence | Verdict | Blocking gap |
+|---|---|---|---|
+| In-process pair (`HandshakeMachine` client + server, no sockets) | `tests/handshake_scenarios.rs`: `minimal_handshake_establishes_both_sides` plus the retransmission, duplicate, timeout and failure scenarios (DTLS-HS-INT-001 … 033) | Proven | None for the two in-tree machines. This says nothing about a wire peer. |
+| Real UDP pump (`127.0.0.1:0`, non-blocking `UdpSocket`, injected clock) | `tests/dtls_udp_pump.rs`: `handshake_completes_over_real_udp`, `single_flight_loss_is_recovered_by_retransmission`, `duplicated_flights_still_establish_once`, `garbage_datagrams_do_not_panic` | Proven (same-profile peer) | None for transport behaviour: records are encoded, sent, received and decoded over real UDP, and loss/duplication/garbage are handled by the frozen contract. The peer is not a third-party stack, so this is not interoperability evidence. |
+| OpenSSL handshake-message vector | `tests/handshake_openssl.rs`: captured OpenSSL 3.0.13 `ClientHello` parsed and negotiated by the server machine | Proven at the handshake-message layer only | The captured datagram uses record version `{254, 255}`, which the record layer rejects; the vector is re-wrapped in `{254, 253}` for negotiation. It is a parse/negotiation vector, not a live handshake. |
+| Stock OpenSSL DTLS 1.2 wire handshake | None; no live-handshake test exists in this tree | **Not proven** | (1) This profile sends no Certificate message and verifies only the `ServerKeyExchange` signature against a provisioned raw Ed25519 key, while stock OpenSSL uses X.509 `Certificate`/`CertificateVerify` and a certificate-key signature algorithm. (2) No handshake fragmentation/reassembly. (3) No `HelloVerifyRequest`/cookie exchange. (4) Record version is pinned to `{254, 253}`, so OpenSSL's first DTLS 1.0-compatible record with `{254, 255}` is rejected. (5) No certificate-chain or name validation. To prove it: a certificate-path work item, or a peer implementation aligned with this profile (no Certificate, raw Ed25519 key, `{254, 253}`, no fragmentation, no cookies). |
+| str0m | None; no such dependency or test is added | **Not proven** | Same profile mismatch as stock OpenSSL, additionally str0m's WebRTC path uses an X.509 certificate with `Certificate`/`CertificateVerify` and expects a standard DTLS handshake. To prove it: certificate path, fragmentation/reassembly, and cookie support, or an aligned test peer. Adding str0m solely to watch a guaranteed profile mismatch fail is not evidence. |
+| webrtc-rs | None; no such dependency or test is added | **Not proven** | Same as str0m, and it also expects `HelloVerifyRequest` cookie handling and the full certificate/chain path. To prove it: the certificate path and fragmentation/reassembly first, then a live handshake. Adding webrtc-rs solely for a guaranteed failure is not evidence. |
+| Browser (WebRTC DTLS) | None; no browser or WebRTC harness is added | **Not proven**; out of scope for R2-3 | Belongs to P6/R6-3 (WebRTC path). Requires the X.509 certificate path (`Certificate`, `CertificateVerify`, chain validation), handshake fragmentation/reassembly, `HelloVerifyRequest` cookies, version/record compatibility, and ICE/DTLS-SRTP integration. This PR does not test or claim a browser handshake. |
+
+A failed handshake against a peer whose profile does not match is not
+evidence of anything except the mismatch. The gaps above are the work items
+that would have to close before any of those rows could move to "Proven".
+
