@@ -21,7 +21,7 @@
 //!
 //! [`Role`] is deliberately independent of `rtx-dtls`: protocol crates at the
 //! same dependency layer must not depend on each other (see `ARCHITECTURE.md`
-//! section 6). The application maps the `rtx_dtls::Role` value to this enum.
+//! section 6). The application maps the handshake role to this enum.
 
 use zeroize::Zeroize;
 
