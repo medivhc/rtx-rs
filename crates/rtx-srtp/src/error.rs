@@ -1,4 +1,4 @@
-//! Typed failures for `SRTP` protection.
+//! Typed failures for `SRTP`/`SRTCP` protection.
 //!
 //! Every variant is explicit: there is no fallback profile, no "decrypt anyway"
 //! path after an authentication failure, and replayed and too-old packets are
@@ -6,8 +6,9 @@
 
 use rtx_crypto::CryptoError;
 
-/// Failure returned by [`crate::SenderContext::protect`] and
-/// [`crate::ReceiverContext::unprotect`].
+/// Failure returned by [`crate::SenderContext::protect`],
+/// [`crate::ReceiverContext::unprotect`], [`crate::SrtcpSenderContext::protect`]
+/// and [`crate::SrtcpReceiverContext::unprotect`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Error {
     /// The requested protection profile is not
@@ -44,6 +45,10 @@ pub enum Error {
     /// The sender was asked to protect the same sequence number twice. Sending
     /// it again would reuse the keystream and index.
     DuplicateSequence,
+    /// The SRTCP sender has already used all 2^31 indices available under one
+    /// master key (`RFC 3711` sections 3.4 and 9.2). Another packet would
+    /// wrap the 31-bit SRTCP index and reuse a keystream.
+    SrtcpIndexExhausted,
     /// The crypto provider rejected the operation.
     Crypto(CryptoError),
 }
