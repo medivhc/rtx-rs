@@ -40,9 +40,13 @@
 //!
 //! - Socket candidate gathering, interface enumeration and STUN server
 //!   discovery. Candidates enter through the add APIs; "gathering" in this
-//!   order means filling these tables. Both belong to R4-2.
-//! - TURN allocation, refresh and permissions. [`CandidateType::Relay`] is a
-//!   type value only; R4-2 owns the TURN client.
+//!   order means filling these tables. Gathering is not performed in this
+//!   tree: the caller enumerates sockets and discovers its STUN servers
+//!   (`docs/ice-turn-decision.md` §4).
+//! - TURN allocation, refresh, permissions and channels.
+//!   [`CandidateType::Relay`] is a type value only; it lets the caller insert
+//!   an externally allocated relay candidate through the add APIs. This tree
+//!   contains no TURN client.
 //! - ICE restart, ICE-lite, aggressive nomination and foundation-based pair
 //!   pruning. All pairs are unfrozen unconditionally at
 //!   [`Checklist::start`].
@@ -176,7 +180,7 @@
 //!
 //! | responsibility | owner |
 //! |---|---|
-//! | Obtain local/remote candidates (sockets, STUN, TURN, signalling) | caller; R4-2 adds gathering |
+//! | Obtain local/remote candidates (sockets, STUN, TURN, signalling) | caller; R4-2 (`docs/ice-turn-decision.md`) defines the gathering contract, the caller executes it |
 //! | Fill the candidate tables | caller, through the add APIs |
 //! | Encode and send every datagram | caller, from `Event::SendCheck`/`SendResponse` |
 //! | Retransmit lost datagrams | crate schedules the resend event; caller sends it |
@@ -186,12 +190,20 @@
 //! | Read the nominated pair and hand its addresses to the media layer | caller, after `ChecklistCompleted` |
 //! | Authenticate checks (`USERNAME`/`MESSAGE-INTEGRITY`) | nobody in this order; explicit gap |
 //!
-//! # Split with R4-2
+//! # Gathering and TURN (R4-2 decision)
 //!
-//! R4-1 (this crate) stops at "tables filled by the caller". R4-2 owns socket
-//! gathering, STUN server discovery, TURN allocation/refresh and the relay
-//! candidate lifecycle. The relay type exists here only so R4-2 can insert
-//! relay candidates without changing this API.
+//! R4-1 (this crate) stops at "tables filled by the caller". R4-2
+//! (`docs/ice-turn-decision.md`) decides that the caller performs gathering
+//! (socket enumeration, STUN server discovery) and the whole TURN lifecycle
+//! (allocation, refresh, authentication, permissions and channels); no
+//! gathering or TURN code lives in this tree. The relay candidate contract is
+//! pinned in §2.B and §4 of that document: `address` and `base` are both the
+//! relayed transport address, the candidate is added before
+//! [`Checklist::start`] (afterwards the add APIs return
+//! [`IceError::AlreadyStarted`]), a lost allocation shows up as failed pair
+//! checks or stale consent, and session-level failure handling belongs to the
+//! caller. [`CandidateType::Relay`] exists only so the caller can insert such
+//! candidates without changing this API.
 
 mod candidate;
 mod checklist;

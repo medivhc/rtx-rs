@@ -30,7 +30,7 @@
 
 这些测试验证的是 `rtx-stun` 对 TURN 相关属性与消息形状的编解码能力：
 
-- 测试用的 `mock_mac` 是 XOR 假 MAC（`crates/rtx-stun/tests/common/mod.rs:109-117`），不是 HMAC-SHA1；
+- 测试用的 `mock_mac` 是 XOR 假 MAC（`crates/rtx-stun/tests/common/mod.rs:109-119`），不是 HMAC-SHA1；
 - 没有 socket、没有分配状态、没有刷新定时器、没有权限/通道生命周期、没有 ChannelData 帧（`docs/m1-3-implementation-notes.md:96` 明确说 `DATA`/`CHANNEL-NUMBER` 无专门 typed 模块）；
 - 每个场景都是构造字节、解码、断言属性，没有与真实 TURN 服务器交互。
 
@@ -49,7 +49,7 @@ RFC 8445 本身把 relay 定义为可选项：§5.1.1.2 说 agent SHOULD gather 
 ### 1.4 什么部署不需要 relay
 
 - 实验室 / 局域网 / 已知可直连的部署：host 候选（必要时加 srflx）即可完成检查与提名。
-- P6 浏览器互通（计划 R6-3）走 WebTransport 路径：QUIC/H3 的客户端-服务器模型，不跑 ICE，不存在候选配对，也就不需要 TURN。`ARCHITECTURE.md` §15（364-368 行）与 M3 节（505-510 行）把浏览器互通定义为 QUIC/WebTransport 路线，而不是 WebRTC ICE 路线。
+- P6 浏览器互通（计划 R6-3）走 WebTransport 路径：QUIC/H3 的客户端-服务器模型，不跑 ICE，不存在候选配对，也就不需要 TURN。`ARCHITECTURE.md` §15（364-368 行）与 M3 节（505-510 行）把浏览器互通定义为 QUIC/WebTransport 路线，而不是 WebRTC ICE 路线。补充澄清：`ARCHITECTURE.md` 的 M2 节（496-503 行）另含 ICE 子集/全 ICE 取舍与浏览器互通的出口判据，那是 M2 阶段的路线措辞；本决策对 P6 走 WebTransport 的路线判断不变。
 
 ### 1.5 需求判定
 
