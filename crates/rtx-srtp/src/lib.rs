@@ -48,14 +48,18 @@
 //!
 //! The fixed header is copied verbatim. Every octet after it, including the
 //! `CSRC` list, the header extension block, the media payload and any `RTP`
-//! padding octets, is combined with the AES-CM keystream. The authentication
-//! tag covers the complete protected packet before the tag itself, so it
-//! authenticates both the cleartext fixed header and the encrypted region.
+//! padding octets, is combined with the AES-CM keystream. The HMAC-SHA1-80 tag
+//! authenticates the complete protected packet (cleartext fixed header plus
+//! encrypted region) followed by the 32-bit rollover counter (`RFC 3711`
+//! section 4.2, `M = Authenticated Portion || ROC`).
 //!
-//! `RFC 3711` encrypts only the media payload and leaves `CSRC`/extension
-//! bytes in the clear. Encrypting that whole suffix is the layout this crate
-//! was specified with; it is another reason a stock `SRTP` endpoint is not an
-//! interoperability target here.
+//! **Layout determination.** The encrypted region is exactly "everything after
+//! the 12-byte fixed header": `CSRC`, header extension, payload and padding.
+//! `RFC 3711` instead encrypts only the media payload and leaves `CSRC` and
+//! extension bytes in the clear. Consequence: this crate is bidirectionally
+//! non-interoperable with every `RFC 3711` implementation, including `libsrtp`
+//! and `OpenSSL`; the layout divergence must be resolved before R3-2 wires in
+//! real `DTLS-SRTP`.
 //!
 //! # AES-CM
 //!
@@ -66,26 +70,29 @@
 //! ```
 //!
 //! where `k_s` is the 14-byte session salt, `SSRC` is the 32-bit stream
-//! identifier and `i = ROC * 2^16 + SEQ` is the 48-bit packet index. The low
-//! 16 bits are reserved for the block counter, so block `j` uses
-//! `IV + j` and a single packet may consume at most 2^16 blocks
+//! identifier and `i = ROC * 2^16 + SEQ` is the 48-bit packet index. In the
+//! 128-bit big-endian block the salt occupies bytes 0..14, the `SSRC` bytes
+//! 4..8, the 48-bit index bytes 8..14, and bytes 14..16 are the block counter.
+//! Block `j` uses `IV + j` and a single packet may consume at most 2^16 blocks
 //! ([`Error::PacketTooLarge`] otherwise).
 //!
 //! # Receiver order
 //!
 //! [`ReceiverContext::unprotect`] matches the packet's `SSRC`, authenticates
-//! it, then checks the replay window and decrypts. A tag failure leaves the
-//! caller's output buffer untouched. The replay window is 64 indices wide:
-//! duplicates return [`Error::Replay`], indices older than the window return
-//! [`Error::TooOld`]. The receiver derives the missing `ROC` bits with the
-//! `RFC 3711` Appendix A algorithm and updates `s_l`/`ROC` only after
-//! successful authentication and decryption.
+//! it over the packet plus the guessed `ROC`, then checks the replay window
+//! and decrypts. A tag failure leaves the caller's output buffer untouched.
+//! The replay window is 64 indices wide: duplicates return [`Error::Replay`],
+//! indices older than the window return [`Error::TooOld`]. The receiver
+//! derives the missing `ROC` bits with the `RFC 3711` Appendix A algorithm and
+//! updates `s_l`/`ROC` only after successful authentication and decryption.
 //!
 //! # Sender `ROC`
 //!
-//! [`SenderContext`] starts at `ROC = 0` and increments it when the sequence
-//! number wraps from 65535 to 0 ([`Error::RocExhausted`] instead of silently
-//! reusing an index after `2^48` packets).
+//! [`SenderContext`] starts at `ROC = 0`. Any sequence number below the
+//! previous one is a wrap and increments the rollover counter, including a gap
+//! such as 65534 -> 0. Repeating the previous sequence number returns
+//! [`Error::DuplicateSequence`], and `ROC` exhaustion returns
+//! [`Error::RocExhausted`] instead of silently reusing an index.
 //!
 //! # Secrets
 //!
@@ -100,6 +107,13 @@
 //! B.2 vectors (session key `2B7E...4F3C`, salt `F0F1...FCFD`, counters
 //! `0000`-`0002` and `FEFF`-`FF01`). No vector was adjusted to fit the
 //! implementation.
+//!
+//! B.2 only covers `SSRC = 0` and `index = 0`, which cannot catch a misplaced
+//! `SSRC`/index in the IV. A second hardcoded vector therefore uses
+//! `SSRC = 0x12345678` and index `0x0000ABCD1234`; `RFC 3711` publishes no
+//! non-zero-`SSRC` keystream vector, so its expected blocks were computed
+//! independently with `OpenSSL` 3.0.13 AES-128-ECB from the section 4.1.1
+//! formula. The same procedure reproduces B.2 block 0.
 //!
 //! [RFC 3711]: https://www.rfc-editor.org/rfc/rfc3711
 

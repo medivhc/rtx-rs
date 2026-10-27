@@ -76,6 +76,32 @@ pub trait HmacProvider {
         input: &[u8],
         output: &mut [u8],
     ) -> Result<usize, CryptoError>;
+
+    /// Writes the MAC of the concatenation of `parts` under `key` into
+    /// `output`, returning its length.
+    ///
+    /// `RFC 3711` section 4.2 authenticates `Authenticated Portion || ROC`,
+    /// two disjoint slices. This entry point lets a provider hash them without
+    /// allocating a joined buffer.
+    ///
+    /// The default implementation returns [`CryptoError::Unsupported`]. A
+    /// provider that implements only [`HmacProvider::hmac`] keeps compiling,
+    /// but `SRTP` protection reports the missing capability explicitly.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CryptoError::Unsupported`] for an unknown algorithm or a
+    /// backend without multi-part support, or [`CryptoError::OutputTooSmall`]
+    /// when `output` cannot hold the MAC.
+    fn hmac_parts(
+        &self,
+        _algorithm: HashAlgorithm,
+        _key: &[u8],
+        _parts: &[&[u8]],
+        _output: &mut [u8],
+    ) -> Result<usize, CryptoError> {
+        Err(CryptoError::Unsupported)
+    }
 }
 
 /// Raw AES-128 block encryption.

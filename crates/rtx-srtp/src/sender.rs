@@ -68,21 +68,25 @@ impl<P: Aes128BlockProvider + HmacProvider> SenderContext<P> {
     /// The 12-byte fixed header is copied unchanged. Every octet after it (the
     /// `CSRC` list, the header extension block, the payload and any `RTP`
     /// padding) is AES-CM encrypted. The HMAC-SHA1-80 tag is computed over the
-    /// complete protected packet and appended, so the result is
-    /// `rtp.len() + 10` bytes.
+    /// complete protected packet followed by the 32-bit `ROC` (`RFC 3711`
+    /// section 4.2) and appended, so the result is `rtp.len() + 10` bytes.
     ///
-    /// The rollover counter advances when the sequence number wraps from
-    /// 65535 to 0.
+    /// The caller must invoke `protect` in send order. A sequence number below
+    /// the previous one is treated as a wrap and increments the rollover
+    /// counter, including gaps such as 65534 -> 0. Repeating the previous
+    /// sequence number returns [`Error::DuplicateSequence`], because it would
+    /// reuse a keystream index.
     ///
     /// # Errors
     ///
     /// Returns [`Error::MalformedPacket`] when `rtp` is not a complete `RTP`
     /// packet with a valid `CSRC`/extension layout, [`Error::WrongSsrc`] when
-    /// it carries another `SSRC`, [`Error::OutputTooSmall`] when `output` cannot
-    /// hold `rtp.len() + 10` bytes (without writing), [`Error::PacketTooLarge`]
-    /// beyond the 2^16-block keystream limit, [`Error::RocExhausted`] when
-    /// advancing the rollover counter would overflow, and [`Error::Crypto`]
-    /// when the provider fails.
+    /// it carries another `SSRC`, [`Error::DuplicateSequence`] when the
+    /// sequence number did not advance, [`Error::OutputTooSmall`] when
+    /// `output` cannot hold `rtp.len() + 10` bytes (without writing),
+    /// [`Error::PacketTooLarge`] beyond the 2^16-block keystream limit,
+    /// [`Error::RocExhausted`] when advancing the rollover counter would
+    /// overflow, and [`Error::Crypto`] when the provider fails.
     pub fn protect(&mut self, rtp: &[u8], output: &mut [u8]) -> Result<usize, Error> {
         let header = packet::parse(rtp)?;
         if header.ssrc != self.ssrc {
@@ -107,7 +111,8 @@ impl<P: Aes128BlockProvider + HmacProvider> SenderContext<P> {
             index,
             &mut output[FIXED_HEADER_LEN..cleartext_length],
         )?;
-        let tag = cipher::compute_tag(&self.provider, &self.keys, &output[..cleartext_length])?;
+        let tag =
+            cipher::compute_tag(&self.provider, &self.keys, &output[..cleartext_length], roc)?;
         output[cleartext_length..needed].copy_from_slice(&tag);
 
         self.roc = roc;
@@ -116,8 +121,18 @@ impl<P: Aes128BlockProvider + HmacProvider> SenderContext<P> {
     }
 
     /// Returns the `ROC` the packet will use and its 48-bit index.
+    ///
+    /// A sequence regression is a wrap: 65535 -> 0 has no gap, while
+    /// 65534 -> 0 skips a value but still starts the next `ROC`. Equality is
+    /// a duplicate sequence number and cannot be protected twice.
     fn next_index(&self, sequence: u16) -> Result<(u32, u64), Error> {
-        let roc = if self.last_sequence == Some(u16::MAX) && sequence == 0 {
+        let Some(last_sequence) = self.last_sequence else {
+            return Ok((self.roc, index_of(self.roc, sequence)));
+        };
+        if sequence == last_sequence {
+            return Err(Error::DuplicateSequence);
+        }
+        let roc = if sequence < last_sequence {
             self.roc.checked_add(1).ok_or(Error::RocExhausted)?
         } else {
             self.roc
@@ -185,7 +200,7 @@ mod tests {
         assert_eq!(context.rollover_counter(), u32::MAX);
     }
 
-    // SRTP-SEND-002 — sequence wrap 65535 -> 0 increments the ROC exactly once.
+    // SRTP-SEND-002 — clean wrap 65535 -> 0 increments the ROC exactly once.
     #[test]
     fn sequence_wrap_advances_rollover_counter() {
         let mut context = context();
@@ -203,7 +218,51 @@ mod tests {
         assert_eq!(index, 0x0001_0001);
     }
 
-    // SRTP-SEND-003 — the index layout is ROC << 16 | SEQ.
+    // SRTP-SEND-003 — a gap across the wrap is still a wrap.
+    #[test]
+    fn gap_wrap_from_65534_to_zero_advances_rollover_counter() {
+        let mut context = context();
+        context.last_sequence = Some(65_534);
+        let (roc, index) = context.next_index(0).expect("advance");
+        assert_eq!(roc, 1);
+        assert_eq!(index, 0x0001_0000);
+    }
+
+    // SRTP-SEND-004 — 0 -> 65535 -> 0 wraps exactly once.
+    #[test]
+    fn zero_to_max_to_zero_wraps_once() {
+        let mut context = context();
+        context.last_sequence = Some(0);
+        let (roc, index) = context.next_index(u16::MAX).expect("forward jump");
+        assert_eq!((roc, index), (0, 0x0000_FFFF));
+
+        context.last_sequence = Some(u16::MAX);
+        let (roc, index) = context.next_index(0).expect("wrap");
+        assert_eq!((roc, index), (1, 0x0001_0000));
+    }
+
+    // SRTP-SEND-005 — the same sequence number cannot be protected twice.
+    #[test]
+    fn duplicate_sequence_is_rejected() {
+        let mut sender = context();
+        sender.last_sequence = Some(7);
+        assert_eq!(sender.next_index(7), Err(Error::DuplicateSequence));
+
+        let mut fresh = context();
+        let mut first = [0u8; FIXED_HEADER_LEN + AUTH_TAG_LEN];
+        fresh
+            .protect(&bare_rtp(7), &mut first)
+            .expect("first packet");
+
+        let mut second = [0u8; FIXED_HEADER_LEN + AUTH_TAG_LEN];
+        assert_eq!(
+            fresh.protect(&bare_rtp(7), &mut second),
+            Err(Error::DuplicateSequence)
+        );
+        assert!(second.iter().all(|&byte| byte == 0));
+    }
+
+    // SRTP-SEND-006 — the index layout is ROC << 16 | SEQ.
     #[test]
     fn index_layout_is_roc_then_sequence() {
         assert_eq!(index_of(0, 0), 0);

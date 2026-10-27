@@ -76,11 +76,12 @@ impl<P: Aes128BlockProvider + HmacProvider> ReceiverContext<P> {
     /// Authenticates and decrypts one `SRTP` packet into `output`.
     ///
     /// The packet is matched to this context's `SSRC` first. The tag is then
-    /// verified: on [`Error::AuthenticationFailed`] the caller's output buffer
-    /// is untouched. The replay window is checked next, so a duplicate returns
-    /// [`Error::Replay`] and an index below the window returns
-    /// [`Error::TooOld`], both without writing. Only then is the packet copied
-    /// into `output` and decrypted.
+    /// verified over the packet followed by the guessed 32-bit `ROC`
+    /// (`RFC 3711` section 4.2): on [`Error::AuthenticationFailed`] the
+    /// caller's output buffer is untouched. The replay window is checked next,
+    /// so a duplicate returns [`Error::Replay`] and an index below the window
+    /// returns [`Error::TooOld`], both without writing. Only then is the packet
+    /// copied into `output` and decrypted.
     ///
     /// The `ROC` is estimated with the `RFC 3711` Appendix A algorithm from the
     /// context's `ROC` and `s_l`; `s_l`/`ROC` are updated only after the packet
@@ -109,7 +110,8 @@ impl<P: Aes128BlockProvider + HmacProvider> ReceiverContext<P> {
         }
         let (roc, index) = self.guess_index(sequence);
 
-        let expected = cipher::compute_tag(&self.provider, &self.keys, &srtp[..plaintext_length])?;
+        let expected =
+            cipher::compute_tag(&self.provider, &self.keys, &srtp[..plaintext_length], roc)?;
         if !cipher::tags_equal(&expected, &srtp[plaintext_length..]) {
             return Err(Error::AuthenticationFailed);
         }

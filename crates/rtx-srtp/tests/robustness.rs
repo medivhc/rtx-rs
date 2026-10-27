@@ -92,6 +92,17 @@ impl HmacProvider for LyingHmac {
         output.fill(0x5A);
         Ok(19)
     }
+
+    fn hmac_parts(
+        &self,
+        _algorithm: HashAlgorithm,
+        _key: &[u8],
+        _parts: &[&[u8]],
+        output: &mut [u8],
+    ) -> Result<usize, CryptoError> {
+        output.fill(0x5A);
+        Ok(19)
+    }
 }
 
 /// Working HMAC with an AES implementation that always fails.
@@ -117,6 +128,16 @@ impl HmacProvider for AesFailsGoodHmac {
         output: &mut [u8],
     ) -> Result<usize, CryptoError> {
         RustCryptoProvider::new().hmac(algorithm, key, input, output)
+    }
+
+    fn hmac_parts(
+        &self,
+        algorithm: HashAlgorithm,
+        key: &[u8],
+        parts: &[&[u8]],
+        output: &mut [u8],
+    ) -> Result<usize, CryptoError> {
+        RustCryptoProvider::new().hmac_parts(algorithm, key, parts, output)
     }
 }
 
@@ -298,14 +319,16 @@ fn tag_valid_packet_with_broken_extension_is_rejected() {
     protected[length_byte] ^= original[length_byte] ^ 0xFF;
 
     // Re-authenticate the tampered ciphertext with the real session key so the
-    // tag check passes and the post-decryption header check is reached.
+    // tag check passes and the post-decryption header check is reached. The
+    // first packet uses ROC = 0, and the tag covers packet || ROC.
     let plaintext_length = protected.len() - AUTH_TAG_LEN;
+    let roc = 0_u32.to_be_bytes();
     let mut mac = [0u8; 20];
     RustCryptoProvider::new()
-        .hmac(
+        .hmac_parts(
             HashAlgorithm::Sha1,
             &KEY,
-            &protected[..plaintext_length],
+            &[&protected[..plaintext_length], &roc],
             &mut mac,
         )
         .expect("HMAC");

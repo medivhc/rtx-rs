@@ -41,6 +41,9 @@ pub enum Error {
     /// The sender has already used all 2^32 rollover counter values; a further
     /// wrap from sequence number 65535 to 0 would reuse a keystream index.
     RocExhausted,
+    /// The sender was asked to protect the same sequence number twice. Sending
+    /// it again would reuse the keystream and index.
+    DuplicateSequence,
     /// The crypto provider rejected the operation.
     Crypto(CryptoError),
 }

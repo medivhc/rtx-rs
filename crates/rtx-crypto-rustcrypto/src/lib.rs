@@ -197,6 +197,16 @@ impl HmacProvider for RustCryptoProvider {
         input: &[u8],
         output: &mut [u8],
     ) -> Result<usize, CryptoError> {
+        self.hmac_parts(algorithm, key, &[input], output)
+    }
+
+    fn hmac_parts(
+        &self,
+        algorithm: HashAlgorithm,
+        key: &[u8],
+        parts: &[&[u8]],
+        output: &mut [u8],
+    ) -> Result<usize, CryptoError> {
         let len = digest_len(algorithm);
         if output.len() < len {
             return Err(CryptoError::OutputTooSmall);
@@ -205,19 +215,25 @@ impl HmacProvider for RustCryptoProvider {
             HashAlgorithm::Sha1 => {
                 let mut mac = <Hmac<Sha1> as Mac>::new_from_slice(key)
                     .map_err(|_| CryptoError::InvalidKey)?;
-                mac.update(input);
+                for part in parts {
+                    mac.update(part);
+                }
                 mac.finalize().into_bytes().to_vec()
             }
             HashAlgorithm::Sha256 => {
                 let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(key)
                     .map_err(|_| CryptoError::InvalidKey)?;
-                mac.update(input);
+                for part in parts {
+                    mac.update(part);
+                }
                 mac.finalize().into_bytes().to_vec()
             }
             HashAlgorithm::Sha384 => {
                 let mut mac = <Hmac<Sha384> as Mac>::new_from_slice(key)
                     .map_err(|_| CryptoError::InvalidKey)?;
-                mac.update(input);
+                for part in parts {
+                    mac.update(part);
+                }
                 mac.finalize().into_bytes().to_vec()
             }
         };

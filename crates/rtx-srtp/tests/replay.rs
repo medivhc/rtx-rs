@@ -32,15 +32,19 @@ fn duplicate_packet_is_replay() {
 fn reordering_inside_the_window_is_accepted_once() {
     let mut sender = sender();
     let mut packets = Vec::new();
-    for sequence in [10_u16, 12, 11, 9] {
+    // The sender must protect in send order; only delivery is reordered.
+    for sequence in [9_u16, 10, 11, 12] {
         let original = rtp(SSRC, sequence, false, false);
         let protected = protect(&mut sender, &original);
         packets.push((original, protected));
     }
 
     let mut receiver = receiver();
-    for (original, protected) in &packets {
-        assert_eq!(&unprotect(&mut receiver, protected), original);
+    for index in [1_usize, 3, 2, 0] {
+        assert_eq!(
+            &unprotect(&mut receiver, &packets[index].1),
+            &packets[index].0
+        );
     }
 
     // The 11-packet was accepted; a second copy is a replay.
@@ -140,10 +144,10 @@ fn window_boundary_is_64_indices() {
     let mut sender = sender();
     let first = rtp(SSRC, 0, false, false);
     let first_protected = protect(&mut sender, &first);
-    let jump = rtp(SSRC, 64, false, false);
-    let jump_protected = protect(&mut sender, &jump);
     let boundary = rtp(SSRC, 1, false, false);
     let boundary_protected = protect(&mut sender, &boundary);
+    let jump = rtp(SSRC, 64, false, false);
+    let jump_protected = protect(&mut sender, &jump);
 
     let mut receiver = receiver();
     assert_eq!(unprotect(&mut receiver, &first_protected), first);
@@ -154,4 +158,37 @@ fn window_boundary_is_64_indices() {
         Err(Error::TooOld)
     );
     assert_eq!(unprotect(&mut receiver, &boundary_protected), boundary);
+}
+
+// SRTP-AUTH-107 — a stale s_l makes Appendix A guess ROC = 0 for a ROC = 1
+// packet. The tag covers the ROC, so the packet fails authentication instead
+// of decrypting into garbage with the wrong epoch's keystream.
+#[test]
+fn stale_roc_estimate_is_authentication_failure() {
+    let initial = rtp(SSRC, 0, false, false);
+    let mut sender = sender();
+    let initial_protected = protect(&mut sender, &initial);
+
+    let mut receiver = receiver();
+    assert_eq!(unprotect(&mut receiver, &initial_protected), initial);
+    assert_eq!(receiver.rollover_counter(), 0);
+
+    // Advance the sender to ROC = 1 and produce sequence 6 inside that ROC.
+    let mut protected_packets = Vec::new();
+    for sequence in [65_535_u16, 0, 1, 2, 3, 4, 5, 6] {
+        protected_packets.push(protect(&mut sender, &rtp(SSRC, sequence, false, false)));
+    }
+    assert_eq!(sender.rollover_counter(), 1);
+    let last_protected = protected_packets.pop().expect("final packet");
+
+    // The receiver still has s_l = 0 and ROC = 0, so it guesses ROC = 0 and
+    // index 6, which is fresh. Without ROC in the tag this would return Ok.
+    let mut output = vec![0x5A_u8; initial.len()];
+    let before = output.clone();
+    assert_eq!(
+        receiver.unprotect(&last_protected, &mut output),
+        Err(Error::AuthenticationFailed)
+    );
+    assert_eq!(output, before);
+    assert_eq!(receiver.rollover_counter(), 0);
 }

@@ -101,18 +101,22 @@ fn keystream_block<P: Aes128BlockProvider>(
 }
 
 /// Builds the 128-bit initial counter block.
+///
+/// `RFC 3711` section 4.1.1 reads the XOR as a 128-bit big-endian integer:
+/// the salt occupies bytes 0..14, the `SSRC` bytes 4..8, the 48-bit index
+/// bytes 8..14, and bytes 14..16 are reserved for the block counter.
 fn initial_iv(salt: &[u8; SESSION_SALT_LEN], ssrc: u32, index: u64) -> [u8; AES_BLOCK_LEN] {
     let mut iv = [0u8; AES_BLOCK_LEN];
     iv[..SESSION_SALT_LEN].copy_from_slice(salt);
 
-    // SSRC * 2^64: bytes 8..12.
-    for (destination, source) in iv[8..12].iter_mut().zip(ssrc.to_be_bytes()) {
+    // SSRC * 2^64 lands in bytes 4..8.
+    for (destination, source) in iv[4..8].iter_mut().zip(ssrc.to_be_bytes()) {
         *destination ^= source;
     }
 
-    // index * 2^16: the low 48 bits land in bytes 2..8.
+    // index * 2^16: the low 48 bits land in bytes 8..14.
     let index_bytes = index.to_be_bytes();
-    for (destination, source) in iv[2..8].iter_mut().zip(&index_bytes[2..]) {
+    for (destination, source) in iv[8..14].iter_mut().zip(&index_bytes[2..]) {
         *destination ^= source;
     }
 
@@ -120,6 +124,10 @@ fn initial_iv(salt: &[u8; SESSION_SALT_LEN], ssrc: u32, index: u64) -> [u8; AES_
 }
 
 /// Computes the HMAC-SHA1 tag and truncates it to 80 bits.
+///
+/// The authenticated message is the `authenticated` packet portion followed by
+/// the 32-bit `ROC` in big-endian order (`RFC 3711` section 4.2,
+/// `M = Authenticated Portion || ROC`).
 ///
 /// # Errors
 ///
@@ -129,10 +137,17 @@ pub(crate) fn compute_tag<P: HmacProvider>(
     provider: &P,
     keys: &SessionKeys,
     authenticated: &[u8],
+    roc: u32,
 ) -> Result<[u8; AUTH_TAG_LEN], Error> {
     let mut mac = [0u8; SHA1_LEN];
+    let roc_bytes = roc.to_be_bytes();
     let written = provider
-        .hmac(HashAlgorithm::Sha1, &keys.key, authenticated, &mut mac)
+        .hmac_parts(
+            HashAlgorithm::Sha1,
+            &keys.key,
+            &[authenticated, &roc_bytes],
+            &mut mac,
+        )
         .map_err(Error::Crypto)?;
     if written != SHA1_LEN {
         return Err(Error::Crypto(CryptoError::BackendFailure));
@@ -204,31 +219,70 @@ mod tests {
         }
     }
 
-    // SRTP-VEC-002 — SSRC and the 48-bit index land in the RFC 3711 positions.
+    // SRTP-VEC-002 — the §4.1.1 IV follows 128-bit big-endian integer
+    // semantics. The expected value is recomputed with `u128` shifts, not with
+    // the byte layout under test, and pinned to a fixed hex string.
     #[test]
-    fn iv_places_ssrc_and_index_per_rfc3711() {
+    fn iv_matches_rfc3711_u128_semantics() {
+        const SSRC: u32 = 0x1234_5678;
+        const INDEX: u64 = 0x0000_ABCD_1234;
+        const EXPECTED_IV: &str = "F0F1F2F3E6C1A08FF8F95136EEC90000";
+
+        let expected = expected_iv(&SALT, SSRC, INDEX);
+        assert_eq!(expected.to_be_bytes(), hex::<AES_BLOCK_LEN>(EXPECTED_IV));
+        assert_eq!(initial_iv(&SALT, SSRC, INDEX), expected.to_be_bytes());
+    }
+
+    /// Recomputes the IV from the RFC 3711 §4.1.1 formula with 128-bit
+    /// integer shifts: `(salt << 16) ^ (SSRC << 64) ^ (index << 16)`.
+    fn expected_iv(salt: &[u8; SESSION_SALT_LEN], ssrc: u32, index: u64) -> u128 {
+        let mut shifted_salt = [0u8; AES_BLOCK_LEN];
+        shifted_salt[..SESSION_SALT_LEN].copy_from_slice(salt);
+        u128::from_be_bytes(shifted_salt) ^ (u128::from(ssrc) << 64) ^ (u128::from(index) << 16)
+    }
+
+    // SRTP-VEC-004 — a non-zero SSRC and non-zero 48-bit index exercise the
+    // full IV. RFC 3711 publishes no non-zero-SSRC keystream vector, so these
+    // expected blocks were computed independently with OpenSSL 3.0.13
+    // AES-128-ECB from the §4.1.1 formula for the inputs below; the same
+    // procedure reproduces Appendix B.2 block 0.
+    #[test]
+    fn nonzero_ssrc_keystream_matches_independent_aes_vector() {
+        const SSRC: u32 = 0x1234_5678;
+        const INDEX: u64 = 0x0000_ABCD_1234;
+        let vectors = [
+            (0x0000_u16, "148D72D5D978F131CF7C817BF2E3D8E7"),
+            (0x0001_u16, "FB9B6F063C45E234787429610A045F38"),
+        ];
+
         let provider = RustCryptoProvider::new();
         let keys = keys();
-        let ssrc = 0x1122_3344_u32;
-        let index = 0x0000_5566_7788_99AA_u64;
-        let counter = 0x1234_u16;
+        for (counter, expected) in vectors {
+            let actual = keystream_block(&provider, &keys, SSRC, INDEX, counter).expect("block");
+            assert_eq!(actual, hex::<AES_BLOCK_LEN>(expected));
+        }
+    }
 
-        let mut expected = [0u8; AES_BLOCK_LEN];
-        expected[..SESSION_SALT_LEN].copy_from_slice(&SALT);
-        for (destination, source) in expected[8..12].iter_mut().zip(ssrc.to_be_bytes()) {
-            *destination ^= source;
-        }
-        let index_bytes = index.to_be_bytes();
-        for (destination, source) in expected[2..8].iter_mut().zip(&index_bytes[2..]) {
-            *destination ^= source;
-        }
-        expected[14..].copy_from_slice(&counter.to_be_bytes());
+    // SRTP-TAG-002 — the tag binds the ROC and equals HMAC-SHA1 over
+    // `Authenticated Portion || ROC` (RFC 3711 §4.2).
+    #[test]
+    fn tag_binds_roc_and_matches_two_part_hmac() {
+        use rtx_crypto::HmacProvider;
+
+        let provider = RustCryptoProvider::new();
+        let keys = keys();
+        let packet = b"authenticated portion";
+        let tag_roc0 = compute_tag(&provider, &keys, packet, 0).expect("tag");
+        let tag_roc1 = compute_tag(&provider, &keys, packet, 1).expect("tag");
+        assert_ne!(tag_roc0, tag_roc1);
+
+        let mut joined = packet.to_vec();
+        joined.extend_from_slice(&1_u32.to_be_bytes());
+        let mut mac = [0u8; SHA1_LEN];
         provider
-            .encrypt_aes128_block(&KEY, &mut expected)
-            .expect("independent AES block");
-
-        let actual = keystream_block(&provider, &keys, ssrc, index, counter).expect("block");
-        assert_eq!(actual, expected);
+            .hmac(HashAlgorithm::Sha1, &KEY, &joined, &mut mac)
+            .expect("one-shot HMAC");
+        assert_eq!(&tag_roc1[..], &mac[..AUTH_TAG_LEN]);
     }
 
     // SRTP-VEC-003 — more than 2^16 blocks is rejected before any write.
