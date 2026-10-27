@@ -1,9 +1,9 @@
 //! `RTP` header access shared by the sender and receiver paths.
 //!
-//! The fixed 12-byte header is always cleartext. The receiver reads only that
-//! prefix before authentication; and because this module encrypts the `CSRC`
-//! list and header extension too, it parses the complete header only after
-//! decryption.
+//! The whole `RTP` header — the fixed 12-byte prefix, the `CSRC` list and the
+//! header extension block — is cleartext on the wire (`RFC 3711` section 3.1).
+//! The receiver still reads only that fixed prefix before authentication, and
+//! it parses the complete header only after the packet has authenticated.
 
 use rtx_rtp::{Decode, Header};
 

@@ -5,10 +5,7 @@ use rtx_crypto::{Aes128BlockProvider, HmacProvider};
 use crate::cipher::{self, SessionKeys};
 use crate::error::Error;
 use crate::packet;
-use crate::{
-    AUTH_TAG_LEN, FIXED_HEADER_LEN, PROFILE_AES128_CM_HMAC_SHA1_80, SESSION_KEY_LEN,
-    SESSION_SALT_LEN,
-};
+use crate::{AUTH_TAG_LEN, PROFILE_AES128_CM_HMAC_SHA1_80, SESSION_KEY_LEN, SESSION_SALT_LEN};
 
 /// Sender context protecting `RTP` packets for one `SSRC`.
 ///
@@ -65,11 +62,13 @@ impl<P> SenderContext<P> {
 impl<P: Aes128BlockProvider + HmacProvider> SenderContext<P> {
     /// Protects one `RTP` packet into `output`, returning the protected length.
     ///
-    /// The 12-byte fixed header is copied unchanged. Every octet after it (the
-    /// `CSRC` list, the header extension block, the payload and any `RTP`
-    /// padding) is AES-CM encrypted. The HMAC-SHA1-80 tag is computed over the
-    /// complete protected packet followed by the 32-bit `ROC` (`RFC 3711`
-    /// section 4.2) and appended, so the result is `rtp.len() + 10` bytes.
+    /// The full `RTP` header — the 12-byte fixed header, the `CSRC` list and
+    /// the header extension block — is copied unchanged and left in the clear;
+    /// only the media payload, including any `RTP` padding octets, is AES-CM
+    /// encrypted, starting at the end of the full header (`RFC 3711`
+    /// section 3.1). The HMAC-SHA1-80 tag is computed over the complete
+    /// protected packet followed by the 32-bit `ROC` (`RFC 3711` section 4.2)
+    /// and appended, so the result is `rtp.len() + 10` bytes.
     ///
     /// The caller must invoke `protect` in send order. A sequence number below
     /// the previous one is treated as a wrap and increments the rollover
@@ -102,6 +101,10 @@ impl<P: Aes128BlockProvider + HmacProvider> SenderContext<P> {
             return Err(Error::OutputTooSmall);
         }
 
+        // `RFC 3711` section 3.1: the encrypted region is the payload plus any
+        // padding, so it starts at the end of the full `RTP` header (fixed
+        // header, `CSRC` list and extension block are all cleartext).
+        let enc_start = header.encoded_len();
         let cleartext_length = rtp.len();
         output[..cleartext_length].copy_from_slice(rtp);
         cipher::apply_keystream(
@@ -109,7 +112,7 @@ impl<P: Aes128BlockProvider + HmacProvider> SenderContext<P> {
             &self.keys,
             self.ssrc,
             index,
-            &mut output[FIXED_HEADER_LEN..cleartext_length],
+            &mut output[enc_start..cleartext_length],
         )?;
         let tag =
             cipher::compute_tag(&self.provider, &self.keys, &output[..cleartext_length], roc)?;
@@ -160,6 +163,7 @@ pub(crate) fn index_of(roc: u32, sequence: u16) -> u64 {
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
+    use crate::FIXED_HEADER_LEN;
     use rtx_crypto_rustcrypto::RustCryptoProvider;
 
     const SSRC: u32 = 0x1234_5678;

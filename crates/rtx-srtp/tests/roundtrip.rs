@@ -1,8 +1,8 @@
 //! End-to-end protection scenarios over the public API.
 //!
-//! The packets exercise the `CSRC`, header-extension and `RTP` padding paths;
-//! the authenticated region covers the cleartext fixed header plus the whole
-//! encrypted suffix.
+//! The packets exercise the `CSRC`, header-extension and `RTP` padding paths.
+//! Only the payload (plus `RTP` padding) is encrypted; the whole packet,
+//! cleartext header included, is authenticated.
 
 mod common;
 
@@ -12,18 +12,29 @@ use common::{
 };
 use rtx_crypto::Aes128BlockProvider;
 use rtx_crypto_rustcrypto::RustCryptoProvider;
+use rtx_rtp::{Decode, Header};
 use rtx_srtp::{
     AUTH_TAG_LEN, Error, FIXED_HEADER_LEN, PROFILE_AES128_CM_HMAC_SHA1_80, ReceiverContext,
     SenderContext,
 };
 
-// SRTP-RT-001 — CSRC list, header extension and padding survive a round trip
-// byte for byte, while the cleartext fixed header is copied verbatim.
+// SRTP-RT-001 — the fixed header, CSRC list and extension block survive a round
+// trip byte for byte and stay cleartext; only the payload and padding differ on
+// the wire and are restored exactly (RFC 3711 §3.1).
 #[test]
 fn roundtrip_with_csrc_extension_and_padding() {
     let original = rtp(SSRC, 7, true, true);
     let mut sender = sender();
     let protected = protect(&mut sender, &original);
+
+    // Two CSRC entries and a profile-plus-data extension block: 12 + 8 + 8.
+    let enc_start = FIXED_HEADER_LEN + 4 * 2 + (4 + 4);
+    let (header, _) = Header::decode(&original).expect("decode original");
+    assert_eq!(
+        header.encoded_len(),
+        enc_start,
+        "encrypted region starts at the end of the full header"
+    );
 
     assert_eq!(protected.len(), original.len() + AUTH_TAG_LEN);
     assert_eq!(
@@ -31,10 +42,15 @@ fn roundtrip_with_csrc_extension_and_padding() {
         &original[..FIXED_HEADER_LEN],
         "fixed header must stay cleartext"
     );
+    assert_eq!(
+        &protected[FIXED_HEADER_LEN..enc_start],
+        &original[FIXED_HEADER_LEN..enc_start],
+        "CSRC list and extension block must stay cleartext"
+    );
     assert_ne!(
-        &protected[FIXED_HEADER_LEN..original.len()],
-        &original[FIXED_HEADER_LEN..],
-        "CSRC/extension/payload/padding must be encrypted"
+        &protected[enc_start..original.len()],
+        &original[enc_start..],
+        "payload and padding must be encrypted"
     );
 
     let mut receiver = receiver();
@@ -86,13 +102,17 @@ fn tampered_tag_is_rejected_without_touching_output() {
     assert_eq!(output, before);
 }
 
-// SRTP-RT-005 — a tampered ciphertext byte is rejected.
+// SRTP-RT-005 — a tampered payload (ciphertext) byte is rejected.
 #[test]
 fn tampered_ciphertext_is_rejected() {
     let original = rtp(SSRC, 4, false, false);
     let mut sender = sender();
     let mut protected = protect(&mut sender, &original);
-    protected[FIXED_HEADER_LEN] ^= 0x80;
+    // Two CSRC entries and no extension: the first encrypted byte is at 20,
+    // inside the payload region of the fixture.
+    let enc_start = FIXED_HEADER_LEN + 4 * 2;
+    assert!(enc_start < original.len(), "fixture has a payload");
+    protected[enc_start] ^= 0x80;
 
     let mut receiver = receiver();
     let mut output = vec![0u8; original.len()];
@@ -217,4 +237,64 @@ fn provider_aes128_block_matches_fips197() {
 #[test]
 fn profile_constant_is_rfc_value() {
     assert_eq!(PROFILE_AES128_CM_HMAC_SHA1_80, 0x0001);
+}
+
+// SRTP-RT-012 — layout boundary: with two CSRC entries and a header extension
+// the encrypted region starts exactly at the end of the full RTP header, and
+// the header bytes are copied verbatim (RFC 3711 §3.1).
+#[test]
+fn encrypted_region_starts_after_the_full_header() {
+    let original = rtp(SSRC, 21, false, true);
+
+    // Hand calculation: 12-byte fixed header + two 4-byte CSRC entries +
+    // 4-byte extension header (profile and length) + 4 bytes of extension data.
+    let enc_start = 12 + 4 * 2 + (4 + 4);
+    assert_eq!(enc_start, 28);
+
+    // Cross-check the hand calculation against the parser's own header length.
+    let (header, consumed) = Header::decode(&original).expect("decode original");
+    assert_eq!(header.csrc.len() / 4, 2);
+    assert!(header.extension);
+    assert_eq!(header.extension_data.len(), 4);
+    assert_eq!(consumed, enc_start);
+    assert_eq!(header.encoded_len(), enc_start);
+
+    let mut sender = sender();
+    let protected = protect(&mut sender, &original);
+    assert_eq!(
+        &protected[FIXED_HEADER_LEN..enc_start],
+        &original[FIXED_HEADER_LEN..enc_start],
+        "protected[12..enc_start] must equal the original"
+    );
+    assert_ne!(
+        &protected[enc_start..original.len()],
+        &original[enc_start..],
+        "the payload must be encrypted"
+    );
+
+    let mut receiver = receiver();
+    assert_eq!(unprotect(&mut receiver, &protected), original);
+}
+
+// SRTP-RT-013 — the CSRC list and extension block travel cleartext but stay
+// inside the authenticated portion: tampering either fails the tag check.
+#[test]
+fn tampered_cleartext_csrc_and_extension_are_rejected() {
+    let original = rtp(SSRC, 22, false, true);
+    let mut sender = sender();
+    let protected = protect(&mut sender, &original);
+
+    // Byte 12 is the first CSRC octet; byte 24 is the first extension data
+    // octet (12 fixed + 8 CSRC + 2 profile + 2 length).
+    for index in [FIXED_HEADER_LEN, 24] {
+        let mut tampered = protected.clone();
+        tampered[index] ^= 0x01;
+        let mut receiver = receiver();
+        let mut output = vec![0u8; original.len()];
+        assert_eq!(
+            receiver.unprotect(&tampered, &mut output),
+            Err(Error::AuthenticationFailed),
+            "tampered byte {index}"
+        );
+    }
 }
