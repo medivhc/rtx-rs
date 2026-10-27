@@ -78,7 +78,7 @@ pub const MAX_RTO: Duration = Duration::from_millis(8_000);
 pub const MAX_RETRANSMISSIONS: u32 = 7;
 
 /// Fixed four-byte prefix of every generated transaction id.
-const TRANSACTION_TAG: [u8; 4] = [b'R', b'T', b'X', b'!'];
+const TRANSACTION_TAG: [u8; 4] = *b"RTX!";
 
 /// Checklist state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
