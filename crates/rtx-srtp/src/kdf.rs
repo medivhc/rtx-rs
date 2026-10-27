@@ -35,6 +35,24 @@
 //! `k_a` is label `0x01` with `n_a = 160`, and `k_s` is label `0x02` with
 //! `n_s = 112`. The Appendix B.3 vectors in this module pin the construction
 //! against the published derivation output, including the authentication key.
+//!
+//! # SRTCP labels
+//!
+//! `RFC 3711` section 4.3.2 keeps the same master key and master salt for
+//! `SRTCP` but changes the labels: "use `<label>` = 0x03 for the SRTCP
+//! encryption key, `<label>` = 0x04 for the SRTCP authentication key, and,
+//! `<label>` = 0x05 for the SRTCP salting key". It also replaces the `SRTP`
+//! index with the 32-bit quantity `0 || SRTCP index`. With the default
+//! `key_derivation_rate = 0` the 48-bit `r` stays zero, so the PRF input has
+//! the same shape as for `SRTP` and only the label octet differs.
+//!
+//! The `SRTP` labels `0x00`/`0x01`/`0x02` MUST NOT be reused for `SRTCP`:
+//! section 3.2.1 states that the master key may be shared but the session
+//! keys MUST NOT, and section 4.3.1 requires every label to be unique for
+//! each type of key. Reusing the `SRTP` labels would derive the same
+//! encryption, authentication and salt values for both protocols.
+//! [`derive_srtcp_session_keys`] therefore derives under `0x03`/`0x04`/`0x05`
+//! only.
 
 use rtx_crypto::Aes128BlockProvider;
 use zeroize::Zeroize;
@@ -48,6 +66,12 @@ const LABEL_ENCRYPTION: u8 = 0x00;
 const LABEL_AUTHENTICATION: u8 = 0x01;
 /// `RFC 3711` section 4.3.1 label for the SRTP salting key (`k_s`).
 const LABEL_SALT: u8 = 0x02;
+/// `RFC 3711` section 4.3.2 label for the SRTCP encryption key.
+const LABEL_SRTCP_ENCRYPTION: u8 = 0x03;
+/// `RFC 3711` section 4.3.2 label for the SRTCP authentication key.
+const LABEL_SRTCP_AUTHENTICATION: u8 = 0x04;
+/// `RFC 3711` section 4.3.2 label for the SRTCP salting key.
+const LABEL_SRTCP_SALT: u8 = 0x05;
 
 /// Octet of the PRF input `x` that carries `<label> || r`.
 ///
@@ -147,6 +171,68 @@ impl core::fmt::Debug for SessionKeys {
     }
 }
 
+/// SRTCP session key material owned by one context (`RFC 3711` section 4.3.2).
+///
+/// The three values have the same roles and lengths as [`SessionKeys`] —
+/// 16-byte encryption key, 20-byte authentication key, 14-byte salt — but are
+/// derived under the SRTCP labels `0x03`/`0x04`/`0x05`. The type is distinct
+/// so `SRTP` session material cannot be passed to an SRTCP context by
+/// accident, which section 3.2.1 forbids ("the session key(s) MUST NOT be so
+/// shared").
+///
+/// It wraps [`SessionKeys`], so the single `Drop` implementation zeroizes all
+/// three arrays and `Debug` never prints them. The wrapper's own `Debug`
+/// renders only `<redacted>`.
+pub struct SrtcpSessionKeys {
+    keys: SessionKeys,
+}
+
+impl SrtcpSessionKeys {
+    pub(crate) const fn new(
+        encryption_key: [u8; SESSION_KEY_LEN],
+        authentication_key: [u8; SESSION_AUTH_KEY_LEN],
+        salt: [u8; SESSION_SALT_LEN],
+    ) -> Self {
+        Self {
+            keys: SessionKeys::new(encryption_key, authentication_key, salt),
+        }
+    }
+
+    /// AES-CM SRTCP session encryption key (`k_e`).
+    #[must_use]
+    pub const fn encryption_key(&self) -> &[u8; SESSION_KEY_LEN] {
+        self.keys.encryption_key()
+    }
+
+    /// Full-length HMAC-SHA1 SRTCP session authentication key (`k_a`).
+    #[must_use]
+    pub const fn authentication_key(&self) -> &[u8; SESSION_AUTH_KEY_LEN] {
+        self.keys.authentication_key()
+    }
+
+    /// AES-CM SRTCP session salt (`k_s`).
+    #[must_use]
+    pub const fn salt(&self) -> &[u8; SESSION_SALT_LEN] {
+        self.keys.salt()
+    }
+
+    /// The wrapped `SRTP`-shaped session values, for the shared cipher helpers.
+    pub(crate) const fn session_keys(&self) -> &SessionKeys {
+        &self.keys
+    }
+}
+
+impl core::fmt::Debug for SrtcpSessionKeys {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("SrtcpSessionKeys")
+            .field("encryption_key", &"<redacted>")
+            .field("authentication_key", &"<redacted>")
+            .field("salt", &"<redacted>")
+            .finish_non_exhaustive()
+    }
+}
+
 /// Derives the `SRTP_AES128_CM_HMAC_SHA1_80` session keys from master material
 /// (`RFC 3711` section 4.3 with the default `key_derivation_rate` of zero).
 ///
@@ -163,6 +249,57 @@ pub fn derive_session_keys<P: Aes128BlockProvider>(
     master_key: &[u8; SESSION_KEY_LEN],
     master_salt: &[u8; SESSION_SALT_LEN],
 ) -> Result<SessionKeys, Error> {
+    derive(
+        provider,
+        master_key,
+        master_salt,
+        [LABEL_ENCRYPTION, LABEL_AUTHENTICATION, LABEL_SALT],
+    )
+}
+
+/// Derives the SRTCP session keys from master material (`RFC 3711` section
+/// 4.3.2 with the default `key_derivation_rate` of zero).
+///
+/// The construction is exactly [`derive_session_keys`] but under the SRTCP
+/// labels: `0x03` for the encryption key, `0x04` for the authentication key
+/// and `0x05` for the salt (section 4.3.2). The master key and master salt may
+/// be the same ones used for `SRTP`, but the derived session values are
+/// deliberately different (section 3.2.1).
+///
+/// One derivation is performed; there is no per-packet rekeying. The returned
+/// value owns copies of the three session values and zeroizes them on drop.
+///
+/// # Errors
+///
+/// Returns [`Error::Crypto`] when the AES-CM PRF provider fails. No partially
+/// derived material is returned, and the temporary buffers are zeroized on
+/// both success and failure.
+pub fn derive_srtcp_session_keys<P: Aes128BlockProvider>(
+    provider: &P,
+    master_key: &[u8; SESSION_KEY_LEN],
+    master_salt: &[u8; SESSION_SALT_LEN],
+) -> Result<SrtcpSessionKeys, Error> {
+    let keys = derive(
+        provider,
+        master_key,
+        master_salt,
+        [
+            LABEL_SRTCP_ENCRYPTION,
+            LABEL_SRTCP_AUTHENTICATION,
+            LABEL_SRTCP_SALT,
+        ],
+    )?;
+    Ok(SrtcpSessionKeys { keys })
+}
+
+/// Runs the section 4.3.1 derivation once for the three labels in
+/// `[encryption, authentication, salt]` order.
+fn derive<P: Aes128BlockProvider>(
+    provider: &P,
+    master_key: &[u8; SESSION_KEY_LEN],
+    master_salt: &[u8; SESSION_SALT_LEN],
+    labels: [u8; 3],
+) -> Result<SessionKeys, Error> {
     let mut encryption_key = [0u8; SESSION_KEY_LEN];
     let mut authentication_key = [0u8; SESSION_AUTH_KEY_LEN];
     let mut salt = [0u8; SESSION_SALT_LEN];
@@ -171,7 +308,7 @@ pub fn derive_session_keys<P: Aes128BlockProvider>(
         provider,
         master_key,
         master_salt,
-        LABEL_ENCRYPTION,
+        labels[0],
         &mut encryption_key,
     )
     .and_then(|()| {
@@ -179,11 +316,11 @@ pub fn derive_session_keys<P: Aes128BlockProvider>(
             provider,
             master_key,
             master_salt,
-            LABEL_AUTHENTICATION,
+            labels[1],
             &mut authentication_key,
         )
     })
-    .and_then(|()| prf(provider, master_key, master_salt, LABEL_SALT, &mut salt));
+    .and_then(|()| prf(provider, master_key, master_salt, labels[2], &mut salt));
 
     if let Err(error) = outcome {
         encryption_key.zeroize();
@@ -361,6 +498,69 @@ mod tests {
     fn provider_failure_is_reported() {
         assert_eq!(
             derive_session_keys(&FailingAes, &MASTER_KEY, &MASTER_SALT).err(),
+            Some(Error::Crypto(CryptoError::Unsupported))
+        );
+    }
+
+    // SRTP-KDF-007 — SRTCP uses RFC 3711 section 4.3.2 labels 0x03/0x04/0x05.
+    // RFC 3711 publishes no SRTCP derivation vector, so the expected values
+    // were computed independently with OpenSSL 3.0.13 AES-128-ECB from the
+    // section 4.3.3 formula: the master salt with the label XORed into octet
+    // 7, followed by the 16-bit block counter 0x0000/0x0001, encrypted under
+    // the Appendix B.3 master key. The same procedure reproduces the
+    // published Appendix B.3 SRTP values under labels 0x00/0x01/0x02.
+    #[test]
+    fn srtcp_derivation_uses_the_srtcp_labels() {
+        let keys = derive_srtcp_session_keys(&RustCryptoProvider::new(), &MASTER_KEY, &MASTER_SALT)
+            .expect("derive");
+        assert_eq!(
+            keys.encryption_key(),
+            &hex::<SESSION_KEY_LEN>("4C1AA45A81F73D61C800BBB00FBB1EAA")
+        );
+        assert_eq!(
+            keys.authentication_key(),
+            &hex::<SESSION_AUTH_KEY_LEN>("8D54534FEB49AE8E7993A6BD0B844FC323A93DFD")
+        );
+        assert_eq!(
+            keys.salt(),
+            &hex::<SESSION_SALT_LEN>("9581C7AD87B3E530BF3E4454A8B381")
+        );
+    }
+
+    // SRTP-KDF-008 — SRTCP and SRTP session values are disjoint even under
+    // the same master key and salt (RFC 3711 section 3.2.1: the session keys
+    // MUST NOT be shared).
+    #[test]
+    fn srtcp_and_srtp_session_values_are_disjoint() {
+        let media = keys();
+        let control =
+            derive_srtcp_session_keys(&RustCryptoProvider::new(), &MASTER_KEY, &MASTER_SALT)
+                .expect("derive");
+        assert_ne!(media.encryption_key(), control.encryption_key());
+        assert_ne!(media.authentication_key(), control.authentication_key());
+        assert_ne!(media.salt(), control.salt());
+    }
+
+    // SRTP-KDF-009 — the SRTCP Debug view never exposes material.
+    #[test]
+    fn srtcp_session_keys_debug_redacts_all_three_fields() {
+        let rendered = format!(
+            "{:?}",
+            derive_srtcp_session_keys(&RustCryptoProvider::new(), &MASTER_KEY, &MASTER_SALT)
+                .expect("derive")
+        );
+        assert!(rendered.contains("SrtcpSessionKeys"));
+        assert!(rendered.contains("<redacted>"));
+        assert!(!rendered.contains("4c1a"));
+        assert!(!rendered.contains("8d54"));
+        assert!(!rendered.contains("9581"));
+    }
+
+    // SRTP-KDF-010 — the SRTCP derivation reports a provider failure too.
+    #[test]
+    fn srtcp_provider_failure_is_reported() {
+        assert_eq!(
+            derive_srtcp_session_keys(&FailingAes, &MASTER_KEY, &MASTER_SALT).err(),
             Some(Error::Crypto(CryptoError::Unsupported))
         );
     }

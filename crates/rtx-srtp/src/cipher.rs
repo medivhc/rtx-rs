@@ -25,6 +25,12 @@ pub(crate) const MAX_KEYSTREAM_BLOCKS: usize = 1 << 16;
 
 /// Encrypts or decrypts `region` with AES-CM (the operation is an XOR).
 ///
+/// For `SRTP` `index` is the 48-bit `ROC || SEQ` packet index. For `SRTCP`
+/// pass the 31-bit SRTCP index directly: `RFC 3711` section 4.1.1 states that
+/// "in the case of SRTCP, the SSRC of the first header of the compound packet
+/// MUST be used, i SHALL be the 31-bit SRTCP index", and `i * 2^16` occupies
+/// the same `bytes 8..14` of the counter block either way.
+///
 /// # Errors
 ///
 /// Returns [`Error::PacketTooLarge`] before touching `region` when it needs
@@ -107,13 +113,42 @@ pub(crate) fn compute_tag<P: HmacProvider>(
     authenticated: &[u8],
     roc: u32,
 ) -> Result<[u8; AUTH_TAG_LEN], Error> {
-    let mut mac = [0u8; SHA1_LEN];
     let roc_bytes = roc.to_be_bytes();
+    truncated_hmac(provider, keys, &[authenticated, &roc_bytes])
+}
+
+/// Computes the SRTCP HMAC-SHA1 tag and truncates it to 80 bits.
+///
+/// `RFC 3711` section 4.2 states that "in the case of SRTCP, M SHALL consist
+/// of the Authenticated Portion (as specified in Figure 2) only": unlike
+/// `SRTP`, no rollover counter is appended. The authenticated portion is the
+/// complete compound RTCP packet followed by the E-flag/index word and ending
+/// before the tag (section 3.4).
+///
+/// # Errors
+///
+/// Returns [`Error::Crypto`] when the provider fails or reports a digest
+/// length other than the 20 bytes SHA-1 produces.
+pub(crate) fn compute_srtcp_tag<P: HmacProvider>(
+    provider: &P,
+    keys: &SessionKeys,
+    authenticated: &[u8],
+) -> Result<[u8; AUTH_TAG_LEN], Error> {
+    truncated_hmac(provider, keys, &[authenticated])
+}
+
+/// Computes HMAC-SHA1 over `parts` and truncates the digest to 80 bits.
+fn truncated_hmac<P: HmacProvider>(
+    provider: &P,
+    keys: &SessionKeys,
+    parts: &[&[u8]],
+) -> Result<[u8; AUTH_TAG_LEN], Error> {
+    let mut mac = [0u8; SHA1_LEN];
     let written = provider
         .hmac_parts(
             HashAlgorithm::Sha1,
             keys.authentication_key(),
-            &[authenticated, &roc_bytes],
+            parts,
             &mut mac,
         )
         .map_err(Error::Crypto)?;
