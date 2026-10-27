@@ -1,0 +1,19 @@
+[package]
+name = "rtx-ice"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Bounded ICE candidate and check tables with a sans-IO checklist state machine (no_std)"
+
+[features]
+default = []
+std = ["rtx-core/std", "rtx-stun/std"]
+
+[dependencies]
+rtx-core = { path = "../rtx-core" }
+rtx-stun = { path = "../rtx-stun" }
+
+[lints]
+workspace = true
