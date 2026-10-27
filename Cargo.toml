@@ -9,6 +9,7 @@ members = [
     "crates/rtx-rtp",
     "crates/rtx-rtcp",
     "crates/rtx-stun",
+    "crates/rtx-ice",
     "crates/rtx-dtls",
     "crates/rtx-srtp",
 ]
