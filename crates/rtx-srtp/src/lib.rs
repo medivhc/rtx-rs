@@ -34,32 +34,30 @@
 //!
 //! An `RTP` packet starts with a 12-byte fixed header (version, padding flag,
 //! extension flag, `CSRC` count, payload type, sequence number, timestamp and
-//! `SSRC`). The `CSRC` list and, when the `X` bit is set, the extension block
-//! follow it. This crate treats that whole suffix as the encrypted region:
+//! `SSRC`), followed by the `CSRC` list and, when the `X` bit is set, the
+//! header extension block. Only the media payload is encrypted
+//! (`RFC 3711` section 3.1):
 //!
 //! ```text
-//! +----------------------+-----------------------------------------------+
-//! | 12-byte fixed header | encrypted region                              |
-//! | cleartext            | CSRC list || extension || payload || padding  |
-//! +----------------------+-----------------------------------------------+
-//! | authentication tag (10 bytes, HMAC-SHA1-80)                           |
-//! +-----------------------------------------------------------------------+
+//! +----------------------+-------------+----------------+------------------------+
+//! | 12-byte fixed header | CSRC list   | extension      | payload + padding      |
+//! | cleartext            | cleartext   | cleartext      | AES-CM encrypted       |
+//! +----------------------+-------------+----------------+------------------------+
+//! | authentication tag (10 bytes, HMAC-SHA1-80)                                  |
+//! +------------------------------------------------------------------------------+
 //! ```
 //!
-//! The fixed header is copied verbatim. Every octet after it, including the
-//! `CSRC` list, the header extension block, the media payload and any `RTP`
-//! padding octets, is combined with the AES-CM keystream. The HMAC-SHA1-80 tag
-//! authenticates the complete protected packet (cleartext fixed header plus
-//! encrypted region) followed by the 32-bit rollover counter (`RFC 3711`
-//! section 4.2, `M = Authenticated Portion || ROC`).
+//! The fixed header, the `CSRC` list and the header extension block are copied
+//! verbatim and stay in the clear; the encrypted region starts at the end of
+//! the full `RTP` header and runs to the end of the packet, covering the media
+//! payload and any `RTP` padding octets. The HMAC-SHA1-80 tag authenticates the
+//! complete protected packet (cleartext header plus encrypted payload)
+//! followed by the 32-bit rollover counter (`RFC 3711` section 4.2,
+//! `M = Authenticated Portion || ROC`).
 //!
-//! **Layout determination.** The encrypted region is exactly "everything after
-//! the 12-byte fixed header": `CSRC`, header extension, payload and padding.
-//! `RFC 3711` instead encrypts only the media payload and leaves `CSRC` and
-//! extension bytes in the clear. Consequence: this crate is bidirectionally
-//! non-interoperable with every `RFC 3711` implementation, including `libsrtp`
-//! and `OpenSSL`; the layout divergence must be resolved before R3-2 wires in
-//! real `DTLS-SRTP`.
+//! **Layout determination.** The R3-1 private layout, which encrypted every
+//! octet after the 12-byte fixed header, was superseded by the R3-1b change
+//! order: the layout above is the `RFC 3711` section 3.1 layout.
 //!
 //! # AES-CM
 //!

@@ -303,9 +303,9 @@ fn receiver_provider_failures_are_explicit() {
     );
 }
 
-// SRTP-ROB-007 — a tag-valid packet whose decrypted extension header is
-// inconsistent is rejected after decryption, and the replay state does not
-// advance.
+// SRTP-ROB-007 — a tag-valid packet whose cleartext extension header is
+// inconsistent is rejected when the header is parsed after authentication, and
+// the replay state does not advance.
 #[test]
 fn tag_valid_packet_with_broken_extension_is_rejected() {
     let original = rtp(SSRC, 11, false, true);
@@ -313,13 +313,13 @@ fn tag_valid_packet_with_broken_extension_is_rejected() {
     let mut protected = protect(&mut sender, &original);
 
     // The extension length sits at 12 (fixed) + 8 (two CSRC) + 2 (profile) =
-    // 22..24 and currently holds 0x0001. Flip the ciphertext so the decrypted
-    // value is 0x00FF words, which cannot fit the packet.
+    // 22..24 and holds 0x0001 in the clear (RFC 3711 §3.1). Flip it to 0x00FF
+    // words, which cannot fit the packet.
     let length_byte = 12 + 8 + 3;
     protected[length_byte] ^= original[length_byte] ^ 0xFF;
 
-    // Re-authenticate the tampered ciphertext with the real session key so the
-    // tag check passes and the post-decryption header check is reached. The
+    // Re-authenticate the tampered packet with the real session key so the tag
+    // check passes and the header check after authentication is reached. The
     // first packet uses ROC = 0, and the tag covers packet || ROC.
     let plaintext_length = protected.len() - AUTH_TAG_LEN;
     let roc = 0_u32.to_be_bytes();

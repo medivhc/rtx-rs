@@ -81,7 +81,13 @@ impl<P: Aes128BlockProvider + HmacProvider> ReceiverContext<P> {
     /// caller's output buffer is untouched. The replay window is checked next,
     /// so a duplicate returns [`Error::Replay`] and an index below the window
     /// returns [`Error::TooOld`], both without writing. Only then is the packet
-    /// copied into `output` and decrypted.
+    /// copied into `output`, its full `RTP` header parsed and its payload
+    /// decrypted.
+    ///
+    /// The `CSRC` list and header extension block travel in the clear
+    /// (`RFC 3711` section 3.1), so the full header can be parsed before
+    /// decryption; the parse still happens strictly after authentication, and
+    /// only the payload plus any `RTP` padding is AES-CM decrypted.
     ///
     /// The `ROC` is estimated with the `RFC 3711` Appendix A algorithm from the
     /// context's `ROC` and `s_l`; `s_l`/`ROC` are updated only after the packet
@@ -122,18 +128,21 @@ impl<P: Aes128BlockProvider + HmacProvider> ReceiverContext<P> {
             return Err(Error::OutputTooSmall);
         }
         output[..plaintext_length].copy_from_slice(&srtp[..plaintext_length]);
+
+        // The full header is cleartext on the wire (`RFC 3711` section 3.1), so
+        // it is parsed before decryption and bounds the encrypted region to the
+        // payload plus padding. The parse stays strictly after authentication:
+        // only a tag-valid packet is parsed, and a packet with a broken header
+        // still does not reach `replay.accept`.
+        let header = packet::parse(&output[..plaintext_length])?;
+        let enc_start = header.encoded_len();
         cipher::apply_keystream(
             &self.provider,
             &self.keys,
             self.ssrc,
             index,
-            &mut output[FIXED_HEADER_LEN..plaintext_length],
+            &mut output[enc_start..plaintext_length],
         )?;
-
-        // The `CSRC` list and extension block were encrypted too, so their
-        // structure can only be validated after decryption. A tag-valid packet
-        // with a broken header is still not deliverable.
-        packet::parse(&output[..plaintext_length])?;
 
         self.replay.accept(admission);
         self.update(sequence, roc);
