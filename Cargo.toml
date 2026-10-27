@@ -10,6 +10,7 @@ members = [
     "crates/rtx-rtcp",
     "crates/rtx-stun",
     "crates/rtx-dtls",
+    "crates/rtx-srtp",
 ]
 
 [workspace.package]

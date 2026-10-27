@@ -76,6 +76,52 @@ pub trait HmacProvider {
         input: &[u8],
         output: &mut [u8],
     ) -> Result<usize, CryptoError>;
+
+    /// Writes the MAC of the concatenation of `parts` under `key` into
+    /// `output`, returning its length.
+    ///
+    /// `RFC 3711` section 4.2 authenticates `Authenticated Portion || ROC`,
+    /// two disjoint slices. This entry point lets a provider hash them without
+    /// allocating a joined buffer.
+    ///
+    /// The default implementation returns [`CryptoError::Unsupported`]. A
+    /// provider that implements only [`HmacProvider::hmac`] keeps compiling,
+    /// but `SRTP` protection reports the missing capability explicitly.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CryptoError::Unsupported`] for an unknown algorithm or a
+    /// backend without multi-part support, or [`CryptoError::OutputTooSmall`]
+    /// when `output` cannot hold the MAC.
+    fn hmac_parts(
+        &self,
+        _algorithm: HashAlgorithm,
+        _key: &[u8],
+        _parts: &[&[u8]],
+        _output: &mut [u8],
+    ) -> Result<usize, CryptoError> {
+        Err(CryptoError::Unsupported)
+    }
+}
+
+/// Raw AES-128 block encryption.
+///
+/// Counter-mode constructions need the block cipher itself: the `SRTP` AES-CM
+/// keystream generator (`RFC 3711` section 4.1) is `E(k, IV) || E(k, IV + 1) ||
+/// ...`. [`AeadProvider`] cannot expose that operation because GCM derives its
+/// counter block from a 96-bit nonce and adds GHASH. This trait is deliberately
+/// a single method so existing providers do not silently acquire a new
+/// obligation.
+pub trait Aes128BlockProvider {
+    /// Encrypts one 16-byte `block` in place under the 16-byte AES-128 `key`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CryptoError::Unsupported`] when the backend has no raw AES
+    /// block primitive, or [`CryptoError::BackendFailure`] when the engine
+    /// fails. On error `block` is left unmodified.
+    fn encrypt_aes128_block(&self, key: &[u8; 16], block: &mut [u8; 16])
+    -> Result<(), CryptoError>;
 }
 
 /// In-place AEAD avoids forcing an allocation at the crypto boundary.

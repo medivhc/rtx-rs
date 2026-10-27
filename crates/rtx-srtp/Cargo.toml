@@ -1,0 +1,26 @@
+[package]
+name = "rtx-srtp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "SRTP AES-CM/HMAC-SHA1-80 media protection for one SSRC (no_std, sans-IO)"
+
+[features]
+default = []
+std = ["rtx-crypto/std", "rtx-rtp/std"]
+
+[dependencies]
+rtx-crypto = { path = "../rtx-crypto" }
+rtx-rtp = { path = "../rtx-rtp" }
+# Safe, no_std zeroization for the caller-supplied session key and salt. The
+# crate forbids `unsafe`, so a hand-written `fill(0)` drop could be optimized
+# away; `zeroize` uses volatile writes and a compiler fence.
+zeroize = { version = "1", default-features = false }
+
+[dev-dependencies]
+rtx-crypto-rustcrypto = { path = "../rtx-crypto-rustcrypto" }
+
+[lints]
+workspace = true

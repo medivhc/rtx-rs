@@ -27,13 +27,14 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
+use aes::cipher::{Block, BlockEncrypt};
 use aes_gcm::aead::consts::U16 as TagLen;
 use aes_gcm::aead::{AeadInPlace, KeyInit};
 use aes_gcm::{Aes128Gcm, Aes256Gcm, Nonce, Tag};
 use hmac::{Hmac, Mac};
 use rtx_crypto::{
-    AeadAlgorithm, AeadProvider, CryptoError, HashAlgorithm, HashProvider, HmacProvider,
-    KeyExchangeAlgorithm, KeyExchangeProvider, RandomProvider, SignatureAlgorithm,
+    AeadAlgorithm, AeadProvider, Aes128BlockProvider, CryptoError, HashAlgorithm, HashProvider,
+    HmacProvider, KeyExchangeAlgorithm, KeyExchangeProvider, RandomProvider, SignatureAlgorithm,
     SignatureProvider,
 };
 use sha1::Sha1;
@@ -196,6 +197,16 @@ impl HmacProvider for RustCryptoProvider {
         input: &[u8],
         output: &mut [u8],
     ) -> Result<usize, CryptoError> {
+        self.hmac_parts(algorithm, key, &[input], output)
+    }
+
+    fn hmac_parts(
+        &self,
+        algorithm: HashAlgorithm,
+        key: &[u8],
+        parts: &[&[u8]],
+        output: &mut [u8],
+    ) -> Result<usize, CryptoError> {
         let len = digest_len(algorithm);
         if output.len() < len {
             return Err(CryptoError::OutputTooSmall);
@@ -204,24 +215,49 @@ impl HmacProvider for RustCryptoProvider {
             HashAlgorithm::Sha1 => {
                 let mut mac = <Hmac<Sha1> as Mac>::new_from_slice(key)
                     .map_err(|_| CryptoError::InvalidKey)?;
-                mac.update(input);
+                for part in parts {
+                    mac.update(part);
+                }
                 mac.finalize().into_bytes().to_vec()
             }
             HashAlgorithm::Sha256 => {
                 let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(key)
                     .map_err(|_| CryptoError::InvalidKey)?;
-                mac.update(input);
+                for part in parts {
+                    mac.update(part);
+                }
                 mac.finalize().into_bytes().to_vec()
             }
             HashAlgorithm::Sha384 => {
                 let mut mac = <Hmac<Sha384> as Mac>::new_from_slice(key)
                     .map_err(|_| CryptoError::InvalidKey)?;
-                mac.update(input);
+                for part in parts {
+                    mac.update(part);
+                }
                 mac.finalize().into_bytes().to_vec()
             }
         };
         output[..len].copy_from_slice(&written[..len]);
         Ok(len)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Raw AES block
+// ---------------------------------------------------------------------------
+
+impl Aes128BlockProvider for RustCryptoProvider {
+    fn encrypt_aes128_block(
+        &self,
+        key: &[u8; 16],
+        block: &mut [u8; 16],
+    ) -> Result<(), CryptoError> {
+        let cipher = aes::Aes128::new_from_slice(key).map_err(|_| CryptoError::InvalidKey)?;
+        // `Block` is a 16-byte `GenericArray`; the caller's array lends its
+        // storage for exactly this call.
+        let block = Block::<aes::Aes128>::from_mut_slice(block);
+        cipher.encrypt_block(block);
+        Ok(())
     }
 }
 
@@ -362,5 +398,8 @@ impl KeyExchangeProvider for RustCryptoProvider {
 /// supertrait bundle whose `sign` / `generate_key` return opaque handles, and
 /// this provider deliberately declines those suites. The static assertion
 /// below is what the capability matrix in `docs/m2-crypto-backend.md` cites.
-trait _AssertCapabilities: HashProvider + HmacProvider + AeadProvider + RandomProvider {}
+trait _AssertCapabilities:
+    HashProvider + HmacProvider + AeadProvider + RandomProvider + Aes128BlockProvider
+{
+}
 impl _AssertCapabilities for RustCryptoProvider {}
