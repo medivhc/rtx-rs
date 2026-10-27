@@ -17,18 +17,60 @@
 //!   profile. Every other value fails construction with
 //!   [`Error::UnsupportedProfile`]; there is no silent fallback, truncation or
 //!   profile negotiation here.
-//! * **Caller-supplied session material.** The caller passes a 16-byte session
-//!   key and a 14-byte session salt. `RFC 3711` section 4.3 key derivation
-//!   (`kdf`) and `SRTCP` are follow-up work, not implemented in this crate.
-//!   Because no `kdf` runs yet, the single 16-byte key is used both as the
-//!   AES-128 cipher key and as the HMAC-SHA1 key. That is an interim
-//!   limitation, not the `RFC` key schedule.
+//! * **Two constructor paths.** [`SenderContext::new`] and
+//!   [`ReceiverContext::new`] take *session* material: a 16-byte session
+//!   encryption key and a 14-byte session salt. That key also becomes the
+//!   HMAC-SHA1 authentication key, zero-extended to the profile's 20 bytes;
+//!   because HMAC zero-pads short keys to the block size, the tag is
+//!   byte-identical to the previous 16-byte HMAC key. These constructors do
+//!   **not** accept `DTLS-SRTP` master material. [`SenderContext::from_master`]
+//!   and [`ReceiverContext::from_master`] take a `RFC 5764` master key and
+//!   master salt, run the `RFC 3711` section 4.3 derivation once, and then
+//!   build the context.
+//! * **`kdf` is implemented; `SRTCP` is not.** [`derive_session_keys`]
+//!   provides the default AES-CM PRF with `key_derivation_rate` zero. There is
+//!   no per-packet rekeying (`key_derivation_rate > 0`), no `SRTCP` (R3-3) and
+//!   no multi-`SSRC` multiplexing layer: one context still protects one
+//!   `SSRC`.
 //! * **No interoperability claim.** The construction follows the `RFC 3711`
-//!   wire rules below, and its AES-CM keystream is pinned to the published
-//!   Appendix B.2 vectors, but this crate does not assert interoperability
-//!   with stock `libsrtp` or `OpenSSL`. In particular the missing `kdf` means
-//!   `DTLS-SRTP` master keys exported by the `rtx-dtls` crate are not usable
-//!   here yet.
+//!   wire rules below, its AES-CM keystream is pinned to the published
+//!   Appendix B.2 vectors, and its derivation is pinned to the published
+//!   Appendix B.3 vectors. The integration suite additionally checks the
+//!   section 4.3 derivation and the protection path byte for byte against
+//!   `libsrtp` 2.5.0 for fixed master keying material. That is a
+//!   derivation/protection differential, not an end-to-end interoperability
+//!   claim with stock `libsrtp` or `OpenSSL`.
+//!
+//! # Key derivation
+//!
+//! [`derive_session_keys`] implements `RFC 3711` section 4.3 for
+//! `SRTP_AES128_CM_HMAC_SHA1_80`. With the default `key_derivation_rate = 0`
+//! the derivation runs exactly once, at the start of the session
+//! (section 4.3.1). For each label the PRF input is
+//!
+//! ```text
+//! x = (<label> || r) XOR master_salt     (right-aligned; r = index DIV kdr = 0)
+//! ```
+//!
+//! and the AES-CM input block is `x * 2^16` (section 4.3.3). Label `0x00`
+//! yields the 16-byte session encryption key `k_e`, label `0x01` the 20-byte
+//! session authentication key `k_a`, and label `0x02` the 14-byte session salt
+//! `k_s` (section 4.3.1; lengths from sections 5.1-5.3).
+//!
+//! # Direction mapping
+//!
+//! `RFC 5764` section 4.2 exports four *master* values. [`map_directions`]
+//! selects a send/receive pair without deriving anything:
+//!
+//! | local role      | send           | receive         |
+//! |-----------------|----------------|-----------------|
+//! | [`Role::Client`]| `client_write` | `server_write`  |
+//! | [`Role::Server`]| `server_write` | `client_write`  |
+//!
+//! [`Role`] mirrors the `rtx-dtls` handshake role but is an independent type:
+//! `rtx-srtp` does not depend on `rtx-dtls` in production code
+//! (`ARCHITECTURE.md` section 6). The application converts the handshake role
+//! and passes the selected master key/salt to `from_master`.
 //!
 //! # Protection layout
 //!
@@ -94,17 +136,20 @@
 //!
 //! # Secrets
 //!
-//! [`SenderContext`] and [`ReceiverContext`] store the session key and salt in
-//! a private value whose `Drop` zeroizes both. `Debug` implementations redact
-//! the key material. The caller still owns its copies of the arrays it passed
-//! to the constructor.
+//! [`SessionKeys`], [`SenderContext`] and [`ReceiverContext`] store the session
+//! encryption key, authentication key and salt in private values whose `Drop`
+//! zeroizes every array. `Debug` implementations redact the material.
+//! [`DirectionalMasterKeys`] does the same for the two master pairs. The
+//! callers still own the copies of the arrays they pass to a constructor.
 //!
 //! # Test vectors
 //!
 //! The AES-CM keystream is checked against the published `RFC 3711` Appendix
 //! B.2 vectors (session key `2B7E...4F3C`, salt `F0F1...FCFD`, counters
-//! `0000`-`0002` and `FEFF`-`FF01`). No vector was adjusted to fit the
-//! implementation.
+//! `0000`-`0002` and `FEFF`-`FF01`). The derivation is checked against the
+//! published Appendix B.3 vectors (master key `E1F9...4139`, master salt
+//! `0EC6...ABE6`, cipher key `C61E...A087`, cipher salt `30CB...9AE1`, auth
+//! key `CEBE...AACF`). No vector was adjusted to fit the implementation.
 //!
 //! B.2 only covers `SSRC = 0` and `index = 0`, which cannot catch a misplaced
 //! `SSRC`/index in the IV. A second hardcoded vector therefore uses
@@ -116,20 +161,28 @@
 //! [RFC 3711]: https://www.rfc-editor.org/rfc/rfc3711
 
 mod cipher;
+mod direction;
 mod error;
+mod kdf;
 mod packet;
 mod receiver;
 mod replay;
 mod sender;
 
+pub use direction::{DirectionalMasterKeys, Role, map_directions};
 pub use error::Error;
+pub use kdf::{SessionKeys, derive_session_keys};
 pub use receiver::ReceiverContext;
 pub use sender::SenderContext;
 
 /// `RFC 3711` protection profile `SRTP_AES128_CM_HMAC_SHA1_80`.
 pub const PROFILE_AES128_CM_HMAC_SHA1_80: u16 = 0x0001;
-/// Session key length for [`PROFILE_AES128_CM_HMAC_SHA1_80`], in bytes.
+/// Session encryption key length for
+/// [`PROFILE_AES128_CM_HMAC_SHA1_80`], in bytes.
 pub const SESSION_KEY_LEN: usize = 16;
+/// Session authentication key length for
+/// [`PROFILE_AES128_CM_HMAC_SHA1_80`], in bytes (full-length HMAC-SHA1 key).
+pub const SESSION_AUTH_KEY_LEN: usize = 20;
 /// Session salt length for [`PROFILE_AES128_CM_HMAC_SHA1_80`], in bytes.
 pub const SESSION_SALT_LEN: usize = 14;
 /// Authentication tag length for [`PROFILE_AES128_CM_HMAC_SHA1_80`], in bytes.
@@ -138,3 +191,5 @@ pub const AUTH_TAG_LEN: usize = 10;
 pub const REPLAY_WINDOW_SIZE: u64 = 64;
 /// Length of the cleartext `RTP` fixed header, in bytes.
 pub const FIXED_HEADER_LEN: usize = 12;
+/// AES block length, in bytes.
+pub(crate) const AES_BLOCK_LEN: usize = 16;

@@ -1,9 +1,11 @@
 //! Sender-side `SRTP` context for one `SSRC`.
 
 use rtx_crypto::{Aes128BlockProvider, HmacProvider};
+use zeroize::Zeroize;
 
-use crate::cipher::{self, SessionKeys};
+use crate::cipher;
 use crate::error::Error;
+use crate::kdf::{self, SessionKeys};
 use crate::packet;
 use crate::{AUTH_TAG_LEN, PROFILE_AES128_CM_HMAC_SHA1_80, SESSION_KEY_LEN, SESSION_SALT_LEN};
 
@@ -20,7 +22,12 @@ pub struct SenderContext<P> {
 }
 
 impl<P> SenderContext<P> {
-    /// Creates a sender for `ssrc`.
+    /// Creates a sender from directly supplied *session* material.
+    ///
+    /// `key` is the 16-byte AES-CM session encryption key and doubles as the
+    /// HMAC-SHA1 key, zero-extended to the 20-byte profile length. This is
+    /// **not** the `RFC 3711` section 4.3 key schedule: for `DTLS-SRTP`
+    /// master keying material use [`SenderContext::from_master`] instead.
     ///
     /// # Errors
     ///
@@ -37,13 +44,58 @@ impl<P> SenderContext<P> {
         if profile != PROFILE_AES128_CM_HMAC_SHA1_80 {
             return Err(Error::UnsupportedProfile(profile));
         }
-        Ok(Self {
+        Ok(Self::with_keys(
             provider,
-            keys: SessionKeys::new(key, salt),
+            SessionKeys::from_shared_key(key, salt),
+            ssrc,
+        ))
+    }
+
+    /// Creates a sender from `RFC 5764` master keying material.
+    ///
+    /// Runs the `RFC 3711` section 4.3 derivation once
+    /// (`key_derivation_rate = 0`) to obtain the session encryption key,
+    /// authentication key and salt, then behaves exactly like
+    /// [`SenderContext::new`]. The master key and salt are consumed and
+    /// zeroized; the caller's copies are unaffected.
+    ///
+    /// The caller selects the send-direction master pair with
+    /// [`crate::map_directions`] before calling this constructor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::UnsupportedProfile`] for any `profile` other than
+    /// [`PROFILE_AES128_CM_HMAC_SHA1_80`] (before deriving anything), and
+    /// [`Error::Crypto`] when the AES-CM PRF provider fails.
+    pub fn from_master(
+        provider: P,
+        profile: u16,
+        mut master_key: [u8; SESSION_KEY_LEN],
+        mut master_salt: [u8; SESSION_SALT_LEN],
+        ssrc: u32,
+    ) -> Result<Self, Error>
+    where
+        P: Aes128BlockProvider,
+    {
+        if profile != PROFILE_AES128_CM_HMAC_SHA1_80 {
+            master_key.zeroize();
+            master_salt.zeroize();
+            return Err(Error::UnsupportedProfile(profile));
+        }
+        let keys = kdf::derive_session_keys(&provider, &master_key, &master_salt);
+        master_key.zeroize();
+        master_salt.zeroize();
+        Ok(Self::with_keys(provider, keys?, ssrc))
+    }
+
+    fn with_keys(provider: P, keys: SessionKeys, ssrc: u32) -> Self {
+        Self {
+            provider,
+            keys,
             ssrc,
             roc: 0,
             last_sequence: None,
-        })
+        }
     }
 
     /// `SSRC` this context protects.
@@ -273,5 +325,24 @@ mod tests {
         assert_eq!(index_of(0, 65535), 65535);
         assert_eq!(index_of(1, 0), 65_536);
         assert_eq!(index_of(0xFFFF_FFFF, 65535), 0xFFFF_FFFF_FFFF);
+    }
+
+    // SRTP-SEND-007 — from_master rejects an unsupported profile before
+    // deriving or building a context.
+    #[test]
+    fn from_master_rejects_unsupported_profile() {
+        assert_eq!(
+            SenderContext::from_master(
+                RustCryptoProvider::new(),
+                PROFILE_AES128_CM_HMAC_SHA1_80 + 1,
+                [0x11; SESSION_KEY_LEN],
+                [0x22; SESSION_SALT_LEN],
+                SSRC,
+            )
+            .err(),
+            Some(Error::UnsupportedProfile(
+                PROFILE_AES128_CM_HMAC_SHA1_80 + 1
+            ))
+        );
     }
 }

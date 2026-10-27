@@ -21,6 +21,11 @@ zeroize = { version = "1", default-features = false }
 
 [dev-dependencies]
 rtx-crypto-rustcrypto = { path = "../rtx-crypto-rustcrypto" }
+# Test-only caller-level composition. `rtx-dtls` and `rtx-rtcp` are protocol
+# crates at the same dependency layer, so they may appear here but never as
+# production dependencies (`ARCHITECTURE.md` section 6).
+rtx-dtls = { path = "../rtx-dtls" }
+rtx-rtcp = { path = "../rtx-rtcp" }
 
 [lints]
 workspace = true

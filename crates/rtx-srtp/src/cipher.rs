@@ -15,45 +15,13 @@ use rtx_crypto::{Aes128BlockProvider, CryptoError, HashAlgorithm, HmacProvider};
 use zeroize::Zeroize;
 
 use crate::error::Error;
-use crate::{AUTH_TAG_LEN, SESSION_KEY_LEN, SESSION_SALT_LEN};
+use crate::kdf::SessionKeys;
+use crate::{AES_BLOCK_LEN, AUTH_TAG_LEN, SESSION_SALT_LEN};
 
 /// SHA-1 digest length, the full HMAC output before truncation.
 pub(crate) const SHA1_LEN: usize = 20;
-/// AES block length.
-pub(crate) const AES_BLOCK_LEN: usize = 16;
 /// `RFC 3711` caps a single keystream segment at 2^16 AES blocks.
 pub(crate) const MAX_KEYSTREAM_BLOCKS: usize = 1 << 16;
-
-/// Session key material owned by one context.
-///
-/// `Drop` zeroizes both arrays. The values never appear in `Debug` output.
-pub(crate) struct SessionKeys {
-    key: [u8; SESSION_KEY_LEN],
-    salt: [u8; SESSION_SALT_LEN],
-}
-
-impl SessionKeys {
-    pub(crate) const fn new(key: [u8; SESSION_KEY_LEN], salt: [u8; SESSION_SALT_LEN]) -> Self {
-        Self { key, salt }
-    }
-}
-
-impl Drop for SessionKeys {
-    fn drop(&mut self) {
-        self.key.zeroize();
-        self.salt.zeroize();
-    }
-}
-
-impl core::fmt::Debug for SessionKeys {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        formatter
-            .debug_struct("SessionKeys")
-            .field("key", &"<redacted>")
-            .field("salt", &"<redacted>")
-            .finish_non_exhaustive()
-    }
-}
 
 /// Encrypts or decrypts `region` with AES-CM (the operation is an XOR).
 ///
@@ -92,10 +60,10 @@ fn keystream_block<P: Aes128BlockProvider>(
     index: u64,
     counter: u16,
 ) -> Result<[u8; AES_BLOCK_LEN], Error> {
-    let mut block = initial_iv(&keys.salt, ssrc, index);
+    let mut block = initial_iv(keys.salt(), ssrc, index);
     block[14..AES_BLOCK_LEN].copy_from_slice(&counter.to_be_bytes());
     provider
-        .encrypt_aes128_block(&keys.key, &mut block)
+        .encrypt_aes128_block(keys.encryption_key(), &mut block)
         .map_err(Error::Crypto)?;
     Ok(block)
 }
@@ -144,7 +112,7 @@ pub(crate) fn compute_tag<P: HmacProvider>(
     let written = provider
         .hmac_parts(
             HashAlgorithm::Sha1,
-            &keys.key,
+            keys.authentication_key(),
             &[authenticated, &roc_bytes],
             &mut mac,
         )
@@ -173,6 +141,7 @@ pub(crate) fn tags_equal(expected: &[u8; AUTH_TAG_LEN], received: &[u8]) -> bool
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
+    use crate::SESSION_KEY_LEN;
     use rtx_crypto_rustcrypto::RustCryptoProvider;
 
     /// RFC 3711 Appendix B.2 session key.
@@ -205,7 +174,7 @@ mod tests {
     }
 
     fn keys() -> SessionKeys {
-        SessionKeys::new(KEY, SALT)
+        SessionKeys::from_shared_key(KEY, SALT)
     }
 
     // SRTP-VEC-001 — RFC 3711 Appendix B.2 keystream vectors, cited verbatim.
