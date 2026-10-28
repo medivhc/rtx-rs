@@ -106,10 +106,7 @@ impl Harness {
         let mut buffer = Vec::new();
         let mut moved = false;
         for client in &mut self.clients {
-            loop {
-                let Some(transmit) = client.endpoint.poll_transmit(self.now, &mut buffer) else {
-                    break;
-                };
+            while let Some(transmit) = client.endpoint.poll_transmit(self.now, &mut buffer) {
                 let payload = buffer[..transmit.len].to_vec();
                 self.server
                     .handle_datagram(self.now, client.address, None, &payload);
@@ -122,10 +119,7 @@ impl Harness {
     pub fn exchange_server_to_client(&mut self) -> bool {
         let mut buffer = Vec::new();
         let mut moved = false;
-        loop {
-            let Some(transmit) = self.server.poll_transmit(self.now, &mut buffer) else {
-                break;
-            };
+        while let Some(transmit) = self.server.poll_transmit(self.now, &mut buffer) {
             let payload = buffer[..transmit.len].to_vec();
             if let Some(client) = self
                 .clients
@@ -166,21 +160,14 @@ impl Harness {
         for _ in 0..rounds {
             let mut moved = false;
             for client in &mut self.clients {
-                loop {
-                    let Some(transmit) = client.endpoint.poll_transmit(self.now, &mut buffer)
-                    else {
-                        break;
-                    };
+                while let Some(transmit) = client.endpoint.poll_transmit(self.now, &mut buffer) {
                     let payload = buffer[..transmit.len].to_vec();
                     self.server
                         .handle_datagram(self.now, client.address, None, &payload);
                     moved = true;
                 }
             }
-            loop {
-                let Some(transmit) = self.server.poll_transmit(self.now, &mut buffer) else {
-                    break;
-                };
+            while let Some(transmit) = self.server.poll_transmit(self.now, &mut buffer) {
                 let payload = buffer[..transmit.len].to_vec();
                 if let Some(client) = self
                     .clients
