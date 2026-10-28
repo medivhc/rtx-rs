@@ -2,24 +2,23 @@
 //! rejection, and a real allocation count for one representative decode.
 //!
 //! The allocation counter is an actual global allocator: it wraps
-//! `std::alloc::System` and increments a thread-local-guarded atomic counter for
-//! every allocation made by the thread that enabled counting. `m3_h1_no_alloc`
-//! therefore observes the allocator itself rather than merely asserting an API
-//! shape.
+//! `std::alloc::System` and increments a thread-local `Cell<usize>` for every
+//! allocation made by the thread that enabled counting. The enable flag and the
+//! counter live in the same thread-local scope, so allocations made by other
+//! tests can never enter the measurement window. `m3_h1_no_alloc` therefore
+//! observes the allocator itself rather than merely asserting an API shape.
 
 #![allow(unsafe_code)]
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rtx_wire::varint::{self, MAX_VARINT, VarInt};
 use rtx_wire::{Decode, Encode, WireError};
 
-static ALLOCATIONS: AtomicUsize = AtomicUsize::new(0);
-
 thread_local! {
     static COUNTING: Cell<bool> = const { Cell::new(false) };
+    static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
 }
 
 struct CountingAllocator;
@@ -28,7 +27,9 @@ struct CountingAllocator;
 unsafe impl GlobalAlloc for CountingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         if COUNTING.try_with(Cell::get).unwrap_or(false) {
-            ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+            ALLOCATIONS
+                .try_with(|allocations| allocations.set(allocations.get() + 1))
+                .unwrap_or(());
         }
         unsafe { System.alloc(layout) }
     }
@@ -44,13 +45,14 @@ static GLOBAL_ALLOCATOR: CountingAllocator = CountingAllocator;
 /// Runs `operation` with counting enabled and returns its result together with
 /// the number of allocations the calling thread made in that window.
 fn counted_allocations<T>(operation: impl FnOnce() -> T) -> (T, usize) {
-    // Touch the thread-local slot before the measurement window.
+    // Counting and the counter share one thread-local scope, so a concurrent
+    // test's allocations cannot leak into this window.
     COUNTING.with(|counting| counting.set(false));
-    let base = ALLOCATIONS.load(Ordering::Relaxed);
+    let base = ALLOCATIONS.with(Cell::get);
     COUNTING.with(|counting| counting.set(true));
     let value = operation();
     COUNTING.with(|counting| counting.set(false));
-    (value, ALLOCATIONS.load(Ordering::Relaxed) - base)
+    (value, ALLOCATIONS.with(Cell::get) - base)
 }
 
 #[test]
