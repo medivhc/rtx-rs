@@ -16,5 +16,10 @@ std = []
 rtx-rtp = { path = "../rtx-rtp" }
 rtx-rtcp = { path = "../rtx-rtcp" }
 
-[lints]
-workspace = true
+[lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

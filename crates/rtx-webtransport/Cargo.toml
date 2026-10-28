@@ -1,0 +1,18 @@
+[package]
+name = "rtx-webtransport"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Minimal WebTransport over HTTP/3 codecs: identifiers, capsules and HTTP Datagram mapping (no_std)"
+
+[features]
+default = []
+std = ["rtx-wire/std"]
+
+[dependencies]
+rtx-wire = { path = "../rtx-wire" }
+
+[lints]
+workspace = true

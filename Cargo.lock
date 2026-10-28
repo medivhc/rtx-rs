@@ -698,6 +698,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rtx-webtransport"
+version = "0.1.0"
+dependencies = [
+ "rtx-wire",
+]
+
+[[package]]
 name = "rtx-wire"
 version = "0.1.0"
 dependencies = [

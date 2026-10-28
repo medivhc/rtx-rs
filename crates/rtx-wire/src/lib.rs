@@ -1,4 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![forbid(unsafe_code)]
+
+pub mod h3_frame;
+pub mod varint;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WireError {
