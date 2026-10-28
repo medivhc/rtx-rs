@@ -11,7 +11,7 @@
 
 > **片段声明**：本文中的代码片段均为说明性伪代码 / 流程描述，**非可编译示例**，不对应任何新增 API、类型、crate 或测试；树内也不新增 TURN 客户端。片段只用于解释调用方职责与事件映射。
 >
-> **锚点说明**：本文引用的源码行号按 `c545331` 实测，并在 `4bce6f1` 复核无变；决策条款只引用节号。
+> **锚点说明**：本文引用的源码行号按当前基线 `main` @ `7647f4f`（R4-2-F3 / PR #17 合并点）实测复核；初稿“按 `c545331` 实测、`4bce6f1` 复核无变”的说法与 git 事实不符（`lib.rs` 在两者之间因 F1 措辞收敛有变更），已作废。决策条款只引用节号。
 
 ---
 
@@ -25,7 +25,7 @@
 
 ### 1.2 非目标
 
-- **树内没有 TURN 客户端。** Allocate、Refresh、长期凭证认证、CreatePermission、ChannelBind、ChannelData 全部归调用方（决策 §2.B、§3 执行摘要；`crates/rtx-ice/src/lib.rs:46-49`）。本指南不教如何实现 TURN 服务器 / 客户端，也不把引入 TURN 客户端作为路径；完整 TURN 客户端评估只在出现真实部署证据时按决策 §6 的 `R4-2-F4` 另行立项。
+- **树内没有 TURN 客户端。** Allocate、Refresh、长期凭证认证、CreatePermission、ChannelBind、ChannelData 全部归调用方（决策 §2.B、§3 执行摘要；`crates/rtx-ice/src/lib.rs:46-49`）。本指南不教如何实现 TURN 服务器 / 客户端，也不把引入 TURN 客户端作为路径；完整 TURN 客户端评估（决策 §6 的 `R4-2-F4`）只在出现真实部署证据时条件触发，目前未排期、不属本指南承诺。
 - **不声称树内认证。** `rtx-ice` 不校验 ICE 检查的 `USERNAME` / `MESSAGE-INTEGRITY`，明写不宣称 authenticated ICE agent（`lib.rs:55-58`）；TURN 的长期凭证认证归调用方。本文不宣称树内已认证 ICE 或 TURN。
 - **不改 `rtx-ice`。** relay 候选只走既有 `add_local_candidate` / `add_remote_candidate`；不新增 API、事件、常量，不改有界表（决策 §2.B“对 `rtx-ice` API 的影响：零”、§5）。
 - **P6 不把 relay 写成必选项。** P6 的浏览器互通走 WebTransport 路径时不跑 ICE、没有候选配对，不接 relay（决策 §1.4、§6 末节）；只有 P6 选择 ICE/WebRTC 且部署确有 relay 需求时，才由调用方 / 运行时按本指南自备 TURN。
@@ -87,7 +87,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 1. `Candidate::base` 的文档语义是“检查发送时所使用的本地基地址”（`candidate.rs:129-135`）。
 2. `send_check` 把 `Event::SendCheck.source` 设为 `pair.local().base()`（`checklist.rs:807`）。relay 场景下 `source` 就等于 relayed 地址，调用方据此找到对应分配并做 TURN 封装。
 3. 成功响应匹配要求 `pair.local().base() == meta.destination`（`checklist.rs:646`）。TURN 服务器把内层响应投递到 relayed 地址；调用方解封装后以 `destination = relayed 地址` 交给 checklist，正好匹配。
-4. 入站检查的本地候选查找使用 `meta.destination`（`checklist.rs:541-544`），同样要求调用方给出 `destination = relayed 地址`。
+4. 入站检查的本地候选查找以 `meta.destination` 为键、由 `position()` 与 `candidate.address()` 逐项比对（`checklist.rs:541-544`、`:975-980`），同样要求调用方给出 `destination = relayed 地址`。
 
 补充：consent indication 的刷新也要求 `pair.remote().address() == meta.source` 且 `pair.local().base() == meta.destination`（`checklist.rs:688-700`），即 §4 的 `destination = relayed 地址` 规则对 consent 同样适用。
 
@@ -96,10 +96,10 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 设本地 TURN 客户端 socket 为 `local_socket`；候选仍 `address = relayed`，但 `base = local_socket`。代码会接受这个构造——`Candidate::new` 对 Relay 只要求 `base = Some`，不校验它与 `address` 的关系（`candidate.rs:172-181`）——但契约被破坏：
 
 - `Event::SendCheck.source` 变成 `local_socket`，不再是 RFC 8445 定义的 base，也不再是定位分配的键；调用方按 `source` 找分配会找不到，只能额外维护一张偏离契约的映射。
-- 响应匹配要求 `meta.destination == local_socket`，而 TURN 服务器实际把内层响应投递到 relayed 地址。调用方只有伪造 `meta.destination = local_socket` 才能让响应被接受；这等于绕过 §3.2 第 3 条。
-- 入站检查的本地候选查找同样以 `meta.destination` 为键（§3.2 第 4 条），伪造 `destination` 才不至于返回 `IceError::UnknownLocalCandidate`；consent 刷新也会因同样的 `base` 比对而失配。
+- 响应匹配要求 `pair.local().base() == meta.destination`（§3.2 第 3 条），按 `base = local_socket` 即要求 `meta.destination = local_socket`，而 TURN 服务器实际把内层响应投递到 relayed 地址。调用方只有把 `meta.destination` 填成 `local_socket`（“伪造”一个与实际到达地址不符的值）才能让这条 `base` 比对通过；这等于绕过 §3.2 第 3 条。
+- 入站检查的本地候选查找以 `meta.destination` 为键、由 `position()` 与 `candidate.address()` 比对（§3.2 第 4 条）；`destination` 只是查找键，代码不对它做独立的字段校验。`address` 仍是 relayed 地址，按实际到达地址填 `destination = relayed` 时查找正常；若为凑 `base` 比对而把 `destination` “伪造”成 `local_socket`，查找反而会落空并返回 `IceError::UnknownLocalCandidate`。consent 刷新同样要求 `pair.local().base() == meta.destination`（§3.2 补充），会因 `base = local_socket` 失配。
 
-结论：`base = 本地 TURN socket 地址` 不是合法配置。它只能靠伪造 `meta.destination` 通过匹配，属于自欺，不得使用（决策 §2.B 对同一反例的论证）。
+结论：`base = 本地 TURN socket 地址` 不是合法配置。它只能靠在喂入数据时把 `meta.destination` “伪造”成 `local_socket`（与实际到达地址不符）去凑 `base` 比对，属于自欺，不得使用（决策 §2.B 对同一反例的论证）。
 
 ### 3.4 反例 B：base 留空
 
@@ -109,7 +109,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 
 SDP 的 `raddr/rport` 是 Allocate 响应的 mapped address（RFC 8839 §5.1），即 TURN 服务器看到的调用方映射地址，用于诊断 / 展示；它**不是** base（决策 §2.B 末段、§4.3）。
 
-- 本地 relay 候选：把 `raddr/rport` 当 `base` 会直接落入 §3.3 同类错误——`SendCheck.source` 与响应匹配的 `destination` 都偏离 relayed 地址，只能伪造 `meta.destination`。
+- 本地 relay 候选：把 `raddr/rport` 当 `base` 会直接落入 §3.3 同类错误——`SendCheck.source` 与响应匹配所要求的 `meta.destination` 都偏离 relayed 地址，只能把 `meta.destination` “伪造”成该非 relayed 地址去凑 `base` 比对。
 - 远端 relay 候选：`base` 不参与本实现的检查发送与响应匹配（发送用 `source = local.base()`，匹配用 `remote.address()` 与 `local.base()`），但它是 `Candidate` 的契约字段，foundation 由 `(type, transport, base)` 派生（`candidate.rs:233-241`、`:259-274`），`base()` 对调用方可见。填 mapped address 会让远端候选在语义与 foundation 上偏离 relay 候选的契约；决策 §2.B 明确禁止。
 
 从信令构造远端 relay 候选时，`address` 与 `base` 都填对端的 relayed 传输地址，不要填 `raddr/rport`。
@@ -127,7 +127,7 @@ SDP 的 `raddr/rport` 是 Allocate 响应的 mapped address（RFC 8839 §5.1）�
 流程：
 
 1. 以 `source` 为键查“relayed 地址 → 分配”映射。
-2. 把 `message[..message_len]` 作为 TURN 载荷：未绑通道用 Send indication（RFC 5766 §10.2，peer = `destination`）；已 ChannelBind 可用 ChannelData（§11）。
+2. 把 `message[..message_len]` 作为 TURN 载荷：未绑通道用 Send indication（RFC 5766 §10.1，形成 Send indication，peer = `destination`）；已 ChannelBind 可用 ChannelData（§11）。
 3. 从该分配对应的 TURN 客户端 socket 发往 TURN 服务器。
 
 ```text
@@ -152,7 +152,7 @@ on Event::SendResponse { destination, pair, message }
 
 ### 4.3 入站：Data indication / ChannelData 解封装
 
-TURN 服务器把对端数据以 Data indication（RFC 5766 §10.3）或 ChannelData（§11）投递到 TURN 客户端的 socket。调用方解封装后：
+TURN 服务器把对端数据以 Data indication（RFC 5766 §10.4，接收 Data indication）或 ChannelData（§11）投递到 TURN 客户端的 socket。调用方解封装后：
 
 1. 取内层载荷（应为 STUN 消息；非 STUN 会得到 `IceError::NotStunMessage`，`checklist.rs:487-490`）。
 2. 取对端传输地址：Data indication 的 `XOR-PEER-ADDRESS`，或 ChannelData 通道绑定的对端地址。
@@ -183,16 +183,16 @@ checklist.handle_input(Input::Datagram { meta, payload: 内层 STUN })
 
 ### 5.1 谁负责刷新
 
-Refresh（RFC 5766 §7.2）、权限续期（§8）、通道续期（§11）全部归调用方的 TURN 客户端；`rtx-ice` 没有参与其中的定时器、状态或 API。刷新节奏与重试策略不在本指南的契约内；本指南只规定失败表现与调用方处理边界。
+Refresh（RFC 5766 §7.1，发送 Refresh 请求）、权限续期（§8）、通道续期（§11）全部归调用方的 TURN 客户端；`rtx-ice` 没有参与其中的定时器、状态或 API。刷新节奏与重试策略不在本指南的契约内；本指南只规定失败表现与调用方处理边界。
 
 ### 5.2 失败表现
 
 | 触发 | 树内表现 | 调用方动作 |
 |---|---|---|
 | `start` 前 Allocate 失败 | 无 relayed 地址，无影响 | 不入表；只用 host / srflx（§2.3） |
-| 会话中 Refresh 失败 / 分配过期 | 经该分配发出的检查无响应：该 pair 按 `MAX_RETRANSMISSIONS`（7 次）重传后 `Failed`；全部 pair 失败 → `ChecklistFailed`（`lib.rs:129-135`、`checklist.rs:709-755`） | 停止使用该分配；按会话级失败处理 |
+| 会话中 Refresh 失败 / 分配过期 | 经该分配发出的检查无响应：该 pair 按 `MAX_RETRANSMISSIONS`（7 次）重传后 `Failed`；全部 pair 失败 → `ChecklistFailed`（`lib.rs:129-135`、`checklist.rs:709-755`；`all_failed` → `fail()` → 推 `ChecklistFailed` 见 `checklist.rs:785-787`、`:875-882`） | 停止使用该分配；按会话级失败处理 |
 | 已提名 relay pair 的分配丢失 | pair 不被清除；consent 无刷新，`is_consent_stale` 超时后返回 `true`（`checklist.rs:446-454`、`lib.rs:148-154`） | 停媒体；走信令重协商 / 新 ICE 会话；不要原地换候选 |
-| 权限 / 通道失效但分配仍有效 | TURN 侧丢弃转发；检查无响应，表现同上 | 在 TURN 侧重新安装权限 / 通道即可恢复（relayed 地址未变，`rtx-ice` 无需动作）；分配已过期则按会话级处理 |
+| 权限 / 通道失效但分配仍有效 | TURN 侧丢弃转发；检查无响应，表现同上 | 转发恢复仅当对应 pair 尚未 `Failed` 时成立：此时在 TURN 侧重新安装权限 / 通道即可恢复（relayed 地址未变，`rtx-ice` 无需动作）；已 `Failed` 的 pair 不会重启，仍按 §5.3 走会话级处理；分配已过期则按会话级处理 |
 | 表满 | `CandidateTableFull` / `PairTableFull`，拒绝且不驱逐 | `start` 前预留名额（§2.2） |
 
 ### 5.3 会话级失败处理
@@ -201,7 +201,7 @@ API 无 remove，`start` 后不能补充候选，已 `Failed` 的 pair 不会重
 
 1. **重建会话。** 新建 `Checklist`，重新走信令；在新会话 `start` 前重新 Allocate 并供给候选（新的 relayed 地址只属于新会话）。
 2. **回落 host / srflx。** 新会话可只带 host / srflx 候选，前提是这些 pair 在新会话条件下确实可连通；这不是自动降级，而是调用方的新会话决策。
-3. **停媒体。** consent stale 后不应继续使用原 nominated pair；`rtx-ice` 不发 keepalive，也不检测、不切换（`lib.rs:148-154`）。
+3. **停媒体。** consent stale 后不应继续使用原 nominated pair；`rtx-ice` 不发 keepalive、不切换；consent 是否过期由调用方用 `is_consent_stale` 查询（`checklist.rs:446` 起），该查询本身不是自动检测与切换（`lib.rs:148-154`）。
 
 **明确否定**：树内不会自动更换 relay 候选、不会自动重分配，也不会把失败 pair 重开到新 relay；这些都不在 `rtx-ice` 的职责内，调用方也不得依赖。
 
