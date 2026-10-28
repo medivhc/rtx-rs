@@ -1,0 +1,42 @@
+[package]
+name = "rtx-quic"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Narrow Sans-I/O facade over quinn-proto for the Linux QUIC path (std-only)"
+
+[features]
+default = ["std"]
+# The crate is Tier D (`std`, Linux). Without this feature the crate compiles
+# empty so the workspace-wide bare-metal `cargo check --target
+# thumbv7em-none-eabihf` does not try to build `quinn-proto`, which requires
+# `std`. No embedded QUIC support is claimed (ARCHITECTURE.md §14 embedded
+# backend is a separate decision unit).
+std = ["dep:bytes", "dep:quinn-proto", "dep:rustls", "rtx-core/std"]
+
+[dependencies]
+rtx-core = { path = "../rtx-core" }
+# Default features are disabled: `bloom` (fastbloom) and `log` are not needed
+# by the facade. `rustls-ring` supplies the TLS 1.3 handshake and the ring
+# crypto provider. Version and audit delta are documented in `src/lib.rs`.
+quinn-proto = { version = "=0.11.19", default-features = false, features = [
+    "rustls-ring",
+], optional = true }
+rustls = { version = "0.23", default-features = false, features = [
+    "ring",
+    "std",
+], optional = true }
+bytes = { version = "1", optional = true }
+
+[dev-dependencies]
+# Test-only self-signed certificate generation (`localhost`), no fixture key
+# material is committed.
+rcgen = { version = "0.13", default-features = false, features = ["ring"] }
+# `rcgen` depends on `time ^0.3`; `time >= 0.3.46` raised its MSRV above the
+# workspace's 1.85. Pinning 0.3.45 (MSRV 1.83) keeps the MSRV CI job green.
+time = "=0.3.45"
+
+[lints]
+workspace = true

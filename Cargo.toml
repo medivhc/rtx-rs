@@ -12,6 +12,7 @@ members = [
     "crates/rtx-ice",
     "crates/rtx-dtls",
     "crates/rtx-srtp",
+    "crates/rtx-quic",
 ]
 
 [workspace.package]
