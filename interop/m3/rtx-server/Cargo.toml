@@ -1,0 +1,47 @@
+[package]
+name = "rtx-wt-server"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "R6-3 WebTransport-over-HTTP/3 server harness built on rtx-quic + rtx-h3 + rtx-webtransport (std-only, no Tokio)"
+
+# Standalone crate: intentionally NOT a member of the rtx-rs workspace.
+# R6-2c's reference server uses the same layout. Keeping the harness out of the
+# workspace keeps its binary and its Tokio-based loopback dev-dependencies out
+# of the workspace coverage denominator and the thumbv7em bare-metal check.
+[workspace]
+
+[dependencies]
+# The object under test. All protocol codecs and the QUIC engine stay inside
+# the rtx-* crates; this harness only drives them.
+rtx-core = { path = "../../../crates/rtx-core" }
+rtx-wire = { path = "../../../crates/rtx-wire" }
+rtx-h3 = { path = "../../../crates/rtx-h3" }
+rtx-webtransport = { path = "../../../crates/rtx-webtransport" }
+rtx-quic = { path = "../../../crates/rtx-quic" }
+
+[dev-dependencies]
+# Loopback client only. Pinned to the DEPENDENCY_AUDIT.md §1 revisions and used
+# as an independent protocol oracle; neither crate may appear in the server's
+# normal dependency graph (`cargo tree -p rtx-wt-server -e normal`).
+quinn = { git = "https://github.com/quinn-rs/quinn", rev = "9d729c1b6b7ad30d45d40265037eeeb9d98a7420", default-features = false, features = [
+    "runtime-tokio",
+    "rustls-ring",
+] }
+web-transport-proto = { git = "https://github.com/moq-dev/web-transport", rev = "d4e4e458da556ac3033c9b63f6db5110d3ab5adc" }
+tokio = { version = "1", features = ["rt", "macros", "time", "io-util"] }
+bytes = "1"
+url = "2"
+# Non-protocol utility: payload hashes for the loopback evidence.
+sha2 = "0.10"
+# Standalone `cargo test --test loopback` generates a throw-away self-signed
+# certificate in a temp directory; `run-loopback.sh` instead supplies DER files
+# produced by openssl. No key material is ever written into the repository.
+rcgen = { version = "0.13", default-features = false, features = ["ring"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = "warn"

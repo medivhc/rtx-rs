@@ -1,0 +1,779 @@
+ts_ms=1793265462635 event=server_listening addr=127.0.0.1:33916 alpn=h3
+ts_ms=1793265462636 event=config_loaded max_datagram_frame_size_advertised=1100 webtransport_max_sessions=100 server_uni_payload_bytes=1048576 server_reset_payload_bytes=4096
+ts_ms=1793265462665 event=quic_connection_accepted connection=0
+ts_ms=1793265462668 event=quic_handshake_complete connection=0 alpn=Some([104, 51]) datagram_supported=true peer_max_datagram_frame_size=1100
+ts_ms=1793265462669 event=stream_opened connection=0 stream=2 kind=uni role=client
+ts_ms=1793265462669 event=stream_classified connection=0 stream=2 kind=uni role=control
+ts_ms=1793265462669 event=h3_settings_frame_received connection=0 payload_bytes=31 items=7
+ts_ms=1793265462669 event=h3_setting connection=0 id=0x33 value=1 class=known ignored=false
+ts_ms=1793265462669 event=h3_setting connection=0 id=0xffd277 value=1 class=deprecated ignored=true
+ts_ms=1793265462669 event=h3_setting connection=0 id=0x8 value=1 class=known ignored=false
+ts_ms=1793265462669 event=h3_setting connection=0 id=0xc671706a value=1 class=known ignored=false
+ts_ms=1793265462669 event=h3_setting connection=0 id=0x2b603743 value=1 class=deprecated ignored=true
+ts_ms=1793265462669 event=h3_setting connection=0 id=0x2b603742 value=1 class=deprecated ignored=true
+ts_ms=1793265462669 event=h3_setting connection=0 id=0x5f value=7 class=grease ignored=true
+ts_ms=1793265462669 event=server_settings_sent connection=0 control_stream=3 items=5 payload_bytes=18 frame_bytes=20
+ts_ms=1793265462669 event=server_setting connection=0 id=0x1 value=0
+ts_ms=1793265462669 event=server_setting connection=0 id=0x7 value=0
+ts_ms=1793265462669 event=server_setting connection=0 id=0x8 value=1
+ts_ms=1793265462669 event=server_setting connection=0 id=0x33 value=1
+ts_ms=1793265462669 event=server_setting connection=0 id=0xc671706a value=100
+ts_ms=1793265462671 event=stream_opened connection=0 stream=6 kind=uni role=client
+ts_ms=1793265462671 event=stream_opened connection=0 stream=10 kind=uni role=client
+ts_ms=1793265462671 event=stream_opened connection=0 stream=14 kind=uni role=client
+ts_ms=1793265462671 event=stream_opened connection=0 stream=0 kind=bi role=client
+ts_ms=1793265462671 event=stream_classified connection=0 stream=0 kind=bi role=connect_request
+ts_ms=1793265462671 event=connect_request_decoded connection=0 session=0 stream=0 scheme=https authority=127.0.0.1:33916 path=/session protocol=webtransport
+ts_ms=1793265462671 event=response_headers_sent connection=0 session=0 stream=0 status=200 qpack_bytes=3 frame_bytes=5
+ts_ms=1793265462687 event=stream_opened connection=0 session=0 stream=7 kind=uni role=server bytes=1048576
+ts_ms=1793265462687 event=stream_opened connection=0 session=0 stream=1 kind=bi role=server bytes=4096 reset_code=7
+ts_ms=1793265462690 event=stream_classified connection=0 stream=6 kind=uni role=qpack_encoder
+ts_ms=1793265462690 event=stream_classified connection=0 stream=10 kind=uni role=qpack_decoder
+ts_ms=1793265462690 event=uni_stream_unknown_type connection=0 stream=14 stream_type=0x21 ignored=true
+ts_ms=1793265462690 event=stream_reset connection=0 stream=1 role=server direction=bi code=7
+ts_ms=1793265462690 event=stream_finished connection=0 stream=7 role=server direction=uni bytes=1048579
+ts_ms=1793265462772 event=datagram_received connection=0 seq=1 session=0 bytes=1
+ts_ms=1793265462772 event=datagram_sent connection=0 seq=1 session=0 bytes=2
+ts_ms=1793265462773 event=datagram_received connection=0 seq=2 session=0 bytes=1
+ts_ms=1793265462773 event=datagram_sent connection=0 seq=2 session=0 bytes=2
+ts_ms=1793265462773 event=datagram_received connection=0 seq=3 session=0 bytes=1
+ts_ms=1793265462773 event=datagram_sent connection=0 seq=3 session=0 bytes=2
+ts_ms=1793265462773 event=datagram_received connection=0 seq=4 session=0 bytes=1
+ts_ms=1793265462774 event=datagram_sent connection=0 seq=4 session=0 bytes=2
+ts_ms=1793265462774 event=datagram_received connection=0 seq=5 session=0 bytes=1
+ts_ms=1793265462774 event=datagram_sent connection=0 seq=5 session=0 bytes=2
+ts_ms=1793265462774 event=datagram_received connection=0 seq=6 session=0 bytes=1
+ts_ms=1793265462774 event=datagram_sent connection=0 seq=6 session=0 bytes=2
+ts_ms=1793265462774 event=datagram_received connection=0 seq=7 session=0 bytes=1
+ts_ms=1793265462775 event=datagram_sent connection=0 seq=7 session=0 bytes=2
+ts_ms=1793265462775 event=datagram_received connection=0 seq=8 session=0 bytes=1
+ts_ms=1793265462775 event=datagram_sent connection=0 seq=8 session=0 bytes=2
+ts_ms=1793265462775 event=datagram_received connection=0 seq=9 session=0 bytes=1
+ts_ms=1793265462775 event=datagram_sent connection=0 seq=9 session=0 bytes=2
+ts_ms=1793265462775 event=datagram_received connection=0 seq=10 session=0 bytes=1
+ts_ms=1793265462776 event=datagram_sent connection=0 seq=10 session=0 bytes=2
+ts_ms=1793265462776 event=datagram_received connection=0 seq=11 session=0 bytes=1
+ts_ms=1793265462776 event=datagram_sent connection=0 seq=11 session=0 bytes=2
+ts_ms=1793265462776 event=datagram_received connection=0 seq=12 session=0 bytes=1
+ts_ms=1793265462776 event=datagram_sent connection=0 seq=12 session=0 bytes=2
+ts_ms=1793265462776 event=datagram_received connection=0 seq=13 session=0 bytes=1
+ts_ms=1793265462776 event=datagram_sent connection=0 seq=13 session=0 bytes=2
+ts_ms=1793265462777 event=datagram_received connection=0 seq=14 session=0 bytes=1
+ts_ms=1793265462777 event=datagram_sent connection=0 seq=14 session=0 bytes=2
+ts_ms=1793265462777 event=datagram_received connection=0 seq=15 session=0 bytes=1
+ts_ms=1793265462777 event=datagram_sent connection=0 seq=15 session=0 bytes=2
+ts_ms=1793265462777 event=datagram_received connection=0 seq=16 session=0 bytes=1
+ts_ms=1793265462778 event=datagram_sent connection=0 seq=16 session=0 bytes=2
+ts_ms=1793265462778 event=datagram_received connection=0 seq=17 session=0 bytes=1
+ts_ms=1793265462778 event=datagram_sent connection=0 seq=17 session=0 bytes=2
+ts_ms=1793265462778 event=datagram_received connection=0 seq=18 session=0 bytes=1
+ts_ms=1793265462778 event=datagram_sent connection=0 seq=18 session=0 bytes=2
+ts_ms=1793265462779 event=datagram_received connection=0 seq=19 session=0 bytes=1
+ts_ms=1793265462779 event=datagram_sent connection=0 seq=19 session=0 bytes=2
+ts_ms=1793265462779 event=datagram_received connection=0 seq=20 session=0 bytes=1
+ts_ms=1793265462779 event=datagram_sent connection=0 seq=20 session=0 bytes=2
+ts_ms=1793265462779 event=datagram_received connection=0 seq=21 session=0 bytes=1
+ts_ms=1793265462779 event=datagram_sent connection=0 seq=21 session=0 bytes=2
+ts_ms=1793265462779 event=datagram_received connection=0 seq=22 session=0 bytes=1
+ts_ms=1793265462780 event=datagram_sent connection=0 seq=22 session=0 bytes=2
+ts_ms=1793265462780 event=datagram_received connection=0 seq=23 session=0 bytes=1
+ts_ms=1793265462780 event=datagram_sent connection=0 seq=23 session=0 bytes=2
+ts_ms=1793265462780 event=datagram_received connection=0 seq=24 session=0 bytes=1
+ts_ms=1793265462780 event=datagram_sent connection=0 seq=24 session=0 bytes=2
+ts_ms=1793265462780 event=datagram_received connection=0 seq=25 session=0 bytes=1
+ts_ms=1793265462781 event=datagram_sent connection=0 seq=25 session=0 bytes=2
+ts_ms=1793265462781 event=datagram_received connection=0 seq=26 session=0 bytes=1
+ts_ms=1793265462781 event=datagram_sent connection=0 seq=26 session=0 bytes=2
+ts_ms=1793265462781 event=datagram_received connection=0 seq=27 session=0 bytes=1
+ts_ms=1793265462781 event=datagram_sent connection=0 seq=27 session=0 bytes=2
+ts_ms=1793265462781 event=datagram_received connection=0 seq=28 session=0 bytes=1
+ts_ms=1793265462781 event=datagram_sent connection=0 seq=28 session=0 bytes=2
+ts_ms=1793265462782 event=datagram_received connection=0 seq=29 session=0 bytes=1
+ts_ms=1793265462782 event=datagram_sent connection=0 seq=29 session=0 bytes=2
+ts_ms=1793265462782 event=datagram_received connection=0 seq=30 session=0 bytes=1
+ts_ms=1793265462782 event=datagram_sent connection=0 seq=30 session=0 bytes=2
+ts_ms=1793265462782 event=datagram_received connection=0 seq=31 session=0 bytes=1
+ts_ms=1793265462782 event=datagram_sent connection=0 seq=31 session=0 bytes=2
+ts_ms=1793265462783 event=datagram_received connection=0 seq=32 session=0 bytes=1
+ts_ms=1793265462783 event=datagram_sent connection=0 seq=32 session=0 bytes=2
+ts_ms=1793265462783 event=datagram_received connection=0 seq=33 session=0 bytes=1
+ts_ms=1793265462783 event=datagram_sent connection=0 seq=33 session=0 bytes=2
+ts_ms=1793265462783 event=datagram_received connection=0 seq=34 session=0 bytes=1
+ts_ms=1793265462783 event=datagram_sent connection=0 seq=34 session=0 bytes=2
+ts_ms=1793265462784 event=datagram_received connection=0 seq=35 session=0 bytes=1
+ts_ms=1793265462784 event=datagram_sent connection=0 seq=35 session=0 bytes=2
+ts_ms=1793265462784 event=datagram_received connection=0 seq=36 session=0 bytes=1
+ts_ms=1793265462784 event=datagram_sent connection=0 seq=36 session=0 bytes=2
+ts_ms=1793265462784 event=datagram_received connection=0 seq=37 session=0 bytes=1
+ts_ms=1793265462784 event=datagram_sent connection=0 seq=37 session=0 bytes=2
+ts_ms=1793265462785 event=datagram_received connection=0 seq=38 session=0 bytes=1
+ts_ms=1793265462785 event=datagram_sent connection=0 seq=38 session=0 bytes=2
+ts_ms=1793265462785 event=datagram_received connection=0 seq=39 session=0 bytes=1
+ts_ms=1793265462785 event=datagram_sent connection=0 seq=39 session=0 bytes=2
+ts_ms=1793265462785 event=datagram_received connection=0 seq=40 session=0 bytes=1
+ts_ms=1793265462785 event=datagram_sent connection=0 seq=40 session=0 bytes=2
+ts_ms=1793265462786 event=datagram_received connection=0 seq=41 session=0 bytes=1
+ts_ms=1793265462786 event=datagram_sent connection=0 seq=41 session=0 bytes=2
+ts_ms=1793265462786 event=datagram_received connection=0 seq=42 session=0 bytes=1
+ts_ms=1793265462786 event=datagram_sent connection=0 seq=42 session=0 bytes=2
+ts_ms=1793265462786 event=datagram_received connection=0 seq=43 session=0 bytes=1
+ts_ms=1793265462786 event=datagram_sent connection=0 seq=43 session=0 bytes=2
+ts_ms=1793265462787 event=datagram_received connection=0 seq=44 session=0 bytes=1
+ts_ms=1793265462787 event=datagram_sent connection=0 seq=44 session=0 bytes=2
+ts_ms=1793265462787 event=datagram_received connection=0 seq=45 session=0 bytes=1
+ts_ms=1793265462787 event=datagram_sent connection=0 seq=45 session=0 bytes=2
+ts_ms=1793265462787 event=datagram_received connection=0 seq=46 session=0 bytes=1
+ts_ms=1793265462787 event=datagram_sent connection=0 seq=46 session=0 bytes=2
+ts_ms=1793265462788 event=datagram_received connection=0 seq=47 session=0 bytes=1
+ts_ms=1793265462788 event=datagram_sent connection=0 seq=47 session=0 bytes=2
+ts_ms=1793265462788 event=datagram_received connection=0 seq=48 session=0 bytes=1
+ts_ms=1793265462788 event=datagram_sent connection=0 seq=48 session=0 bytes=2
+ts_ms=1793265462788 event=datagram_received connection=0 seq=49 session=0 bytes=1
+ts_ms=1793265462788 event=datagram_sent connection=0 seq=49 session=0 bytes=2
+ts_ms=1793265462789 event=datagram_received connection=0 seq=50 session=0 bytes=1
+ts_ms=1793265462789 event=datagram_sent connection=0 seq=50 session=0 bytes=2
+ts_ms=1793265462789 event=datagram_received connection=0 seq=51 session=0 bytes=1
+ts_ms=1793265462789 event=datagram_sent connection=0 seq=51 session=0 bytes=2
+ts_ms=1793265462789 event=datagram_received connection=0 seq=52 session=0 bytes=1
+ts_ms=1793265462789 event=datagram_sent connection=0 seq=52 session=0 bytes=2
+ts_ms=1793265462790 event=datagram_received connection=0 seq=53 session=0 bytes=1
+ts_ms=1793265462790 event=datagram_sent connection=0 seq=53 session=0 bytes=2
+ts_ms=1793265462790 event=datagram_received connection=0 seq=54 session=0 bytes=1
+ts_ms=1793265462790 event=datagram_sent connection=0 seq=54 session=0 bytes=2
+ts_ms=1793265462790 event=datagram_received connection=0 seq=55 session=0 bytes=1
+ts_ms=1793265462790 event=datagram_sent connection=0 seq=55 session=0 bytes=2
+ts_ms=1793265462791 event=datagram_received connection=0 seq=56 session=0 bytes=1
+ts_ms=1793265462791 event=datagram_sent connection=0 seq=56 session=0 bytes=2
+ts_ms=1793265462791 event=datagram_received connection=0 seq=57 session=0 bytes=1
+ts_ms=1793265462791 event=datagram_sent connection=0 seq=57 session=0 bytes=2
+ts_ms=1793265462791 event=datagram_received connection=0 seq=58 session=0 bytes=1
+ts_ms=1793265462791 event=datagram_sent connection=0 seq=58 session=0 bytes=2
+ts_ms=1793265462792 event=datagram_received connection=0 seq=59 session=0 bytes=1
+ts_ms=1793265462792 event=datagram_sent connection=0 seq=59 session=0 bytes=2
+ts_ms=1793265462792 event=datagram_received connection=0 seq=60 session=0 bytes=1
+ts_ms=1793265462792 event=datagram_sent connection=0 seq=60 session=0 bytes=2
+ts_ms=1793265462792 event=datagram_received connection=0 seq=61 session=0 bytes=1
+ts_ms=1793265462792 event=datagram_sent connection=0 seq=61 session=0 bytes=2
+ts_ms=1793265462793 event=datagram_received connection=0 seq=62 session=0 bytes=1
+ts_ms=1793265462793 event=datagram_sent connection=0 seq=62 session=0 bytes=2
+ts_ms=1793265462793 event=datagram_received connection=0 seq=63 session=0 bytes=1
+ts_ms=1793265462793 event=datagram_sent connection=0 seq=63 session=0 bytes=2
+ts_ms=1793265462793 event=datagram_received connection=0 seq=64 session=0 bytes=1
+ts_ms=1793265462793 event=datagram_sent connection=0 seq=64 session=0 bytes=2
+ts_ms=1793265462793 event=datagram_received connection=0 seq=65 session=0 bytes=1
+ts_ms=1793265462794 event=datagram_sent connection=0 seq=65 session=0 bytes=2
+ts_ms=1793265462794 event=datagram_received connection=0 seq=66 session=0 bytes=1
+ts_ms=1793265462794 event=datagram_sent connection=0 seq=66 session=0 bytes=2
+ts_ms=1793265462794 event=datagram_received connection=0 seq=67 session=0 bytes=1
+ts_ms=1793265462794 event=datagram_sent connection=0 seq=67 session=0 bytes=2
+ts_ms=1793265462795 event=datagram_received connection=0 seq=68 session=0 bytes=1
+ts_ms=1793265462795 event=datagram_sent connection=0 seq=68 session=0 bytes=2
+ts_ms=1793265462795 event=datagram_received connection=0 seq=69 session=0 bytes=1
+ts_ms=1793265462795 event=datagram_sent connection=0 seq=69 session=0 bytes=2
+ts_ms=1793265462795 event=datagram_received connection=0 seq=70 session=0 bytes=1
+ts_ms=1793265462795 event=datagram_sent connection=0 seq=70 session=0 bytes=2
+ts_ms=1793265462796 event=datagram_received connection=0 seq=71 session=0 bytes=1
+ts_ms=1793265462796 event=datagram_sent connection=0 seq=71 session=0 bytes=2
+ts_ms=1793265462796 event=datagram_received connection=0 seq=72 session=0 bytes=1
+ts_ms=1793265462796 event=datagram_sent connection=0 seq=72 session=0 bytes=2
+ts_ms=1793265462796 event=datagram_received connection=0 seq=73 session=0 bytes=1
+ts_ms=1793265462796 event=datagram_sent connection=0 seq=73 session=0 bytes=2
+ts_ms=1793265462796 event=datagram_received connection=0 seq=74 session=0 bytes=1
+ts_ms=1793265462797 event=datagram_sent connection=0 seq=74 session=0 bytes=2
+ts_ms=1793265462797 event=datagram_received connection=0 seq=75 session=0 bytes=1
+ts_ms=1793265462797 event=datagram_sent connection=0 seq=75 session=0 bytes=2
+ts_ms=1793265462797 event=datagram_received connection=0 seq=76 session=0 bytes=1
+ts_ms=1793265462797 event=datagram_sent connection=0 seq=76 session=0 bytes=2
+ts_ms=1793265462797 event=datagram_received connection=0 seq=77 session=0 bytes=1
+ts_ms=1793265462797 event=datagram_sent connection=0 seq=77 session=0 bytes=2
+ts_ms=1793265462798 event=datagram_received connection=0 seq=78 session=0 bytes=1
+ts_ms=1793265462798 event=datagram_sent connection=0 seq=78 session=0 bytes=2
+ts_ms=1793265462798 event=datagram_received connection=0 seq=79 session=0 bytes=1
+ts_ms=1793265462798 event=datagram_sent connection=0 seq=79 session=0 bytes=2
+ts_ms=1793265462798 event=datagram_received connection=0 seq=80 session=0 bytes=1
+ts_ms=1793265462798 event=datagram_sent connection=0 seq=80 session=0 bytes=2
+ts_ms=1793265462799 event=datagram_received connection=0 seq=81 session=0 bytes=1
+ts_ms=1793265462799 event=datagram_sent connection=0 seq=81 session=0 bytes=2
+ts_ms=1793265462799 event=datagram_received connection=0 seq=82 session=0 bytes=1
+ts_ms=1793265462799 event=datagram_sent connection=0 seq=82 session=0 bytes=2
+ts_ms=1793265462799 event=datagram_received connection=0 seq=83 session=0 bytes=1
+ts_ms=1793265462799 event=datagram_sent connection=0 seq=83 session=0 bytes=2
+ts_ms=1793265462800 event=datagram_received connection=0 seq=84 session=0 bytes=1
+ts_ms=1793265462800 event=datagram_sent connection=0 seq=84 session=0 bytes=2
+ts_ms=1793265462800 event=datagram_received connection=0 seq=85 session=0 bytes=1
+ts_ms=1793265462800 event=datagram_sent connection=0 seq=85 session=0 bytes=2
+ts_ms=1793265462800 event=datagram_received connection=0 seq=86 session=0 bytes=1
+ts_ms=1793265462800 event=datagram_sent connection=0 seq=86 session=0 bytes=2
+ts_ms=1793265462801 event=datagram_received connection=0 seq=87 session=0 bytes=1
+ts_ms=1793265462801 event=datagram_sent connection=0 seq=87 session=0 bytes=2
+ts_ms=1793265462801 event=datagram_received connection=0 seq=88 session=0 bytes=1
+ts_ms=1793265462801 event=datagram_sent connection=0 seq=88 session=0 bytes=2
+ts_ms=1793265462801 event=datagram_received connection=0 seq=89 session=0 bytes=1
+ts_ms=1793265462801 event=datagram_sent connection=0 seq=89 session=0 bytes=2
+ts_ms=1793265462802 event=datagram_received connection=0 seq=90 session=0 bytes=1
+ts_ms=1793265462802 event=datagram_sent connection=0 seq=90 session=0 bytes=2
+ts_ms=1793265462802 event=datagram_received connection=0 seq=91 session=0 bytes=1
+ts_ms=1793265462802 event=datagram_sent connection=0 seq=91 session=0 bytes=2
+ts_ms=1793265462803 event=datagram_received connection=0 seq=92 session=0 bytes=1
+ts_ms=1793265462803 event=datagram_sent connection=0 seq=92 session=0 bytes=2
+ts_ms=1793265462803 event=datagram_received connection=0 seq=93 session=0 bytes=1
+ts_ms=1793265462803 event=datagram_sent connection=0 seq=93 session=0 bytes=2
+ts_ms=1793265462803 event=datagram_received connection=0 seq=94 session=0 bytes=1
+ts_ms=1793265462803 event=datagram_sent connection=0 seq=94 session=0 bytes=2
+ts_ms=1793265462804 event=datagram_received connection=0 seq=95 session=0 bytes=1
+ts_ms=1793265462804 event=datagram_sent connection=0 seq=95 session=0 bytes=2
+ts_ms=1793265462804 event=datagram_received connection=0 seq=96 session=0 bytes=1
+ts_ms=1793265462804 event=datagram_sent connection=0 seq=96 session=0 bytes=2
+ts_ms=1793265462804 event=datagram_received connection=0 seq=97 session=0 bytes=1
+ts_ms=1793265462804 event=datagram_sent connection=0 seq=97 session=0 bytes=2
+ts_ms=1793265462805 event=datagram_received connection=0 seq=98 session=0 bytes=1
+ts_ms=1793265462805 event=datagram_sent connection=0 seq=98 session=0 bytes=2
+ts_ms=1793265462805 event=datagram_received connection=0 seq=99 session=0 bytes=1
+ts_ms=1793265462805 event=datagram_sent connection=0 seq=99 session=0 bytes=2
+ts_ms=1793265462805 event=datagram_received connection=0 seq=100 session=0 bytes=1
+ts_ms=1793265462805 event=datagram_sent connection=0 seq=100 session=0 bytes=2
+ts_ms=1793265462806 event=datagram_received connection=0 seq=101 session=0 bytes=1000
+ts_ms=1793265462806 event=datagram_sent connection=0 seq=101 session=0 bytes=1001
+ts_ms=1793265462806 event=datagram_received connection=0 seq=102 session=0 bytes=1000
+ts_ms=1793265462806 event=datagram_sent connection=0 seq=102 session=0 bytes=1001
+ts_ms=1793265462806 event=datagram_received connection=0 seq=103 session=0 bytes=1000
+ts_ms=1793265462806 event=datagram_sent connection=0 seq=103 session=0 bytes=1001
+ts_ms=1793265462807 event=datagram_received connection=0 seq=104 session=0 bytes=1000
+ts_ms=1793265462807 event=datagram_sent connection=0 seq=104 session=0 bytes=1001
+ts_ms=1793265462807 event=datagram_received connection=0 seq=105 session=0 bytes=1000
+ts_ms=1793265462807 event=datagram_sent connection=0 seq=105 session=0 bytes=1001
+ts_ms=1793265462807 event=datagram_received connection=0 seq=106 session=0 bytes=1000
+ts_ms=1793265462808 event=datagram_sent connection=0 seq=106 session=0 bytes=1001
+ts_ms=1793265462808 event=datagram_received connection=0 seq=107 session=0 bytes=1000
+ts_ms=1793265462808 event=datagram_sent connection=0 seq=107 session=0 bytes=1001
+ts_ms=1793265462808 event=datagram_received connection=0 seq=108 session=0 bytes=1000
+ts_ms=1793265462808 event=datagram_sent connection=0 seq=108 session=0 bytes=1001
+ts_ms=1793265462808 event=datagram_received connection=0 seq=109 session=0 bytes=1000
+ts_ms=1793265462809 event=datagram_sent connection=0 seq=109 session=0 bytes=1001
+ts_ms=1793265462809 event=datagram_received connection=0 seq=110 session=0 bytes=1000
+ts_ms=1793265462809 event=datagram_sent connection=0 seq=110 session=0 bytes=1001
+ts_ms=1793265462809 event=datagram_received connection=0 seq=111 session=0 bytes=1000
+ts_ms=1793265462809 event=datagram_sent connection=0 seq=111 session=0 bytes=1001
+ts_ms=1793265462810 event=datagram_received connection=0 seq=112 session=0 bytes=1000
+ts_ms=1793265462810 event=datagram_sent connection=0 seq=112 session=0 bytes=1001
+ts_ms=1793265462810 event=datagram_received connection=0 seq=113 session=0 bytes=1000
+ts_ms=1793265462810 event=datagram_sent connection=0 seq=113 session=0 bytes=1001
+ts_ms=1793265462810 event=datagram_received connection=0 seq=114 session=0 bytes=1000
+ts_ms=1793265462810 event=datagram_sent connection=0 seq=114 session=0 bytes=1001
+ts_ms=1793265462811 event=datagram_received connection=0 seq=115 session=0 bytes=1000
+ts_ms=1793265462811 event=datagram_sent connection=0 seq=115 session=0 bytes=1001
+ts_ms=1793265462811 event=datagram_received connection=0 seq=116 session=0 bytes=1000
+ts_ms=1793265462811 event=datagram_sent connection=0 seq=116 session=0 bytes=1001
+ts_ms=1793265462811 event=datagram_received connection=0 seq=117 session=0 bytes=1000
+ts_ms=1793265462811 event=datagram_sent connection=0 seq=117 session=0 bytes=1001
+ts_ms=1793265462812 event=datagram_received connection=0 seq=118 session=0 bytes=1000
+ts_ms=1793265462812 event=datagram_sent connection=0 seq=118 session=0 bytes=1001
+ts_ms=1793265462812 event=datagram_received connection=0 seq=119 session=0 bytes=1000
+ts_ms=1793265462812 event=datagram_sent connection=0 seq=119 session=0 bytes=1001
+ts_ms=1793265462812 event=datagram_received connection=0 seq=120 session=0 bytes=1000
+ts_ms=1793265462812 event=datagram_sent connection=0 seq=120 session=0 bytes=1001
+ts_ms=1793265462813 event=datagram_received connection=0 seq=121 session=0 bytes=1000
+ts_ms=1793265462813 event=datagram_sent connection=0 seq=121 session=0 bytes=1001
+ts_ms=1793265462813 event=datagram_received connection=0 seq=122 session=0 bytes=1000
+ts_ms=1793265462813 event=datagram_sent connection=0 seq=122 session=0 bytes=1001
+ts_ms=1793265462813 event=datagram_received connection=0 seq=123 session=0 bytes=1000
+ts_ms=1793265462813 event=datagram_sent connection=0 seq=123 session=0 bytes=1001
+ts_ms=1793265462814 event=datagram_received connection=0 seq=124 session=0 bytes=1000
+ts_ms=1793265462814 event=datagram_sent connection=0 seq=124 session=0 bytes=1001
+ts_ms=1793265462814 event=datagram_received connection=0 seq=125 session=0 bytes=1000
+ts_ms=1793265462814 event=datagram_sent connection=0 seq=125 session=0 bytes=1001
+ts_ms=1793265462814 event=datagram_received connection=0 seq=126 session=0 bytes=1000
+ts_ms=1793265462815 event=datagram_sent connection=0 seq=126 session=0 bytes=1001
+ts_ms=1793265462815 event=datagram_received connection=0 seq=127 session=0 bytes=1000
+ts_ms=1793265462815 event=datagram_sent connection=0 seq=127 session=0 bytes=1001
+ts_ms=1793265462815 event=datagram_received connection=0 seq=128 session=0 bytes=1000
+ts_ms=1793265462815 event=datagram_sent connection=0 seq=128 session=0 bytes=1001
+ts_ms=1793265462816 event=datagram_received connection=0 seq=129 session=0 bytes=1000
+ts_ms=1793265462816 event=datagram_sent connection=0 seq=129 session=0 bytes=1001
+ts_ms=1793265462816 event=datagram_received connection=0 seq=130 session=0 bytes=1000
+ts_ms=1793265462816 event=datagram_sent connection=0 seq=130 session=0 bytes=1001
+ts_ms=1793265462816 event=datagram_received connection=0 seq=131 session=0 bytes=1000
+ts_ms=1793265462816 event=datagram_sent connection=0 seq=131 session=0 bytes=1001
+ts_ms=1793265462817 event=datagram_received connection=0 seq=132 session=0 bytes=1000
+ts_ms=1793265462817 event=datagram_sent connection=0 seq=132 session=0 bytes=1001
+ts_ms=1793265462817 event=datagram_received connection=0 seq=133 session=0 bytes=1000
+ts_ms=1793265462817 event=datagram_sent connection=0 seq=133 session=0 bytes=1001
+ts_ms=1793265462817 event=datagram_received connection=0 seq=134 session=0 bytes=1000
+ts_ms=1793265462818 event=datagram_sent connection=0 seq=134 session=0 bytes=1001
+ts_ms=1793265462818 event=datagram_received connection=0 seq=135 session=0 bytes=1000
+ts_ms=1793265462818 event=datagram_sent connection=0 seq=135 session=0 bytes=1001
+ts_ms=1793265462818 event=datagram_received connection=0 seq=136 session=0 bytes=1000
+ts_ms=1793265462818 event=datagram_sent connection=0 seq=136 session=0 bytes=1001
+ts_ms=1793265462819 event=datagram_received connection=0 seq=137 session=0 bytes=1000
+ts_ms=1793265462819 event=datagram_sent connection=0 seq=137 session=0 bytes=1001
+ts_ms=1793265462819 event=datagram_received connection=0 seq=138 session=0 bytes=1000
+ts_ms=1793265462819 event=datagram_sent connection=0 seq=138 session=0 bytes=1001
+ts_ms=1793265462819 event=datagram_received connection=0 seq=139 session=0 bytes=1000
+ts_ms=1793265462819 event=datagram_sent connection=0 seq=139 session=0 bytes=1001
+ts_ms=1793265462820 event=datagram_received connection=0 seq=140 session=0 bytes=1000
+ts_ms=1793265462820 event=datagram_sent connection=0 seq=140 session=0 bytes=1001
+ts_ms=1793265462820 event=datagram_received connection=0 seq=141 session=0 bytes=1000
+ts_ms=1793265462820 event=datagram_sent connection=0 seq=141 session=0 bytes=1001
+ts_ms=1793265462820 event=datagram_received connection=0 seq=142 session=0 bytes=1000
+ts_ms=1793265462820 event=datagram_sent connection=0 seq=142 session=0 bytes=1001
+ts_ms=1793265462821 event=datagram_received connection=0 seq=143 session=0 bytes=1000
+ts_ms=1793265462821 event=datagram_sent connection=0 seq=143 session=0 bytes=1001
+ts_ms=1793265462821 event=datagram_received connection=0 seq=144 session=0 bytes=1000
+ts_ms=1793265462821 event=datagram_sent connection=0 seq=144 session=0 bytes=1001
+ts_ms=1793265462821 event=datagram_received connection=0 seq=145 session=0 bytes=1000
+ts_ms=1793265462821 event=datagram_sent connection=0 seq=145 session=0 bytes=1001
+ts_ms=1793265462822 event=datagram_received connection=0 seq=146 session=0 bytes=1000
+ts_ms=1793265462822 event=datagram_sent connection=0 seq=146 session=0 bytes=1001
+ts_ms=1793265462822 event=datagram_received connection=0 seq=147 session=0 bytes=1000
+ts_ms=1793265462822 event=datagram_sent connection=0 seq=147 session=0 bytes=1001
+ts_ms=1793265462822 event=datagram_received connection=0 seq=148 session=0 bytes=1000
+ts_ms=1793265462822 event=datagram_sent connection=0 seq=148 session=0 bytes=1001
+ts_ms=1793265462823 event=datagram_received connection=0 seq=149 session=0 bytes=1000
+ts_ms=1793265462823 event=datagram_sent connection=0 seq=149 session=0 bytes=1001
+ts_ms=1793265462823 event=datagram_received connection=0 seq=150 session=0 bytes=1000
+ts_ms=1793265462823 event=datagram_sent connection=0 seq=150 session=0 bytes=1001
+ts_ms=1793265462823 event=datagram_received connection=0 seq=151 session=0 bytes=1000
+ts_ms=1793265462823 event=datagram_sent connection=0 seq=151 session=0 bytes=1001
+ts_ms=1793265462824 event=datagram_received connection=0 seq=152 session=0 bytes=1000
+ts_ms=1793265462824 event=datagram_sent connection=0 seq=152 session=0 bytes=1001
+ts_ms=1793265462824 event=datagram_received connection=0 seq=153 session=0 bytes=1000
+ts_ms=1793265462824 event=datagram_sent connection=0 seq=153 session=0 bytes=1001
+ts_ms=1793265462824 event=datagram_received connection=0 seq=154 session=0 bytes=1000
+ts_ms=1793265462824 event=datagram_sent connection=0 seq=154 session=0 bytes=1001
+ts_ms=1793265462825 event=datagram_received connection=0 seq=155 session=0 bytes=1000
+ts_ms=1793265462825 event=datagram_sent connection=0 seq=155 session=0 bytes=1001
+ts_ms=1793265462825 event=datagram_received connection=0 seq=156 session=0 bytes=1000
+ts_ms=1793265462825 event=datagram_sent connection=0 seq=156 session=0 bytes=1001
+ts_ms=1793265462825 event=datagram_received connection=0 seq=157 session=0 bytes=1000
+ts_ms=1793265462825 event=datagram_sent connection=0 seq=157 session=0 bytes=1001
+ts_ms=1793265462826 event=datagram_received connection=0 seq=158 session=0 bytes=1000
+ts_ms=1793265462826 event=datagram_sent connection=0 seq=158 session=0 bytes=1001
+ts_ms=1793265462826 event=datagram_received connection=0 seq=159 session=0 bytes=1000
+ts_ms=1793265462826 event=datagram_sent connection=0 seq=159 session=0 bytes=1001
+ts_ms=1793265462826 event=datagram_received connection=0 seq=160 session=0 bytes=1000
+ts_ms=1793265462826 event=datagram_sent connection=0 seq=160 session=0 bytes=1001
+ts_ms=1793265462827 event=datagram_received connection=0 seq=161 session=0 bytes=1000
+ts_ms=1793265462827 event=datagram_sent connection=0 seq=161 session=0 bytes=1001
+ts_ms=1793265462827 event=datagram_received connection=0 seq=162 session=0 bytes=1000
+ts_ms=1793265462827 event=datagram_sent connection=0 seq=162 session=0 bytes=1001
+ts_ms=1793265462827 event=datagram_received connection=0 seq=163 session=0 bytes=1000
+ts_ms=1793265462827 event=datagram_sent connection=0 seq=163 session=0 bytes=1001
+ts_ms=1793265462828 event=datagram_received connection=0 seq=164 session=0 bytes=1000
+ts_ms=1793265462828 event=datagram_sent connection=0 seq=164 session=0 bytes=1001
+ts_ms=1793265462828 event=datagram_received connection=0 seq=165 session=0 bytes=1000
+ts_ms=1793265462828 event=datagram_sent connection=0 seq=165 session=0 bytes=1001
+ts_ms=1793265462859 event=datagram_received connection=0 seq=166 session=0 bytes=1000
+ts_ms=1793265462859 event=datagram_sent connection=0 seq=166 session=0 bytes=1001
+ts_ms=1793265462859 event=datagram_received connection=0 seq=167 session=0 bytes=1000
+ts_ms=1793265462859 event=datagram_sent connection=0 seq=167 session=0 bytes=1001
+ts_ms=1793265462860 event=datagram_received connection=0 seq=168 session=0 bytes=1000
+ts_ms=1793265462860 event=datagram_sent connection=0 seq=168 session=0 bytes=1001
+ts_ms=1793265462860 event=datagram_received connection=0 seq=169 session=0 bytes=1000
+ts_ms=1793265462860 event=datagram_sent connection=0 seq=169 session=0 bytes=1001
+ts_ms=1793265462860 event=datagram_received connection=0 seq=170 session=0 bytes=1000
+ts_ms=1793265462860 event=datagram_sent connection=0 seq=170 session=0 bytes=1001
+ts_ms=1793265462861 event=datagram_received connection=0 seq=171 session=0 bytes=1000
+ts_ms=1793265462861 event=datagram_sent connection=0 seq=171 session=0 bytes=1001
+ts_ms=1793265462861 event=datagram_received connection=0 seq=172 session=0 bytes=1000
+ts_ms=1793265462861 event=datagram_sent connection=0 seq=172 session=0 bytes=1001
+ts_ms=1793265462861 event=datagram_received connection=0 seq=173 session=0 bytes=1000
+ts_ms=1793265462861 event=datagram_sent connection=0 seq=173 session=0 bytes=1001
+ts_ms=1793265462862 event=datagram_received connection=0 seq=174 session=0 bytes=1000
+ts_ms=1793265462862 event=datagram_sent connection=0 seq=174 session=0 bytes=1001
+ts_ms=1793265462862 event=datagram_received connection=0 seq=175 session=0 bytes=1000
+ts_ms=1793265462862 event=datagram_sent connection=0 seq=175 session=0 bytes=1001
+ts_ms=1793265462862 event=datagram_received connection=0 seq=176 session=0 bytes=1000
+ts_ms=1793265462862 event=datagram_sent connection=0 seq=176 session=0 bytes=1001
+ts_ms=1793265462863 event=datagram_received connection=0 seq=177 session=0 bytes=1000
+ts_ms=1793265462863 event=datagram_sent connection=0 seq=177 session=0 bytes=1001
+ts_ms=1793265462863 event=datagram_received connection=0 seq=178 session=0 bytes=1000
+ts_ms=1793265462863 event=datagram_sent connection=0 seq=178 session=0 bytes=1001
+ts_ms=1793265462863 event=datagram_received connection=0 seq=179 session=0 bytes=1000
+ts_ms=1793265462863 event=datagram_sent connection=0 seq=179 session=0 bytes=1001
+ts_ms=1793265462864 event=datagram_received connection=0 seq=180 session=0 bytes=1000
+ts_ms=1793265462864 event=datagram_sent connection=0 seq=180 session=0 bytes=1001
+ts_ms=1793265462864 event=datagram_received connection=0 seq=181 session=0 bytes=1000
+ts_ms=1793265462864 event=datagram_sent connection=0 seq=181 session=0 bytes=1001
+ts_ms=1793265462864 event=datagram_received connection=0 seq=182 session=0 bytes=1000
+ts_ms=1793265462864 event=datagram_sent connection=0 seq=182 session=0 bytes=1001
+ts_ms=1793265462865 event=datagram_received connection=0 seq=183 session=0 bytes=1000
+ts_ms=1793265462865 event=datagram_sent connection=0 seq=183 session=0 bytes=1001
+ts_ms=1793265462865 event=datagram_received connection=0 seq=184 session=0 bytes=1000
+ts_ms=1793265462865 event=datagram_sent connection=0 seq=184 session=0 bytes=1001
+ts_ms=1793265462865 event=datagram_received connection=0 seq=185 session=0 bytes=1000
+ts_ms=1793265462865 event=datagram_sent connection=0 seq=185 session=0 bytes=1001
+ts_ms=1793265462866 event=datagram_received connection=0 seq=186 session=0 bytes=1000
+ts_ms=1793265462866 event=datagram_sent connection=0 seq=186 session=0 bytes=1001
+ts_ms=1793265462866 event=datagram_received connection=0 seq=187 session=0 bytes=1000
+ts_ms=1793265462866 event=datagram_sent connection=0 seq=187 session=0 bytes=1001
+ts_ms=1793265462866 event=datagram_received connection=0 seq=188 session=0 bytes=1000
+ts_ms=1793265462866 event=datagram_sent connection=0 seq=188 session=0 bytes=1001
+ts_ms=1793265462867 event=datagram_received connection=0 seq=189 session=0 bytes=1000
+ts_ms=1793265462867 event=datagram_sent connection=0 seq=189 session=0 bytes=1001
+ts_ms=1793265462867 event=datagram_received connection=0 seq=190 session=0 bytes=1000
+ts_ms=1793265462867 event=datagram_sent connection=0 seq=190 session=0 bytes=1001
+ts_ms=1793265462867 event=datagram_received connection=0 seq=191 session=0 bytes=1000
+ts_ms=1793265462867 event=datagram_sent connection=0 seq=191 session=0 bytes=1001
+ts_ms=1793265462868 event=datagram_received connection=0 seq=192 session=0 bytes=1000
+ts_ms=1793265462868 event=datagram_sent connection=0 seq=192 session=0 bytes=1001
+ts_ms=1793265462868 event=datagram_received connection=0 seq=193 session=0 bytes=1000
+ts_ms=1793265462868 event=datagram_sent connection=0 seq=193 session=0 bytes=1001
+ts_ms=1793265462868 event=datagram_received connection=0 seq=194 session=0 bytes=1000
+ts_ms=1793265462869 event=datagram_sent connection=0 seq=194 session=0 bytes=1001
+ts_ms=1793265462869 event=datagram_received connection=0 seq=195 session=0 bytes=1000
+ts_ms=1793265462869 event=datagram_sent connection=0 seq=195 session=0 bytes=1001
+ts_ms=1793265462869 event=datagram_received connection=0 seq=196 session=0 bytes=1000
+ts_ms=1793265462869 event=datagram_sent connection=0 seq=196 session=0 bytes=1001
+ts_ms=1793265462869 event=datagram_received connection=0 seq=197 session=0 bytes=1000
+ts_ms=1793265462870 event=datagram_sent connection=0 seq=197 session=0 bytes=1001
+ts_ms=1793265462870 event=datagram_received connection=0 seq=198 session=0 bytes=1000
+ts_ms=1793265462870 event=datagram_sent connection=0 seq=198 session=0 bytes=1001
+ts_ms=1793265462870 event=datagram_received connection=0 seq=199 session=0 bytes=1000
+ts_ms=1793265462870 event=datagram_sent connection=0 seq=199 session=0 bytes=1001
+ts_ms=1793265462870 event=datagram_received connection=0 seq=200 session=0 bytes=1000
+ts_ms=1793265462871 event=datagram_sent connection=0 seq=200 session=0 bytes=1001
+ts_ms=1793265462877 event=datagram_received connection=0 seq=201 session=0 bytes=1067
+ts_ms=1793265462877 event=datagram_sent connection=0 seq=201 session=0 bytes=1068
+ts_ms=1793265462878 event=datagram_received connection=0 seq=202 session=0 bytes=1067
+ts_ms=1793265462878 event=datagram_sent connection=0 seq=202 session=0 bytes=1068
+ts_ms=1793265462878 event=datagram_received connection=0 seq=203 session=0 bytes=1067
+ts_ms=1793265462878 event=datagram_sent connection=0 seq=203 session=0 bytes=1068
+ts_ms=1793265462878 event=datagram_received connection=0 seq=204 session=0 bytes=1067
+ts_ms=1793265462878 event=datagram_sent connection=0 seq=204 session=0 bytes=1068
+ts_ms=1793265462879 event=datagram_received connection=0 seq=205 session=0 bytes=1067
+ts_ms=1793265462879 event=datagram_sent connection=0 seq=205 session=0 bytes=1068
+ts_ms=1793265462879 event=datagram_received connection=0 seq=206 session=0 bytes=1067
+ts_ms=1793265462879 event=datagram_sent connection=0 seq=206 session=0 bytes=1068
+ts_ms=1793265462879 event=datagram_received connection=0 seq=207 session=0 bytes=1067
+ts_ms=1793265462879 event=datagram_sent connection=0 seq=207 session=0 bytes=1068
+ts_ms=1793265462880 event=datagram_received connection=0 seq=208 session=0 bytes=1067
+ts_ms=1793265462880 event=datagram_sent connection=0 seq=208 session=0 bytes=1068
+ts_ms=1793265462880 event=datagram_received connection=0 seq=209 session=0 bytes=1067
+ts_ms=1793265462882 event=datagram_sent connection=0 seq=209 session=0 bytes=1068
+ts_ms=1793265462882 event=datagram_received connection=0 seq=210 session=0 bytes=1067
+ts_ms=1793265462882 event=datagram_sent connection=0 seq=210 session=0 bytes=1068
+ts_ms=1793265462882 event=datagram_received connection=0 seq=211 session=0 bytes=1067
+ts_ms=1793265462882 event=datagram_sent connection=0 seq=211 session=0 bytes=1068
+ts_ms=1793265462883 event=datagram_received connection=0 seq=212 session=0 bytes=1067
+ts_ms=1793265462883 event=datagram_sent connection=0 seq=212 session=0 bytes=1068
+ts_ms=1793265462883 event=datagram_received connection=0 seq=213 session=0 bytes=1067
+ts_ms=1793265462883 event=datagram_sent connection=0 seq=213 session=0 bytes=1068
+ts_ms=1793265462883 event=datagram_received connection=0 seq=214 session=0 bytes=1067
+ts_ms=1793265462883 event=datagram_sent connection=0 seq=214 session=0 bytes=1068
+ts_ms=1793265462884 event=datagram_received connection=0 seq=215 session=0 bytes=1067
+ts_ms=1793265462884 event=datagram_sent connection=0 seq=215 session=0 bytes=1068
+ts_ms=1793265462884 event=datagram_received connection=0 seq=216 session=0 bytes=1067
+ts_ms=1793265462884 event=datagram_sent connection=0 seq=216 session=0 bytes=1068
+ts_ms=1793265462884 event=datagram_received connection=0 seq=217 session=0 bytes=1067
+ts_ms=1793265462884 event=datagram_sent connection=0 seq=217 session=0 bytes=1068
+ts_ms=1793265462885 event=datagram_received connection=0 seq=218 session=0 bytes=1067
+ts_ms=1793265462885 event=datagram_sent connection=0 seq=218 session=0 bytes=1068
+ts_ms=1793265462885 event=datagram_received connection=0 seq=219 session=0 bytes=1067
+ts_ms=1793265462885 event=datagram_sent connection=0 seq=219 session=0 bytes=1068
+ts_ms=1793265462885 event=datagram_received connection=0 seq=220 session=0 bytes=1067
+ts_ms=1793265462885 event=datagram_sent connection=0 seq=220 session=0 bytes=1068
+ts_ms=1793265462886 event=datagram_received connection=0 seq=221 session=0 bytes=1067
+ts_ms=1793265462886 event=datagram_sent connection=0 seq=221 session=0 bytes=1068
+ts_ms=1793265462886 event=datagram_received connection=0 seq=222 session=0 bytes=1067
+ts_ms=1793265462886 event=datagram_sent connection=0 seq=222 session=0 bytes=1068
+ts_ms=1793265462886 event=datagram_received connection=0 seq=223 session=0 bytes=1067
+ts_ms=1793265462886 event=datagram_sent connection=0 seq=223 session=0 bytes=1068
+ts_ms=1793265462887 event=datagram_received connection=0 seq=224 session=0 bytes=1067
+ts_ms=1793265462887 event=datagram_sent connection=0 seq=224 session=0 bytes=1068
+ts_ms=1793265462887 event=datagram_received connection=0 seq=225 session=0 bytes=1067
+ts_ms=1793265462887 event=datagram_sent connection=0 seq=225 session=0 bytes=1068
+ts_ms=1793265462887 event=datagram_received connection=0 seq=226 session=0 bytes=1067
+ts_ms=1793265462887 event=datagram_sent connection=0 seq=226 session=0 bytes=1068
+ts_ms=1793265462888 event=datagram_received connection=0 seq=227 session=0 bytes=1067
+ts_ms=1793265462888 event=datagram_sent connection=0 seq=227 session=0 bytes=1068
+ts_ms=1793265462888 event=datagram_received connection=0 seq=228 session=0 bytes=1067
+ts_ms=1793265462888 event=datagram_sent connection=0 seq=228 session=0 bytes=1068
+ts_ms=1793265462888 event=datagram_received connection=0 seq=229 session=0 bytes=1067
+ts_ms=1793265462888 event=datagram_sent connection=0 seq=229 session=0 bytes=1068
+ts_ms=1793265462889 event=datagram_received connection=0 seq=230 session=0 bytes=1067
+ts_ms=1793265462889 event=datagram_sent connection=0 seq=230 session=0 bytes=1068
+ts_ms=1793265462889 event=datagram_received connection=0 seq=231 session=0 bytes=1067
+ts_ms=1793265462889 event=datagram_sent connection=0 seq=231 session=0 bytes=1068
+ts_ms=1793265462889 event=datagram_received connection=0 seq=232 session=0 bytes=1067
+ts_ms=1793265462889 event=datagram_sent connection=0 seq=232 session=0 bytes=1068
+ts_ms=1793265462890 event=datagram_received connection=0 seq=233 session=0 bytes=1067
+ts_ms=1793265462890 event=datagram_sent connection=0 seq=233 session=0 bytes=1068
+ts_ms=1793265462890 event=datagram_received connection=0 seq=234 session=0 bytes=1067
+ts_ms=1793265462890 event=datagram_sent connection=0 seq=234 session=0 bytes=1068
+ts_ms=1793265462890 event=datagram_received connection=0 seq=235 session=0 bytes=1067
+ts_ms=1793265462890 event=datagram_sent connection=0 seq=235 session=0 bytes=1068
+ts_ms=1793265462891 event=datagram_received connection=0 seq=236 session=0 bytes=1067
+ts_ms=1793265462891 event=datagram_sent connection=0 seq=236 session=0 bytes=1068
+ts_ms=1793265462891 event=datagram_received connection=0 seq=237 session=0 bytes=1067
+ts_ms=1793265462891 event=datagram_sent connection=0 seq=237 session=0 bytes=1068
+ts_ms=1793265462891 event=datagram_received connection=0 seq=238 session=0 bytes=1067
+ts_ms=1793265462891 event=datagram_sent connection=0 seq=238 session=0 bytes=1068
+ts_ms=1793265462892 event=datagram_received connection=0 seq=239 session=0 bytes=1067
+ts_ms=1793265462892 event=datagram_sent connection=0 seq=239 session=0 bytes=1068
+ts_ms=1793265462892 event=datagram_received connection=0 seq=240 session=0 bytes=1067
+ts_ms=1793265462892 event=datagram_sent connection=0 seq=240 session=0 bytes=1068
+ts_ms=1793265462892 event=datagram_received connection=0 seq=241 session=0 bytes=1067
+ts_ms=1793265462892 event=datagram_sent connection=0 seq=241 session=0 bytes=1068
+ts_ms=1793265462893 event=datagram_received connection=0 seq=242 session=0 bytes=1067
+ts_ms=1793265462893 event=datagram_sent connection=0 seq=242 session=0 bytes=1068
+ts_ms=1793265462893 event=datagram_received connection=0 seq=243 session=0 bytes=1067
+ts_ms=1793265462893 event=datagram_sent connection=0 seq=243 session=0 bytes=1068
+ts_ms=1793265462893 event=datagram_received connection=0 seq=244 session=0 bytes=1067
+ts_ms=1793265462893 event=datagram_sent connection=0 seq=244 session=0 bytes=1068
+ts_ms=1793265462893 event=datagram_received connection=0 seq=245 session=0 bytes=1067
+ts_ms=1793265462894 event=datagram_sent connection=0 seq=245 session=0 bytes=1068
+ts_ms=1793265462894 event=datagram_received connection=0 seq=246 session=0 bytes=1067
+ts_ms=1793265462894 event=datagram_sent connection=0 seq=246 session=0 bytes=1068
+ts_ms=1793265462894 event=datagram_received connection=0 seq=247 session=0 bytes=1067
+ts_ms=1793265462894 event=datagram_sent connection=0 seq=247 session=0 bytes=1068
+ts_ms=1793265462894 event=datagram_received connection=0 seq=248 session=0 bytes=1067
+ts_ms=1793265462895 event=datagram_sent connection=0 seq=248 session=0 bytes=1068
+ts_ms=1793265462895 event=datagram_received connection=0 seq=249 session=0 bytes=1067
+ts_ms=1793265462895 event=datagram_sent connection=0 seq=249 session=0 bytes=1068
+ts_ms=1793265462895 event=datagram_received connection=0 seq=250 session=0 bytes=1067
+ts_ms=1793265462895 event=datagram_sent connection=0 seq=250 session=0 bytes=1068
+ts_ms=1793265462895 event=datagram_received connection=0 seq=251 session=0 bytes=1067
+ts_ms=1793265462895 event=datagram_sent connection=0 seq=251 session=0 bytes=1068
+ts_ms=1793265462896 event=datagram_received connection=0 seq=252 session=0 bytes=1067
+ts_ms=1793265462896 event=datagram_sent connection=0 seq=252 session=0 bytes=1068
+ts_ms=1793265462896 event=datagram_received connection=0 seq=253 session=0 bytes=1067
+ts_ms=1793265462896 event=datagram_sent connection=0 seq=253 session=0 bytes=1068
+ts_ms=1793265462896 event=datagram_received connection=0 seq=254 session=0 bytes=1067
+ts_ms=1793265462896 event=datagram_sent connection=0 seq=254 session=0 bytes=1068
+ts_ms=1793265462897 event=datagram_received connection=0 seq=255 session=0 bytes=1067
+ts_ms=1793265462897 event=datagram_sent connection=0 seq=255 session=0 bytes=1068
+ts_ms=1793265462897 event=datagram_received connection=0 seq=256 session=0 bytes=1067
+ts_ms=1793265462897 event=datagram_sent connection=0 seq=256 session=0 bytes=1068
+ts_ms=1793265462897 event=datagram_received connection=0 seq=257 session=0 bytes=1067
+ts_ms=1793265462897 event=datagram_sent connection=0 seq=257 session=0 bytes=1068
+ts_ms=1793265462898 event=datagram_received connection=0 seq=258 session=0 bytes=1067
+ts_ms=1793265462898 event=datagram_sent connection=0 seq=258 session=0 bytes=1068
+ts_ms=1793265462898 event=datagram_received connection=0 seq=259 session=0 bytes=1067
+ts_ms=1793265462898 event=datagram_sent connection=0 seq=259 session=0 bytes=1068
+ts_ms=1793265462898 event=datagram_received connection=0 seq=260 session=0 bytes=1067
+ts_ms=1793265462898 event=datagram_sent connection=0 seq=260 session=0 bytes=1068
+ts_ms=1793265462899 event=datagram_received connection=0 seq=261 session=0 bytes=1067
+ts_ms=1793265462899 event=datagram_sent connection=0 seq=261 session=0 bytes=1068
+ts_ms=1793265462899 event=datagram_received connection=0 seq=262 session=0 bytes=1067
+ts_ms=1793265462899 event=datagram_sent connection=0 seq=262 session=0 bytes=1068
+ts_ms=1793265462899 event=datagram_received connection=0 seq=263 session=0 bytes=1067
+ts_ms=1793265462899 event=datagram_sent connection=0 seq=263 session=0 bytes=1068
+ts_ms=1793265462900 event=datagram_received connection=0 seq=264 session=0 bytes=1067
+ts_ms=1793265462900 event=datagram_sent connection=0 seq=264 session=0 bytes=1068
+ts_ms=1793265462900 event=datagram_received connection=0 seq=265 session=0 bytes=1067
+ts_ms=1793265462900 event=datagram_sent connection=0 seq=265 session=0 bytes=1068
+ts_ms=1793265462900 event=datagram_received connection=0 seq=266 session=0 bytes=1067
+ts_ms=1793265462900 event=datagram_sent connection=0 seq=266 session=0 bytes=1068
+ts_ms=1793265462901 event=datagram_received connection=0 seq=267 session=0 bytes=1067
+ts_ms=1793265462901 event=datagram_sent connection=0 seq=267 session=0 bytes=1068
+ts_ms=1793265462901 event=datagram_received connection=0 seq=268 session=0 bytes=1067
+ts_ms=1793265462901 event=datagram_sent connection=0 seq=268 session=0 bytes=1068
+ts_ms=1793265462901 event=datagram_received connection=0 seq=269 session=0 bytes=1067
+ts_ms=1793265462901 event=datagram_sent connection=0 seq=269 session=0 bytes=1068
+ts_ms=1793265462902 event=datagram_received connection=0 seq=270 session=0 bytes=1067
+ts_ms=1793265462902 event=datagram_sent connection=0 seq=270 session=0 bytes=1068
+ts_ms=1793265462902 event=datagram_received connection=0 seq=271 session=0 bytes=1067
+ts_ms=1793265462902 event=datagram_sent connection=0 seq=271 session=0 bytes=1068
+ts_ms=1793265462902 event=datagram_received connection=0 seq=272 session=0 bytes=1067
+ts_ms=1793265462902 event=datagram_sent connection=0 seq=272 session=0 bytes=1068
+ts_ms=1793265462903 event=datagram_received connection=0 seq=273 session=0 bytes=1067
+ts_ms=1793265462903 event=datagram_sent connection=0 seq=273 session=0 bytes=1068
+ts_ms=1793265462903 event=datagram_received connection=0 seq=274 session=0 bytes=1067
+ts_ms=1793265462903 event=datagram_sent connection=0 seq=274 session=0 bytes=1068
+ts_ms=1793265462903 event=datagram_received connection=0 seq=275 session=0 bytes=1067
+ts_ms=1793265462903 event=datagram_sent connection=0 seq=275 session=0 bytes=1068
+ts_ms=1793265462904 event=datagram_received connection=0 seq=276 session=0 bytes=1067
+ts_ms=1793265462904 event=datagram_sent connection=0 seq=276 session=0 bytes=1068
+ts_ms=1793265462904 event=datagram_received connection=0 seq=277 session=0 bytes=1067
+ts_ms=1793265462904 event=datagram_sent connection=0 seq=277 session=0 bytes=1068
+ts_ms=1793265462904 event=datagram_received connection=0 seq=278 session=0 bytes=1067
+ts_ms=1793265462904 event=datagram_sent connection=0 seq=278 session=0 bytes=1068
+ts_ms=1793265462905 event=datagram_received connection=0 seq=279 session=0 bytes=1067
+ts_ms=1793265462905 event=datagram_sent connection=0 seq=279 session=0 bytes=1068
+ts_ms=1793265462905 event=datagram_received connection=0 seq=280 session=0 bytes=1067
+ts_ms=1793265462905 event=datagram_sent connection=0 seq=280 session=0 bytes=1068
+ts_ms=1793265462905 event=datagram_received connection=0 seq=281 session=0 bytes=1067
+ts_ms=1793265462905 event=datagram_sent connection=0 seq=281 session=0 bytes=1068
+ts_ms=1793265462906 event=datagram_received connection=0 seq=282 session=0 bytes=1067
+ts_ms=1793265462906 event=datagram_sent connection=0 seq=282 session=0 bytes=1068
+ts_ms=1793265462906 event=datagram_received connection=0 seq=283 session=0 bytes=1067
+ts_ms=1793265462906 event=datagram_sent connection=0 seq=283 session=0 bytes=1068
+ts_ms=1793265462906 event=datagram_received connection=0 seq=284 session=0 bytes=1067
+ts_ms=1793265462906 event=datagram_sent connection=0 seq=284 session=0 bytes=1068
+ts_ms=1793265462907 event=datagram_received connection=0 seq=285 session=0 bytes=1067
+ts_ms=1793265462907 event=datagram_sent connection=0 seq=285 session=0 bytes=1068
+ts_ms=1793265462907 event=datagram_received connection=0 seq=286 session=0 bytes=1067
+ts_ms=1793265462907 event=datagram_sent connection=0 seq=286 session=0 bytes=1068
+ts_ms=1793265462907 event=datagram_received connection=0 seq=287 session=0 bytes=1067
+ts_ms=1793265462907 event=datagram_sent connection=0 seq=287 session=0 bytes=1068
+ts_ms=1793265462908 event=datagram_received connection=0 seq=288 session=0 bytes=1067
+ts_ms=1793265462908 event=datagram_sent connection=0 seq=288 session=0 bytes=1068
+ts_ms=1793265462908 event=datagram_received connection=0 seq=289 session=0 bytes=1067
+ts_ms=1793265462908 event=datagram_sent connection=0 seq=289 session=0 bytes=1068
+ts_ms=1793265462908 event=datagram_received connection=0 seq=290 session=0 bytes=1067
+ts_ms=1793265462908 event=datagram_sent connection=0 seq=290 session=0 bytes=1068
+ts_ms=1793265462909 event=datagram_received connection=0 seq=291 session=0 bytes=1067
+ts_ms=1793265462909 event=datagram_sent connection=0 seq=291 session=0 bytes=1068
+ts_ms=1793265462909 event=datagram_received connection=0 seq=292 session=0 bytes=1067
+ts_ms=1793265462909 event=datagram_sent connection=0 seq=292 session=0 bytes=1068
+ts_ms=1793265462909 event=datagram_received connection=0 seq=293 session=0 bytes=1067
+ts_ms=1793265462909 event=datagram_sent connection=0 seq=293 session=0 bytes=1068
+ts_ms=1793265462910 event=datagram_received connection=0 seq=294 session=0 bytes=1067
+ts_ms=1793265462910 event=datagram_sent connection=0 seq=294 session=0 bytes=1068
+ts_ms=1793265462910 event=datagram_received connection=0 seq=295 session=0 bytes=1067
+ts_ms=1793265462910 event=datagram_sent connection=0 seq=295 session=0 bytes=1068
+ts_ms=1793265462910 event=datagram_received connection=0 seq=296 session=0 bytes=1067
+ts_ms=1793265462910 event=datagram_sent connection=0 seq=296 session=0 bytes=1068
+ts_ms=1793265462911 event=datagram_received connection=0 seq=297 session=0 bytes=1067
+ts_ms=1793265462911 event=datagram_sent connection=0 seq=297 session=0 bytes=1068
+ts_ms=1793265462911 event=datagram_received connection=0 seq=298 session=0 bytes=1067
+ts_ms=1793265462911 event=datagram_sent connection=0 seq=298 session=0 bytes=1068
+ts_ms=1793265462911 event=datagram_received connection=0 seq=299 session=0 bytes=1067
+ts_ms=1793265462911 event=datagram_sent connection=0 seq=299 session=0 bytes=1068
+ts_ms=1793265462912 event=datagram_received connection=0 seq=300 session=0 bytes=1067
+ts_ms=1793265462912 event=datagram_sent connection=0 seq=300 session=0 bytes=1068
+ts_ms=1793265462920 event=datagram_dropped connection=0 seq=301 reason=wrong_session quarter=1073741823 connect_stream=4294967292
+ts_ms=1793265462920 event=datagram_received connection=0 seq=302 session=0 bytes=1
+ts_ms=1793265462921 event=datagram_sent connection=0 seq=301 session=0 bytes=2
+ts_ms=1793265462921 event=datagram_dropped connection=0 seq=303 reason=malformed detail=empty
+ts_ms=1793265462921 event=datagram_received connection=0 seq=304 session=0 bytes=1
+ts_ms=1793265462921 event=datagram_sent connection=0 seq=302 session=0 bytes=2
+ts_ms=1793265462922 event=session_closed connection=0 session=0 reason=connect_fin code=0
+ts_ms=1793265462922 event=session_removed connection=0 session=0 reason=connect_fin
+ts_ms=1793265462922 event=stream_finished connection=0 stream=0 role=server direction=bi bytes=5
+ts_ms=1793265462943 event=stream_opened connection=0 stream=4 kind=bi role=client
+ts_ms=1793265462943 event=stream_classified connection=0 stream=4 kind=bi role=connect_request
+ts_ms=1793265462943 event=connect_request_decoded connection=0 session=4 stream=4 scheme=https authority=127.0.0.1:33916 path=/session protocol=webtransport
+ts_ms=1793265462943 event=response_headers_sent connection=0 session=4 stream=4 status=200 qpack_bytes=3 frame_bytes=5
+ts_ms=1793265462972 event=stream_opened connection=0 session=4 stream=11 kind=uni role=server bytes=1048576
+ts_ms=1793265462972 event=stream_opened connection=0 session=4 stream=5 kind=bi role=server bytes=4096 reset_code=7
+ts_ms=1793265462972 event=stream_reset connection=0 stream=5 role=server direction=bi code=7
+ts_ms=1793265462972 event=stream_finished connection=0 stream=11 role=server direction=uni bytes=1048579
+ts_ms=1793265463019 event=capsule_unknown connection=0 session=4 capsule_type=0x1234 payload_bytes=15
+ts_ms=1793265463019 event=datagram_received connection=0 seq=305 session=4 bytes=1
+ts_ms=1793265463019 event=datagram_sent connection=0 seq=303 session=4 bytes=2
+ts_ms=1793265463059 event=session_drained connection=0 session=4
+ts_ms=1793265463066 event=stream_opened connection=0 stream=18 kind=uni role=client
+ts_ms=1793265463066 event=wt_stream_opened connection=0 stream=18 kind=uni
+ts_ms=1793265463117 event=stream_finished connection=0 stream=18 role=client direction=uni bytes=1048576
+ts_ms=1793265463117 event=stream_echo_queued connection=0 session=4 stream=15 direction=uni role=server bytes=1048576
+ts_ms=1793265463118 event=stream_finished connection=0 stream=15 role=server direction=uni bytes=1048579
+ts_ms=1793265463190 event=stream_opened connection=0 stream=8 kind=bi role=client
+ts_ms=1793265463190 event=wt_stream_opened connection=0 stream=8 kind=bi
+ts_ms=1793265463227 event=stream_finished connection=0 stream=8 role=client direction=bi bytes=1048576
+ts_ms=1793265463227 event=stream_echo_queued connection=0 session=4 stream=8 direction=bi role=server bytes=1048576
+ts_ms=1793265463228 event=stream_finished connection=0 stream=8 role=server direction=bi bytes=1048576
+ts_ms=1793265463317 event=stream_opened connection=0 stream=12 kind=bi role=client
+ts_ms=1793265463317 event=wt_stream_opened connection=0 stream=12 kind=bi
+ts_ms=1793265463317 event=stream_opened connection=0 stream=16 kind=bi role=client
+ts_ms=1793265463317 event=wt_stream_opened connection=0 stream=16 kind=bi
+ts_ms=1793265463317 event=stream_opened connection=0 stream=20 kind=bi role=client
+ts_ms=1793265463317 event=wt_stream_opened connection=0 stream=20 kind=bi
+ts_ms=1793265463317 event=stream_opened connection=0 stream=24 kind=bi role=client
+ts_ms=1793265463317 event=wt_stream_opened connection=0 stream=24 kind=bi
+ts_ms=1793265463317 event=stream_opened connection=0 stream=28 kind=bi role=client
+ts_ms=1793265463317 event=wt_stream_opened connection=0 stream=28 kind=bi
+ts_ms=1793265463318 event=stream_opened connection=0 stream=32 kind=bi role=client
+ts_ms=1793265463318 event=wt_stream_opened connection=0 stream=32 kind=bi
+ts_ms=1793265463318 event=stream_opened connection=0 stream=36 kind=bi role=client
+ts_ms=1793265463318 event=wt_stream_opened connection=0 stream=36 kind=bi
+ts_ms=1793265463318 event=stream_opened connection=0 stream=40 kind=bi role=client
+ts_ms=1793265463318 event=wt_stream_opened connection=0 stream=40 kind=bi
+ts_ms=1793265463318 event=stream_opened connection=0 stream=44 kind=bi role=client
+ts_ms=1793265463318 event=wt_stream_opened connection=0 stream=44 kind=bi
+ts_ms=1793265463318 event=stream_opened connection=0 stream=48 kind=bi role=client
+ts_ms=1793265463318 event=wt_stream_opened connection=0 stream=48 kind=bi
+ts_ms=1793265464074 event=stream_finished connection=0 stream=28 role=client direction=bi bytes=1048576
+ts_ms=1793265464074 event=stream_echo_queued connection=0 session=4 stream=28 direction=bi role=server bytes=1048576
+ts_ms=1793265464074 event=stream_finished connection=0 stream=28 role=server direction=bi bytes=1048576
+ts_ms=1793265464076 event=stream_finished connection=0 stream=36 role=client direction=bi bytes=1048576
+ts_ms=1793265464076 event=stream_echo_queued connection=0 session=4 stream=36 direction=bi role=server bytes=1048576
+ts_ms=1793265464076 event=stream_finished connection=0 stream=36 role=server direction=bi bytes=1048576
+ts_ms=1793265464076 event=stream_finished connection=0 stream=16 role=client direction=bi bytes=1048576
+ts_ms=1793265464076 event=stream_echo_queued connection=0 session=4 stream=16 direction=bi role=server bytes=1048576
+ts_ms=1793265464077 event=stream_finished connection=0 stream=16 role=server direction=bi bytes=1048576
+ts_ms=1793265464077 event=stream_finished connection=0 stream=12 role=client direction=bi bytes=1048576
+ts_ms=1793265464077 event=stream_echo_queued connection=0 session=4 stream=12 direction=bi role=server bytes=1048576
+ts_ms=1793265464077 event=stream_finished connection=0 stream=20 role=client direction=bi bytes=1048576
+ts_ms=1793265464077 event=stream_echo_queued connection=0 session=4 stream=20 direction=bi role=server bytes=1048576
+ts_ms=1793265464078 event=stream_finished connection=0 stream=12 role=server direction=bi bytes=1048576
+ts_ms=1793265464079 event=stream_finished connection=0 stream=20 role=server direction=bi bytes=1048576
+ts_ms=1793265464079 event=stream_finished connection=0 stream=44 role=client direction=bi bytes=1048576
+ts_ms=1793265464079 event=stream_echo_queued connection=0 session=4 stream=44 direction=bi role=server bytes=1048576
+ts_ms=1793265464079 event=stream_finished connection=0 stream=44 role=server direction=bi bytes=1048576
+ts_ms=1793265464080 event=stream_finished connection=0 stream=40 role=client direction=bi bytes=1048576
+ts_ms=1793265464080 event=stream_echo_queued connection=0 session=4 stream=40 direction=bi role=server bytes=1048576
+ts_ms=1793265464080 event=stream_finished connection=0 stream=40 role=server direction=bi bytes=1048576
+ts_ms=1793265464080 event=stream_finished connection=0 stream=24 role=client direction=bi bytes=1048576
+ts_ms=1793265464080 event=stream_echo_queued connection=0 session=4 stream=24 direction=bi role=server bytes=1048576
+ts_ms=1793265464081 event=stream_finished connection=0 stream=24 role=server direction=bi bytes=1048576
+ts_ms=1793265464081 event=stream_finished connection=0 stream=48 role=client direction=bi bytes=1048576
+ts_ms=1793265464081 event=stream_echo_queued connection=0 session=4 stream=48 direction=bi role=server bytes=1048576
+ts_ms=1793265464082 event=stream_finished connection=0 stream=48 role=server direction=bi bytes=1048576
+ts_ms=1793265464082 event=stream_finished connection=0 stream=32 role=client direction=bi bytes=1048576
+ts_ms=1793265464082 event=stream_echo_queued connection=0 session=4 stream=32 direction=bi role=server bytes=1048576
+ts_ms=1793265464302 event=stream_finished connection=0 stream=32 role=server direction=bi bytes=1048576
+ts_ms=1793265464567 event=stream_opened connection=0 stream=52 kind=bi role=client
+ts_ms=1793265464567 event=stream_reset connection=0 stream=52 role=client direction=bi code=7
+ts_ms=1793265464567 event=session_closed connection=0 session=4 reason=capsule code=7 message="loopback close"
+ts_ms=1793265464567 event=session_removed connection=0 session=4 reason=capsule
+ts_ms=1793265464567 event=stream_finished connection=0 stream=4 role=server direction=bi bytes=5
+ts_ms=1793265464568 event=stream_opened connection=0 stream=56 kind=bi role=client
+ts_ms=1793265464569 event=stream_classified connection=0 stream=56 kind=bi role=connect_request
+ts_ms=1793265464569 event=connect_request_decoded connection=0 session=56 stream=56 scheme=https authority=127.0.0.1:33916 path=/session protocol=webtransport
+ts_ms=1793265464569 event=response_headers_sent connection=0 session=56 stream=56 status=200 qpack_bytes=3 frame_bytes=5
+ts_ms=1793265464588 event=stream_opened connection=0 session=56 stream=19 kind=uni role=server bytes=1048576
+ts_ms=1793265464588 event=stream_opened connection=0 session=56 stream=9 kind=bi role=server bytes=4096 reset_code=7
+ts_ms=1793265464588 event=stream_reset connection=0 stream=9 role=server direction=bi code=7
+ts_ms=1793265464588 event=stream_finished connection=0 stream=19 role=server direction=uni bytes=1048579
+ts_ms=1793265464639 event=datagram_received connection=0 seq=306 session=56 bytes=1
+ts_ms=1793265464640 event=datagram_sent connection=0 seq=304 session=56 bytes=2
+ts_ms=1793265464641 event=session_closed connection=0 session=56 reason=connect_fin code=0
+ts_ms=1793265464641 event=session_removed connection=0 session=56 reason=connect_fin
+ts_ms=1793265464641 event=stream_finished connection=0 stream=56 role=server direction=bi bytes=5
+ts_ms=1793265464664 event=connection_close connection=0 reason=application origin=remote code=0 bytes=15
+ts_ms=1793265464667 event=quic_connection_accepted connection=1
+ts_ms=1793265464668 event=quic_handshake_complete connection=1 alpn=Some([104, 51]) datagram_supported=true peer_max_datagram_frame_size=1100
+ts_ms=1793265464669 event=stream_opened connection=1 stream=2 kind=uni role=client
+ts_ms=1793265464669 event=stream_classified connection=1 stream=2 kind=uni role=control
+ts_ms=1793265464669 event=h3_settings_frame_received connection=1 payload_bytes=31 items=7
+ts_ms=1793265464669 event=h3_setting connection=1 id=0xffd277 value=1 class=deprecated ignored=true
+ts_ms=1793265464669 event=h3_setting connection=1 id=0x8 value=1 class=known ignored=false
+ts_ms=1793265464669 event=h3_setting connection=1 id=0x2b603743 value=1 class=deprecated ignored=true
+ts_ms=1793265464669 event=h3_setting connection=1 id=0xc671706a value=1 class=known ignored=false
+ts_ms=1793265464669 event=h3_setting connection=1 id=0x2b603742 value=1 class=deprecated ignored=true
+ts_ms=1793265464670 event=h3_setting connection=1 id=0x5f value=7 class=grease ignored=true
+ts_ms=1793265464670 event=h3_setting connection=1 id=0x33 value=1 class=known ignored=false
+ts_ms=1793265464670 event=server_settings_sent connection=1 control_stream=3 items=5 payload_bytes=18 frame_bytes=20
+ts_ms=1793265464670 event=server_setting connection=1 id=0x1 value=0
+ts_ms=1793265464670 event=server_setting connection=1 id=0x7 value=0
+ts_ms=1793265464670 event=server_setting connection=1 id=0x8 value=1
+ts_ms=1793265464670 event=server_setting connection=1 id=0x33 value=1
+ts_ms=1793265464670 event=server_setting connection=1 id=0xc671706a value=100
+ts_ms=1793265464670 event=stream_opened connection=1 stream=0 kind=bi role=client
+ts_ms=1793265464670 event=stream_classified connection=1 stream=0 kind=bi role=connect_request
+ts_ms=1793265464670 event=connect_request_decoded connection=1 session=0 stream=0 scheme=https authority=127.0.0.1:33916 path=/session protocol=webtransport
+ts_ms=1793265464670 event=response_headers_sent connection=1 session=0 stream=0 status=200 qpack_bytes=3 frame_bytes=5
+ts_ms=1793265464686 event=stream_opened connection=1 session=0 stream=7 kind=uni role=server bytes=1048576
+ts_ms=1793265464686 event=stream_opened connection=1 session=0 stream=1 kind=bi role=server bytes=4096 reset_code=7
+ts_ms=1793265464687 event=stream_reset connection=1 stream=1 role=server direction=bi code=7
+ts_ms=1793265464687 event=stream_finished connection=1 stream=7 role=server direction=uni bytes=1048579
+ts_ms=1793265464687 event=stream_opened connection=1 stream=4 kind=bi role=client
+ts_ms=1793265464687 event=stream_classified connection=1 stream=4 kind=bi role=connect_request
+ts_ms=1793265464688 event=connect_request_decoded connection=1 session=4 stream=4 scheme=https authority=127.0.0.1:33916 path=/session protocol=webtransport
+ts_ms=1793265464688 event=response_headers_sent connection=1 session=4 stream=4 status=200 qpack_bytes=3 frame_bytes=5
+ts_ms=1793265464704 event=stream_opened connection=1 session=4 stream=11 kind=uni role=server bytes=1048576
+ts_ms=1793265464704 event=stream_opened connection=1 session=4 stream=5 kind=bi role=server bytes=4096 reset_code=7
+ts_ms=1793265464704 event=stream_reset connection=1 stream=5 role=server direction=bi code=7
+ts_ms=1793265464704 event=stream_finished connection=1 stream=11 role=server direction=uni bytes=1048579
+ts_ms=1793265464800 event=datagram_received connection=1 seq=1 session=0 bytes=1
+ts_ms=1793265464800 event=datagram_sent connection=1 seq=1 session=0 bytes=2
+ts_ms=1793265464800 event=datagram_received connection=1 seq=2 session=4 bytes=1
+ts_ms=1793265464800 event=datagram_sent connection=1 seq=2 session=4 bytes=2
+ts_ms=1793265464801 event=session_closed connection=1 session=0 reason=connect_fin code=0
+ts_ms=1793265464801 event=session_removed connection=1 session=0 reason=connect_fin
+ts_ms=1793265464801 event=session_closed connection=1 session=4 reason=connect_fin code=0
+ts_ms=1793265464801 event=session_removed connection=1 session=4 reason=connect_fin
+ts_ms=1793265464801 event=stream_finished connection=1 stream=0 role=server direction=bi bytes=5
+ts_ms=1793265464801 event=stream_finished connection=1 stream=4 role=server direction=bi bytes=5
+ts_ms=1793265464889 event=connection_close connection=1 reason=application origin=remote code=0 bytes=15
