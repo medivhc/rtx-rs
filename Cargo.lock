@@ -705,6 +705,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rtx-testkit"
+version = "0.1.0"
+dependencies = [
+ "rtx-core",
+ "rtx-h3",
+ "rtx-wire",
+]
+
+[[package]]
 name = "rtx-webtransport"
 version = "0.1.0"
 dependencies = [

@@ -15,6 +15,7 @@ members = [
     "crates/rtx-quic",
     "crates/rtx-webtransport",
     "crates/rtx-h3",
+    "crates/rtx-testkit",
 ]
 
 [workspace.package]
