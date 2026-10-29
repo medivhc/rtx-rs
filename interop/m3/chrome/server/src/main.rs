@@ -139,10 +139,11 @@ fn encode_frame(frame_type: u64, payload: &[u8], buf: &mut Vec<u8>) {
 }
 
 /// Server SETTINGS, produced by the audited reference codec so the advertised
-/// capabilities match the reference server exactly: ENABLE_CONNECT_PROTOCOL,
-/// ENABLE_DATAGRAM (plus the deprecated id Chrome still uses),
-/// WEBTRANSPORT_MAX_SESSIONS (plus the pre-draft-07 deprecated ids), and
-/// MAX_FIELD_SECTION_SIZE. The dynamic QPACK table stays disabled (capacity 0).
+/// capabilities match the reference server exactly. `enable_webtransport(1)`
+/// inserts 6 entries: ENABLE_CONNECT_PROTOCOL, ENABLE_DATAGRAM, the deprecated
+/// datagram id Chrome still uses, WEBTRANSPORT_MAX_SESSIONS, and the two
+/// pre-draft-07 deprecated ids. The dynamic QPACK table stays disabled
+/// (capacity 0).
 ///
 /// Returns the exact bytes written to the control stream: stream type varint
 /// followed by the SETTINGS frame.

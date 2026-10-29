@@ -51,7 +51,7 @@ pins the WebTransport origin to QUIC (no TCP listener exists behind it).
 | H3 / WebTransport codec reference | `web-transport-proto` @ `d4e4e458da556ac3033c9b63f6db5110d3ab5adc` (DEPENDENCY_AUDIT.md baseline) |
 | `rtx-*` dependencies | none (standalone crate, own `[workspace]` and lock file) |
 | ALPN | `h3` |
-| server SETTINGS | produced by `web_transport_proto::Settings::enable_webtransport(1)`: MAX_FIELD_SECTION_SIZE, ENABLE_CONNECT_PROTOCOL, ENABLE_DATAGRAM, deprecated datagram id, WEBTRANSPORT_MAX_SESSIONS plus its deprecated ids; QPACK dynamic table disabled |
+| server SETTINGS | produced by `web_transport_proto::Settings::enable_webtransport(1)`, 6 entries: ENABLE_CONNECT_PROTOCOL, ENABLE_DATAGRAM, the deprecated datagram id, WEBTRANSPORT_MAX_SESSIONS, and the two pre-draft-07 deprecated ids; QPACK dynamic table disabled |
 
 ## Captured frames
 
