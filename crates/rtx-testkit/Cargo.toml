@@ -1,0 +1,32 @@
+[package]
+name = "rtx-testkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Test-only counting allocator and deterministic network simulator for rtx benchmarks (never a production dependency)"
+
+[features]
+default = []
+std = []
+
+[dependencies]
+rtx-core = { path = "../rtx-core" }
+
+[dev-dependencies]
+# Only used by the `M3-PT2` zero-allocation measurement test (lib unit tests).
+rtx-h3 = { path = "../rtx-h3" }
+rtx-wire = { path = "../rtx-wire" }
+
+# The counting allocator must implement `GlobalAlloc`, which is an unsafe trait.
+# `forbid(unsafe_code)` cannot be relaxed in scope, so this crate uses `deny`
+# instead and allows exactly one item (the `GlobalAlloc` impl in `alloc.rs`).
+# Every other crate in the workspace keeps `forbid`.
+[lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

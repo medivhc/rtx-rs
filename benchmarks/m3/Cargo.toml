@@ -1,0 +1,31 @@
+[package]
+name = "rtx-m3-bench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "M3-P benchmark harness: drives rtx-quic / rtx-h3 / rtx-webtransport through the gate scenarios PS6-PS10 and PB1"
+build = "build.rs"
+
+# Standalone crate: intentionally NOT a member of the rtx-rs workspace, in the
+# same layout as interop/m3/rtx-server. Keeping the harness out of the
+# workspace keeps its binary out of the workspace coverage denominator and out
+# of the thumbv7em bare-metal check.
+[workspace]
+
+[dependencies]
+# The object under test. Every protocol codec and the QUIC engine stay in the
+# rtx-* crates; this harness only drives them, owns the two loopback sockets
+# and writes JSON. All dependencies are path dependencies.
+rtx-core = { path = "../../crates/rtx-core" }
+rtx-h3 = { path = "../../crates/rtx-h3" }
+rtx-quic = { path = "../../crates/rtx-quic" }
+rtx-webtransport = { path = "../../crates/rtx-webtransport" }
+rtx-wire = { path = "../../crates/rtx-wire" }
+rtx-testkit = { path = "../../crates/rtx-testkit", features = ["std"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = "warn"
