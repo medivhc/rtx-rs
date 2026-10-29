@@ -1,0 +1,18 @@
+[package]
+name = "rtx-h3"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Minimal HTTP/3 codecs: SETTINGS, the CONNECT QPACK subset and the extended CONNECT representation (no_std)"
+
+[features]
+default = []
+std = ["rtx-wire/std"]
+
+[dependencies]
+rtx-wire = { path = "../rtx-wire" }
+
+[lints]
+workspace = true
