@@ -42,8 +42,11 @@
 //! `GlobalAlloc` is an unsafe trait. The workspace lints `unsafe_code =
 //! "forbid"`, which cannot be relaxed in scope, so this crate uses an
 //! explicit `unsafe_code = "deny"` lint and `#[allow(unsafe_code)]` on
-//! exactly one item: the `GlobalAlloc` impl in [`alloc`]. No other `unsafe`
-//! item, block or trait implementation exists in this crate.
+//! exactly one item: the `GlobalAlloc` impl in [`alloc`]. Outside test code,
+//! no other `unsafe` item, block or trait implementation exists in this
+//! crate; the one exception is a test-only `unsafe` call block in `alloc.rs`
+//! (`#[cfg(test)]`, `alloc::tests::plain_wrapper_counts_and_feeds_the_scene`)
+//! disclosed per item in the PR description.
 
 #[cfg(test)]
 extern crate std;

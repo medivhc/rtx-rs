@@ -106,7 +106,10 @@ aggregate and the eight dimensions:
 | `queue` | `max_depth`, `drop_events`, `backpressure_events`, `scope: harness` |
 
 A dimension the run cannot measure is `null` with a `reason`; nothing is filled
-with `0` or an estimate. Latency is only sampled when the netem loss is 0,
+with `0` or an estimate. One exception: `alloc_per.packet` is `null` in
+scenarios that send no DATAGRAMs and carries no `packet_reason` field; the
+absence of packets is visible in `counters.packets_sent` /
+`counters.packets_received`. Latency is only sampled when the netem loss is 0,
 because FIFO echo pairing cannot attribute a round trip to a specific send
 when datagrams are lost; the result notes say so.
 

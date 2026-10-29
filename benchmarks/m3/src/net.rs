@@ -10,15 +10,17 @@
 //! timestamp is reached, which is exactly how `M3-PM2`'s simulator is meant
 //! to be consumed.
 //!
-//! # Wait mechanism (no `thread::sleep`)
+//! # Wait mechanism (sleep is pacing only, never protocol state)
 //!
-//! Like the R6-3 server harness, the pump never sleeps to advance protocol
-//! state. When there is nothing to deliver it turns the server socket
-//! blocking with a bounded `set_read_timeout` (the minimum of the next
-//! endpoint deadline, the next delayed-datagram release and a caller-supplied
-//! cap) and waits for one datagram. A timeout means “advance time and run
-//! `handle_timeout`” if a deadline is due. The client socket is drained
-//! non-blocking after that wait.
+//! The pump never sleeps to advance protocol state: every facade timestamp is
+//! the injected monotonic value. Waits of at most `SLEEP_WAIT` are handed to
+//! the OS scheduler (`thread::sleep`) only to pace the loop, because
+//! `SO_RCVTIMEO` is rounded up to the host timer granularity. Longer waits use
+//! the R6-3-style bounded `set_read_timeout` on the server socket (the
+//! minimum of the next endpoint deadline, the next delayed-datagram release
+//! and a caller-supplied cap) and wait for one datagram. A timeout means
+//! “advance time and run `handle_timeout`” if a deadline is due. The client
+//! socket is drained non-blocking after that wait.
 //!
 //! # Sources of nondeterminism
 //!

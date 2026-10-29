@@ -36,9 +36,10 @@ invalid and the harness refuses to write it (`run.sh` also checks each file).
 | `rtt_micros` | simulated RTT | scenario parameters |
 | `seed` | netem/endpoint seed | `--seed` (default 42) |
 
-The gate describes this set as “nine” fields while enumerating ten names
-above; this file lists all ten names verbatim. The harness additionally
-records `affinity`, `clock_ticks_per_second` and `clock_ticks_source`.
+The gate (`M3-PM3`) enumerates ten names — commit, rustc, target, feature
+set, CPU model, kernel, batch, loss, RTT and seed — and this file lists all
+ten names verbatim. The harness additionally records `affinity`,
+`clock_ticks_per_second` and `clock_ticks_source`.
 
 Dimension units and measurement points:
 
