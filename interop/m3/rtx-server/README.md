@@ -240,7 +240,8 @@ B0 在 extended CONNECT 之前失败。第二阶段按协调者裁决只改
 
 放宽理由：
 
-- RFC 9114 §7.2.4.1：`QPACK_MAX_TABLE_CAPACITY` 与
+- RFC 9114 §7.2.4 的 SETTINGS 原则（`0x01`/`0x07` 的字段定义与“解码器容量”
+  语义见 RFC 9204 §5 与 §3.2.3）：`QPACK_MAX_TABLE_CAPACITY` 与
   `QPACK_BLOCKED_STREAMS` 描述的是**对方解码器**可用的动态表容量与阻塞数，
   是对端声明的能力，不是对我方编码器的要求。
 - 我方编码器（`rtx_h3::qpack::encode_fields`）只发静态表引用与非 Huffman

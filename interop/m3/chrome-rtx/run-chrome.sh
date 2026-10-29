@@ -247,7 +247,7 @@ stub = {
     "b2": {"status": "not_run", "items": {}, "uni_streams": [], "bi_streams": []},
     "session_close": {"status": "not_run", "error": None, "closed_event": None},
     "second_session": {"status": "not_run", "error": None},
-    "failures": [{"item": "run", "gap": "GAP-M3-B0-01", "detail": reason}],
+    "failures": [{"item": "run", "gap": ("GAP-M3-B0-01" if phase == "baseline" else "GAP-M3-B0-02"), "detail": reason}],
     "server_alive": bool(alive),
     "verdict": "fail",
     "finished": True
@@ -349,6 +349,7 @@ if [ -n "$FIREFOX_BIN" ]; then
 fi
 
 COMMIT="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
+HARNESS_TREE="$(git -C "$REPO" rev-parse HEAD:interop/m3/rtx-server 2>/dev/null || echo unknown)"
 HARNESS_DIFF="$(git -C "$REPO" diff --stat -- "$HARNESS_MAIN" "$HARNESS_README" 2>/dev/null | tr '\n' ' ' || true)"
 [ -n "$HARNESS_DIFF" ] || HARNESS_DIFF="none (harness identical to HEAD)"
 OS_TEXT="$( (uname -srm; grep -E '^PRETTY_NAME=' /etc/os-release 2>/dev/null | cut -d= -f2- | tr -d '"') | paste -sd' ' -)"
@@ -363,6 +364,7 @@ PHASE="$PHASE" COMMIT="$COMMIT" CHROME_VERSION_RAW="$CHROME_VERSION_RAW" \
 CHROME="$CHROME" OS_TEXT="$OS_TEXT" ADDR="$ADDR" PAGE_PORT="$PAGE_PORT" \
 QUIC_ACTUAL_PORT="$QUIC_ACTUAL_PORT" FLAGS_TEXT="$FLAGS_TEXT" DATE="$DATE" \
 BASELINE_DIR="$BASELINE_DIR" HARNESS_MAIN_SHA="$HARNESS_MAIN_SHA" \
+HARNESS_TREE="$HARNESS_TREE" \
 HARNESS_DIFF="$HARNESS_DIFF" SERVER_ALIVE="$SERVER_ALIVE" SERVER_RC="$SERVER_RC" \
 FIREFOX_STATUS="$FIREFOX_STATUS" FIREFOX_DETAIL="$FIREFOX_DETAIL" \
 LOOPBACK_NOTE="$LOOPBACK_NOTE" RESULT_TIMEOUT="$RESULT_TIMEOUT" \
@@ -506,8 +508,14 @@ def add_row(item, sends, receives, lost, total_bytes, sha, detail):
 if b0.get("status") == "pass":
     add_row("b0_session", 1, 1, 0, 0, "-", "extended CONNECT; ready + server connect_request_decoded/200")
 else:
+    b0_gap = next(
+        (gap.get("gap") for gap in failures
+         if str(gap.get("gap", "")).startswith("GAP-M3-B0-")),
+        "GAP-M3-B0-01" if PHASE == "baseline" else "GAP-M3-B0-02",
+    )
     add_row("b0_session", 1, 0, 1, 0, "-",
-            (b0.get("error") or "no session") + "; " + ("GAP-M3-B0-01" if b0.get("status") == "fail" else "not_run"))
+            (b0.get("error") or "no session") + "; "
+            + (b0_gap if b0.get("status") == "fail" else "not_run"))
 
 for tier in tiers:
     size = tier.get("payload_bytes", 0)
@@ -731,8 +739,9 @@ is a follow-up decision for the coordinator, not something this task authorises.
 """
 
 env_rows = [
-    ["repository commit", "`%s`" % ENV["COMMIT"]],
+    ["repository commit (git rev-parse HEAD at generation)", "`%s`" % ENV["COMMIT"]],
     ["phase", "`%s`" % PHASE],
+    ["harness tree id (git rev-parse HEAD:interop/m3/rtx-server)", "`%s`" % ENV.get("HARNESS_TREE", "unknown")],
     ["harness main.rs SHA-256", "`%s`" % ENV["HARNESS_MAIN_SHA"]],
     ["harness diff vs HEAD", "`%s`" % ENV["HARNESS_DIFF"].strip()],
     ["Chrome (from the browser itself)", "`%s`" % ENV["CHROME_VERSION_RAW"]],
@@ -816,10 +825,13 @@ if PHASE == "baseline":
 session exists. This log is the phase-1 product; the next step is the
 one-place relaxation described in `interop/m3/rtx-server/README.md`."""
 else:
-    conclusion = """**Conclusion:** B0/B1/B2 `%s`. B3 is `%s`. Blocking GAPs for the
+    if verdict_b0 == "fail" and verdict_b1 == "not_run" and verdict_b2 == "not_run":
+        matrix_status = "B0 `FAIL`; B1/B2 `not_run` (blocked by B0, not executed)"
+    else:
+        matrix_status = "B0 `%s`; B1 `%s`; B2 `%s`" % (verdict_b0, verdict_b1, verdict_b2)
+    conclusion = """**Conclusion:** %s. B3 is `%s`. Blocking GAPs for the
 Chrome matrix: **%d**; open B3 GAP: **%d**. See the GAP table below.""" % (
-        "PASS" if (verdict_b0 == verdict_b1 == verdict_b2 == "pass") else "FAIL",
-        B3_STATUS, len(blocking_gaps), len(b3_gaps))
+        matrix_status, B3_STATUS, len(blocking_gaps), len(b3_gaps))
 
 datagram_text = ""
 if PHASE != "baseline" and not tiers:
@@ -946,6 +958,17 @@ Chrome's own netlog (the raw netlog stays in the mktemp directory).""" % (
     file_sha("result.json"),
     file_sha("chrome-version.txt"), file_sha("hashes.txt"))
 
+if PHASE == "baseline":
+    server_settings_section = """## Server SETTINGS actually emitted
+
+None. The baseline harness rejects the client SETTINGS (`h3_settings_rejected`)
+before `send_server_settings`, so no server SETTINGS frame exists in this
+phase."""
+else:
+    server_settings_section = """## Server SETTINGS actually emitted (5 items, no `0x2c7cf000`)
+
+%s""" % (settings_server_table() if server_settings else "(no server SETTINGS logged)")
+
 reproduce_text = """## Reproduce
 
 ```
@@ -1006,8 +1029,6 @@ Presence of the N4 identifiers:
 
 %s
 
-## Server SETTINGS actually emitted (5 items, no `0x2c7cf000`)
-
 %s
 
 %s
@@ -1037,7 +1058,7 @@ Presence of the N4 identifiers:
     settings_text,
     presence_text,
     n4_text,
-    settings_server_table() if server_settings else "(no server SETTINGS logged)",
+    server_settings_section,
     datagram_text,
     streams_text,
     session_text,
