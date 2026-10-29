@@ -976,21 +976,21 @@ impl ConnState {
             ));
         }
 
-        if let Err(error) = rtx_h3::qpack::ensure_dynamic_table_disabled(&settings) {
-            log.line(format!(
-                "event=h3_settings_rejected connection={} reason=dynamic_table_not_supported error={error:?}",
-                connection.as_u64()
-            ));
-            self.request_close(
-                connection,
-                now,
-                H3_SETTINGS_ERROR,
-                b"QPACK dynamic table unsupported",
-                endpoint,
-                log,
-            );
-            return;
-        }
+        // R6-4 relaxation (see README "R6-4 客户端 QPACK 容量声明放宽"):
+        // RFC 9114 section 7.2.4.1 makes these values a statement about the
+        // *peer's* QPACK decoder capacity, not a requirement on this encoder.
+        // This encoder emits static table references and non-Huffman literals
+        // only (`encode_fields`), which is legal under any peer capacity; this
+        // decoder still rejects every actual dynamic-table reference it sees.
+        log.line(format!(
+            "event=h3_client_qpack_capacity connection={} max_table_capacity={} blocked_streams={} max_field_section_size={}",
+            connection.as_u64(),
+            settings.qpack_max_table_capacity().unwrap_or(0),
+            settings.qpack_blocked_streams().unwrap_or(0),
+            settings
+                .max_field_section_size()
+                .map_or_else(|| "absent".to_string(), |value| value.to_string()),
+        ));
 
         self.send_server_settings(connection, endpoint, log);
     }

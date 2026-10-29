@@ -1,0 +1,2 @@
+# item	sends	receives	lost	bytes	sha256	detail
+b0_session	1	0	1	0	-	Opening handshake failed.; GAP-M3-B0-02

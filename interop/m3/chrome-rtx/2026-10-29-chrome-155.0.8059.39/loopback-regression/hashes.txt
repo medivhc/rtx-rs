@@ -1,0 +1,18 @@
+# rtx-wt-server loopback matrix
+# columns: item	sends	receives	lost	bytes	sha256	detail
+datagram-echo-1b	100	100	0	100	cd00e292c5970d3c5e2f0ffa5171e555bc46bfc4faddfb4a418b6840b86e79a3	wt_payload_bytes=1 quic_datagram_payload_max=1068 client_max_datagram_size=1091 advertised_max_datagram_frame_size=1100 quinn_datagram_metadata_bytes=32
+datagram-echo-1000b	100	100	0	100000	d542d32400dc07f95f849a45601e811ec37bb68512b1aa1cde654396a8cb094f	wt_payload_bytes=1000 quic_datagram_payload_max=1068 client_max_datagram_size=1091 advertised_max_datagram_frame_size=1100 quinn_datagram_metadata_bytes=32
+datagram-echo-max	100	100	0	106700	6d7d7addc03995ccbdc5fa6533d6107020054f284aa60a7212374932db105208	wt_payload_bytes=1067 quic_datagram_payload_max=1068 client_max_datagram_size=1091 advertised_max_datagram_frame_size=1100 quinn_datagram_metadata_bytes=32
+datagram-wrong-session	1	0	0	0	-	dropped_by_server=true connection_continued=true
+datagram-malformed	1	0	0	0	-	dropped_by_server=true connection_continued=true
+session-drain	1	1	0	0	-	capsule=WT_DRAIN_SESSION session_survived=true
+stream-client-uni-1m	1	1	0	1048576	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	echo=server-opened-uni bytes=1048576
+stream-client-bi-1m	1	1	0	1048576	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	echo=same-stream half_close=true
+stream-concurrent-bi-1m	10	10	0	10485760	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	streams=10 each_bytes=1048576
+stream-client-reset-bi	1	0	0	0	-	reset_code=7 server_observed_reset=true
+session-close-capsule	1	1	0	0	-	capsule=WT_CLOSE_SESSION code=7
+session-after-close	1	1	0	0	-	new_session_after_flag=true
+session-connect-sequential	3	3	0	0	-	connect_200=3 same_connection=true
+session-connect-concurrent	2	2	0	0	-	connect_200=2 same_connection=true
+stream-server-uni-1m	5	5	0	5242880	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	sessions=5 each_bytes=1048576
+stream-server-reset-bi	5	5	0	0	-	reset_code=7 resets_observed=5

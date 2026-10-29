@@ -226,6 +226,45 @@ session, max_len=1100)`：
 - `hashes.txt`：矩阵的 TSV（`item, sends, receives, lost, bytes, sha256,
   detail`），重跑复现。
 
+## R6-4 客户端 QPACK 容量声明放宽（2026-10-29）
+
+R6-4 的两阶段实测（`interop/m3/chrome-rtx/`）第一阶段先在未改动的本 harness
+上跑 Chrome 155：`interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39-baseline/`
+记录 Chrome SETTINGS 带 `0x01=65536` / `0x07=100`，服务端按
+`ensure_dynamic_table_disabled` 记 `event=h3_settings_rejected
+reason=dynamic_table_not_supported` 并以 `H3_SETTINGS_ERROR (0x0101)` 关连接，
+B0 在 extended CONNECT 之前失败。第二阶段按协调者裁决只改
+`src/main.rs` 的 `handle_client_settings` 一处：不再拒绝客户端的容量声明，改为
+逐项记录对方 `0x01`/`0x07`/`0x06` 的实际值并接受（日志
+`event=h3_client_qpack_capacity`）。
+
+放宽理由：
+
+- RFC 9114 §7.2.4 的 SETTINGS 原则（`0x01`/`0x07` 的字段定义与“解码器容量”
+  语义见 RFC 9204 §5 与 §3.2.3）：`QPACK_MAX_TABLE_CAPACITY` 与
+  `QPACK_BLOCKED_STREAMS` 描述的是**对方解码器**可用的动态表容量与阻塞数，
+  是对端声明的能力，不是对我方编码器的要求。
+- 我方编码器（`rtx_h3::qpack::encode_fields`）只发静态表引用与非 Huffman
+  字面量，落在任何对方容量内都合法；不实现动态表这条能力边界没有移动。
+- 对方编码器受我方广告的 `0x01=0` / `0x07=0` 约束：若它仍发出动态表引用，
+  解码侧（`rtx_h3::qpack::FieldSection::next_field`）仍以
+  `DynamicTableNotSupported` 拒绝。放宽只改变对“对方容量声明”的解读，不改变
+  我方编解码能力。
+- 其余分支不变：畸形 SETTINGS 仍记 `h3_settings_frame_rejected` 并关连接；
+  GREASE/已弃用项仍按原分类记录；服务端 SETTINGS 仍为 5 项、不发
+  `0x2c7cf000`；`server_settings_sent` 的发送时机不变。
+
+**放宽不改变回环结论的依据**：回环客户端（`web-transport-proto`）本就不发
+`0x01`/`0x07`，`unwrap_or(0)` 在放宽前后都判 0 通过；放宽后只是新增一行
+`0/0` 的容量记录并继续。放宽后 `run-loopback.sh` 全过，回归日志归档在
+`interop/m3/chrome-rtx/<date>-chrome-<version>/loopback-regression/`；已合并的
+`evidence/2026-10-29-loopback/` 目录未改写。Chrome 阶段证据见
+`interop/m3/chrome-rtx/<date>-chrome-<version>/report.md`；该阶段 B0 仍被
+服务端缺少 legacy `ENABLE_WEBTRANSPORT`（`0x2b603742`）阻塞（Chrome
+`net::ERR_METHOD_NOT_SUPPORTED`），隔离记录在
+`interop/m3/chrome-rtx/blocker-analysis.md`。补发该设置属于服务端 SETTINGS
+变更，本单未获授权，故按阻塞 GAP 上交协调者。
+
 ## 明确不做
 
 Chrome 实测（R6-4）、B4 `quinn` 参考互通记录（本单的 `quinn` 只是回环客户端）、
