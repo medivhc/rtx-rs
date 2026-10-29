@@ -1,0 +1,27 @@
+[package]
+name = "chrome-h3-capture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Minimal HTTP/3 + WebTransport reference server that records Chrome's raw SETTINGS and CONNECT HEADERS frames"
+
+# Standalone crate: intentionally NOT a member of the rtx-rs workspace.
+# This keeps the reference oracle independent of every rtx-* crate and keeps
+# its dependency graph (and Cargo.lock) out of the workspace lock file.
+[workspace]
+
+[dependencies]
+# QUIC runtime + TLS. Pinned to the DEPENDENCY_AUDIT.md baseline revision.
+quinn = { git = "https://github.com/quinn-rs/quinn", rev = "9d729c1b6b7ad30d45d40265037eeeb9d98a7420", default-features = false, features = [
+    "runtime-tokio",
+    "rustls-ring",
+] }
+# HTTP/3 / WebTransport codec reference. Pinned to the DEPENDENCY_AUDIT.md baseline revision.
+web-transport-proto = { git = "https://github.com/moq-dev/web-transport", rev = "d4e4e458da556ac3033c9b63f6db5110d3ab5adc" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "io-util"] }
+bytes = "1"
+# Non-protocol utility: hashes of captured frames for server.log.
+sha2 = "0.10"
+
+[profile.release]
+debug = false

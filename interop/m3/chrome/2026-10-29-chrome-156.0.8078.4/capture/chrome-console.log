@@ -1,0 +1,5 @@
+[12291:12291:1029/092743.426917:INFO:CONSOLE:30] "[wt-capture] session url: https://127.0.0.1:4433/session", source: https://127.0.0.1:8443/index.html?port=4433 (30)
+[12291:12291:1029/092743.426978:INFO:CONSOLE:30] "[wt-capture] WebTransport constructed", source: https://127.0.0.1:8443/index.html?port=4433 (30)
+[12291:12291:1029/092743.446774:INFO:CONSOLE:30] "[wt-capture] ready: session established", source: https://127.0.0.1:8443/index.html?port=4433 (30)
+[12291:12291:1029/092743.450294:INFO:CONSOLE:30] "[wt-capture] closed by client after ready", source: https://127.0.0.1:8443/index.html?port=4433 (30)
+[12291:12291:1029/092743.451798:INFO:CONSOLE:30] "[wt-capture] closed event: ok", source: https://127.0.0.1:8443/index.html?port=4433 (30)

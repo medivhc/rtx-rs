@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>rtx-rs M3 Chrome WebTransport capture client</title>
+</head>
+<body>
+<pre id="status">starting</pre>
+<script type="module">
+// Purpose: make Chrome establish a WebTransport session and nothing else.
+// The server under interop/m3/chrome/server records the two frames this task
+// needs: the H3 SETTINGS frame and the extended CONNECT request HEADERS frame.
+//
+// API used: the standard WebTransport constructor
+//   new WebTransport(url, options?)   https://w3c.github.io/webtransport/
+// The session URL is built as
+//   https://127.0.0.1:<QUIC_PORT>/session
+// where <QUIC_PORT> comes from this page's ?port= query parameter (default
+// 4433). That URL is the target of the extended CONNECT (:method CONNECT,
+// :protocol webtransport) request Chrome sends.
+//
+// This page is served over HTTPS by page_server.py: a file:// page is an
+// opaque origin and Chrome refuses the WebTransport handshake from it.
+//
+// Deliberately NOT used: DATAGRAMs, WebTransport streams, subprotocols. They
+// are irrelevant to this capture and belong to later interop work.
+
+const status = document.getElementById("status");
+function note(line) {
+  console.log("[wt-capture] " + line);
+  status.textContent += "\n" + line;
+}
+
+const params = new URLSearchParams(location.search);
+const port = params.get("port") || "4433";
+const url = "https://127.0.0.1:" + port + "/session";
+note("session url: " + url);
+
+try {
+  const transport = new WebTransport(url);
+  note("WebTransport constructed");
+
+  transport.ready
+    .then(() => {
+      note("ready: session established");
+      transport.close();
+      note("closed by client after ready");
+    })
+    .catch((err) => {
+      note("error: " + (err && err.message ? err.message : String(err)));
+    });
+
+  // The server closes the connection once it has written both frames; the page
+  // reports a close event so the run is event-driven rather than timed.
+  transport.closed
+    .then((info) => note("closed event: " + (info && info.reason ? info.reason : "ok")))
+    .catch((err) => note("closed rejected: " + (err && err.message ? err.message : String(err))));
+} catch (err) {
+  note("constructor threw: " + (err && err.message ? err.message : String(err)));
+}
+</script>
+</body>
+</html>

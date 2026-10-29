@@ -1,0 +1,5 @@
+/target
+# The repository root ignores Cargo.lock for the rtx-rs workspace. This crate is
+# a standalone reference oracle and pins git revisions, so its lock file is
+# committed for reproducibility (re-included here on purpose).
+!Cargo.lock

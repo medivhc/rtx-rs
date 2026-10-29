@@ -1,0 +1,16 @@
+ts_ms=1793237262747 event=endpoint_listening addr=127.0.0.1:4433 alpn=h3
+ts_ms=1793237263442 event=quic_handshake_complete remote=127.0.0.1:51811 stable_id=94781766075808
+ts_ms=1793237263442 event=server_settings_sent bytes_including_stream_type=31 sha256=8a6fe04fdab70c3059188a713404f944de7981c555d3d0044574f68b4956088c
+ts_ms=1793237263442 event=uni_stream_opened stream_type=0x0
+ts_ms=1793237263442 event=h3_settings_frame_received frame_type=0x04 frame_bytes=43 payload_bytes=41 sha256=bfa48ebd0fca2fde0d560f13fb6198123c88b66ed2d1245e56de6ace120453ac
+ts_ms=1793237263443 event=capture_written file=/workspace/interop/m3/chrome/2026-10-29-chrome-156.0.8078.4/capture/settings-frame.bin bytes=43 sha256=bfa48ebd0fca2fde0d560f13fb6198123c88b66ed2d1245e56de6ace120453ac
+ts_ms=1793237263442 event=request_stream_opened
+ts_ms=1793237263443 event=h3_headers_frame_received frame_type=0x01 frame_bytes=90 payload_bytes=87 qpack_encoded=true sha256=62b04ba11f2bcb7313764b783f57462f29f00b2b3622e027dcd6b560adab0753
+ts_ms=1793237263443 event=capture_ready what=settings captured=1
+ts_ms=1793237263443 event=capture_written file=/workspace/interop/m3/chrome/2026-10-29-chrome-156.0.8078.4/capture/connect-headers-frame.bin bytes=90 sha256=62b04ba11f2bcb7313764b783f57462f29f00b2b3622e027dcd6b560adab0753
+ts_ms=1793237263443 event=connect_request_decoded url=https://127.0.0.1:4433/session protocols=- headers={"origin": "https://127.0.0.1:8443", "sec-webtransport-http3-draft02": "1"}
+ts_ms=1793237263444 event=response_headers_sent status=200 frame_bytes=5 sha256=59680c85cbb294b8f9910e314fe77585dcd3d992e46171006eedaa02ff37077c
+ts_ms=1793237263444 event=capture_ready what=connect captured=2
+ts_ms=1793237263448 event=stream_closed label=request bytes_after_capture=28
+ts_ms=1793237267445 event=connection_close_wait_timeout_seconds=4
+ts_ms=1793237267445 event=capture_complete

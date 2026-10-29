@@ -1,0 +1,2 @@
+bfa48ebd0fca2fde0d560f13fb6198123c88b66ed2d1245e56de6ace120453ac  settings-frame.bin
+62b04ba11f2bcb7313764b783f57462f29f00b2b3622e027dcd6b560adab0753  connect-headers-frame.bin
