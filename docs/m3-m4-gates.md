@@ -453,7 +453,8 @@ ARCH §16 的 11 个 `MAX_*` 是门禁下限，不得改名或省略。另因 AR
 
 | ID | 类型 | 摘要 | 状态 | 证据 |
 |---|---|---|---|---|
-| — | — | 无 | — | — |
+| GAP-M3-B0-02 | 阻塞 | Chrome 建立 WebTransport 会话失败：服务端 SETTINGS 不含 legacy ENABLE_WEBTRANSPORT（0x2b603742），Chrome 以 net::ERR_METHOD_NOT_SUPPORTED 拒绝，B1/B2 因此 not_run（被 B0 阻塞，未执行） | OPEN | PR #25（合并 ddc43e4）：interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39/report.md（放宽相位）+ 同目录 -baseline/report.md（基线相位 H3_SETTINGS_ERROR 0x0101）；Chrome for Testing 155.0.8059.39 |
+| GAP-M3-B3-01 | 非阻塞（条件适用） | Firefox 互通未判定：未找到可用的 Firefox 二进制（已查 command -v firefox、/usr/lib/firefox/firefox、Playwright 缓存、/snap/bin/firefox），B3 按条件适用项记 NOT DETERMINED，待有 Firefox 二进制后重测 | OPEN | PR #25（合并 ddc43e4）：同上放宽相位 report.md 状态表 B3 行 |
 
 ---
 
