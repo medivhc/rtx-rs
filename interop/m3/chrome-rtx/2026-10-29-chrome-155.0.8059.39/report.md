@@ -11,7 +11,7 @@ rewritten as a Chrome conclusion anywhere in this directory.
 
 ## First-page summary
 
-**Conclusion:** B0/B1/B2 `FAIL`. B3 is `NOT DETERMINED`. Blocking GAPs for the
+**Conclusion:** B0 `FAIL`; B1/B2 `not_run` (blocked by B0, not executed). B3 is `NOT DETERMINED`. Blocking GAPs for the
 Chrome matrix: **1**; open B3 GAP: **1**. See the GAP table below.
 
 ## Status
@@ -65,10 +65,11 @@ is a follow-up decision for the coordinator, not something this task authorises.
 
 | item | value |
 |---|---|
-| repository commit | `edca8eae8dd3a909a6a21c1cb592e3512c1f26b6` |
+| repository commit (git rev-parse HEAD at generation) | `e0c177f55172d64613b481d653a1471b0cd955d5` |
 | phase | `relaxed` |
+| harness tree id (git rev-parse HEAD:interop/m3/rtx-server) | `ce505c4dd1504e4d2e9b2057f300da2514c1e2fb` |
 | harness main.rs SHA-256 | `8906f920844a9de133e0a867466543a5f130a2fb559245e71d97c87650f30f6e` |
-| harness diff vs HEAD | `interop/m3/rtx-server/README.md   \| 38 ++++++++++++++++++++++++++++++++++++++  interop/m3/rtx-server/src/main.rs \| 30 +++++++++++++++---------------  2 files changed, 53 insertions(+), 15 deletions(-)` |
+| harness diff vs HEAD | `none (harness identical to HEAD)` |
 | Chrome (from the browser itself) | `Google Chrome for Testing 155.0.8059.39` |
 | Chrome binary | `/root/.cache/puppeteer/chrome/linux-155.0.8059.39/chrome-linux64/chrome` |
 | version source | `$CHROME --version` (`chrome://version` is not reachable in headless mode; raw output is in `chrome-version.txt`) |
@@ -82,7 +83,7 @@ is a follow-up decision for the coordinator, not something this task authorises.
 ## Chrome launch parameters
 
 ```
---headless --no-sandbox --disable-gpu --disable-dev-shm-usage --no-proxy-server --ignore-certificate-errors-spki-list=UOUw8IYuD2HoaJUu/wev+qbHOYTo5X6WiMebyRn0n1A= --origin-to-force-quic-on=127.0.0.1:4433 --user-data-dir=/tmp/tmp.nd7HxS2xp6/chrome-profile --enable-logging=stderr --log-net-log=/tmp/tmp.nd7HxS2xp6/netlog.json --v=0
+--headless --no-sandbox --disable-gpu --disable-dev-shm-usage --no-proxy-server --ignore-certificate-errors-spki-list=WXgtEl+SEv6erQf3+9J3h0Fz6zTvMJhp0aX6Bo6Yn/E= --origin-to-force-quic-on=127.0.0.1:4433 --user-data-dir=/tmp/tmp.EjnK9hiMRy/chrome-profile --enable-logging=stderr --log-net-log=/tmp/tmp.EjnK9hiMRy/netlog.json --v=0
 https://127.0.0.1:8443/index.html?port=4433
 ```
 
@@ -105,9 +106,9 @@ https://127.0.0.1:8443/index.html?port=4433
 | `0x33` | 1 | H3_DATAGRAM | known |
 | `0xffd277` | 1 | H3_DATAGRAM (deprecated) | deprecated |
 | `0x2b603742` | 1 | ENABLE_WEBTRANSPORT (deprecated) | deprecated |
-| `0x7a7a5799e` | 1968668620 | unknown/GREASE | grease |
+| `0x91f5ce27` | 390373361 | unknown/GREASE | grease |
 
-Frame: `ts_ms=1793275755827 event=h3_settings_frame_received connection=0 payload_bytes=41 items=7`
+Frame: `ts_ms=1793279297072 event=h3_settings_frame_received connection=0 payload_bytes=37 items=7`
 
 Presence of the N4 identifiers:
 
@@ -192,12 +193,12 @@ Blocking GAP count on the first page: **1**. Open B3 GAP count: **1**.
 
 | file | SHA-256 |
 |---|---|
-| `server.log` | `8c072bb5d34580db66ea88504013d19d9952d7fe3de6a61aaad33efb27f58016` |
-| `chrome-console.log` | `111a93a187007b722cdf5f5ae9c5e416903d0a79a7aa517f2d60e212ee7dfa57` |
-| `chrome-netlog.txt` | `ef80850521bd274617f45bd8901b225a2fe4a01cd44d9084571c9283f2c9e127` |
-| `result.json` | `3b1643b43d1ec7d04e1a509b966aa7ee6c4fc1c864fd63a688c47781eae46040` |
+| `server.log` | `424b1d39d51506f8d97b1fed83244a71ce6f593d40ff68636a8e4e12534a3af9` |
+| `chrome-console.log` | `21a403fd68496c66cb5e8357230ef70f7d3949b39fa8f9bb8b76e79c0eaf1953` |
+| `chrome-netlog.txt` | `e02ead04ce737b081f227bf45ca079ce6b91c4c29168a10863695eb0c37c92cb` |
+| `result.json` | `16b99f2d831acd1012c3923790c6d24712aa67b72b700cc20bb818e6eb9c0fa3` |
 | `chrome-version.txt` | `4f3badc968b348c0f66c14be259ec7f4521104c7845e676130ba7b2d0ad0a32a` |
-| `hashes.txt` | `8c11af02a12f7d999bfc0d0de4267d29c8884fc0fd8c807d6d004578e3fc668d` |
+| `hashes.txt` | `cc3fcf13fb0bea50e35386306afe69f4778f70f3c013f454ba8657cb0a63f64c` |
 
 `hashes.txt` is the machine-readable matrix (item, sends, receives, lost, bytes,
 SHA-256, detail); `result.json` is the page's `window.__rtx_result` posted verbatim.

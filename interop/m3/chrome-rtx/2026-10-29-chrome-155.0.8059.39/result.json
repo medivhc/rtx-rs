@@ -2,7 +2,7 @@
   "phase": "relaxed",
   "url": "https://127.0.0.1:4433/session",
   "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
-  "started_at": "2026-10-29T12:09:15.762Z",
+  "started_at": "2026-10-29T13:08:16.998Z",
   "b0": {
     "status": "fail",
     "ready_ms": null,
@@ -41,8 +41,8 @@
   "finished": true,
   "verdict": "fail",
   "finalize_reason": "b0_failed",
-  "duration_ms": 77,
-  "finished_at": "2026-10-29T12:09:15.839Z",
+  "duration_ms": 78,
+  "finished_at": "2026-10-29T13:08:17.076Z",
   "b3": {
     "status": "NOT DETERMINED",
     "detail": "no Firefox binary found (checked command -v firefox, /usr/lib/firefox/firefox, ~/.cache/ms-playwright/firefox-*/firefox/firefox, /snap/bin/firefox)",

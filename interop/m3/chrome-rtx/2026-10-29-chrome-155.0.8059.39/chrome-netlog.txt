@@ -1,4 +1,6 @@
-2911425 QUIC_SESSION_WEBTRANSPORT_CLIENT_ALIVE {"network_anonymization_key": "https://127.0.0.1 same_site", "url": "https://127.0.0.1:4433/session"}
-2911426 QUIC_SESSION_WEBTRANSPORT_CLIENT_STATE_CHANGED {"last_state": "NEW", "next_state": "CONNECTING"}
-2911445 QUIC_SESSION_WEBTRANSPORT_CLIENT_STATE_CHANGED {"error": {"details": "net::ERR_METHOD_NOT_SUPPORTED", "net_error": -322, "quic_error": 0}, "last_state": "CONNECTING", "next_state": "FAILED"}
-2911445 QUIC_SESSION_WEBTRANSPORT_CLIENT_ALIVE {"net_error": -322}
+829253 QUIC_SESSION_WEBTRANSPORT_CLIENT_ALIVE {"network_anonymization_key": "https://127.0.0.1 same_site", "url": "https://127.0.0.1:4433/session"}
+829253 QUIC_SESSION_WEBTRANSPORT_CLIENT_STATE_CHANGED {"last_state": "NEW", "next_state": "CONNECTING"}
+829271 QUIC_SESSION_WEBTRANSPORT_CLIENT_STATE_CHANGED {"error": {"details": "net::ERR_METHOD_NOT_SUPPORTED", "net_error": -322, "quic_error": 0}, "last_state": "CONNECTING", "next_state": "FAILED"}
+829271 QUIC_SESSION_WEBTRANSPORT_CLIENT_ALIVE {"net_error": -322}
+829436 QUIC_SESSION_CONNECTION_CLOSE_FRAME_SENT {"close_type": "Transport", "details": "net error", "quic_error": 70, "quic_wire_error": 0}
+829436 QUIC_SESSION_CONNECTION_CLOSE_FRAME_SENT {"close_type": "Transport", "details": "net error", "quic_error": 70, "quic_wire_error": 0}
