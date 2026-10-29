@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>rtx-rs R6-4 Chrome WebTransport interop (M3-B0/B1/B2)</title>
+</head>
+<body>
+<pre id="status">starting</pre>
+<script>
+// R6-4 browser acceptance for the R6-3 `rtx-wt-server` harness.
+//
+// This page runs exactly the M3-B0/B1/B2 matrix against the harness:
+//   B0: one WebTransport session over extended CONNECT.
+//   B1: pairwise DATAGRAM echo, 1000 per tier per direction, tiers 1 byte,
+//       1000 bytes and the negotiated maximum.
+//   B2: 1 MiB client uni + server uni + client bi, 10 concurrent bi 1 MiB,
+//       one client reset, the harness' server reset, WT_CLOSE_SESSION and a
+//       second session on the same harness process.
+//
+// Everything the script needs is posted to `POST /result` as JSON and is also
+// exposed as `window.__rtx_result`. Console lines are prefixed `[rtx-m3]`.
+//
+// Payloads are the deterministic 0..255 cycle (first N bytes), so the SHA-256
+// values repeat on every run. DATAGRAM is unreliable and unordered by design;
+// a non-zero loss number is recorded as evidence, not hidden.
+
+(() => {
+  "use strict";
+
+  const params = new URLSearchParams(location.search);
+  const port = params.get("port") || "4433";
+  const phase = params.get("phase") || "relaxed";
+  // Phase 1 (baseline) records the H4 rejection as GAP-M3-B0-01; a B0 failure in
+  // phase 2 is a new blocker (the baseline one was removed by the relaxation),
+  // so it gets the next sequence number.
+  const B0_GAP = phase === "baseline" ? "GAP-M3-B0-01" : "GAP-M3-B0-02";
+  const url = "https://127.0.0.1:" + port + "/session";
+  const statusEl = document.getElementById("status");
+  const t0 = Date.now();
+  const MIB = 1024 * 1024;
+
+  const result = {
+    phase,
+    url,
+    user_agent: navigator.userAgent,
+    started_at: new Date().toISOString(),
+    b0: { status: "pending", ready_ms: null, error: null },
+    b1: { status: "pending", params: null, derivation: null, tiers: [] },
+    b2: { status: "pending", items: {}, uni_streams: [], bi_streams: [] },
+    session_close: { status: "pending", error: null, closed_event: null },
+    second_session: { status: "pending", error: null },
+    failures: [],
+    finished: false,
+    verdict: "pending"
+  };
+  let finalized = false;
+
+  function note(message) {
+    console.log("[rtx-m3] " + message);
+    statusEl.textContent += "\n" + message;
+  }
+
+  function errText(error) {
+    if (error && error.message) return error.message;
+    if (error && error.name) return error.name;
+    return String(error);
+  }
+
+  function fail(item, gap, detail) {
+    result.failures.push({ item, gap, detail });
+    console.error("[rtx-m3] FAIL " + item + " (" + gap + "): " + detail);
+    note("FAIL " + item + " (" + gap + "): " + detail);
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function withTimeout(promise, ms, label) {
+    let timer = null;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("timeout: " + label)), ms);
+      })
+    ]).finally(() => {
+      if (timer !== null) clearTimeout(timer);
+    });
+  }
+
+  function pattern(n) {
+    const out = new Uint8Array(n);
+    for (let i = 0; i < n; i += 1) out[i] = i & 0xff;
+    return out;
+  }
+
+  async function sha256Hex(bytes) {
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  function concatChunks(chunks, total) {
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      out.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return out;
+  }
+
+  // Reads a WebTransport stream to its end. A reset surfaces as an error; the
+  // bytes read before the reset are kept so the report can say how much data
+  // arrived before the harness reset the stream.
+  async function readAll(readable) {
+    const reader = readable.getReader();
+    const chunks = [];
+    let bytes = 0;
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        bytes += value.length;
+      }
+      return { bytes, chunks, error: null, reset_code: null, ended: true };
+    } catch (error) {
+      const resetCode = error && typeof error.streamErrorCode === "number"
+        ? error.streamErrorCode
+        : null;
+      return { bytes, chunks, error: errText(error), reset_code: resetCode, ended: false };
+    }
+  }
+
+  async function writeAll(writer, bytes) {
+    const step = 64 * 1024;
+    for (let offset = 0; offset < bytes.length; offset += step) {
+      await writer.write(bytes.subarray(offset, Math.min(offset + step, bytes.length)));
+    }
+  }
+
+  // A single consumer loop backs a one-at-a-time "send then wait for its echo"
+  // sequence. Only one `read()` is ever pending, so a timeout never loses a
+  // queued promise.
+  function makeEchoQueue(readable) {
+    const queue = [];
+    let pending = null;
+    let closed = false;
+    let loopError = null;
+    (async () => {
+      try {
+        const reader = readable.getReader();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            closed = true;
+            break;
+          }
+          if (pending) {
+            const slot = pending;
+            pending = null;
+            clearTimeout(slot.timer);
+            slot.resolve(value);
+          } else {
+            queue.push(value);
+          }
+        }
+      } catch (error) {
+        closed = true;
+        loopError = errText(error);
+        if (pending) {
+          const slot = pending;
+          pending = null;
+          clearTimeout(slot.timer);
+          slot.reject(error);
+        }
+      }
+    })();
+
+    function next(ms) {
+      if (queue.length > 0) return Promise.resolve(queue.shift());
+      if (closed) {
+        return Promise.reject(new Error("datagram stream closed: " + (loopError || "end")));
+      }
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          pending = null;
+          const error = new Error("timeout: datagram echo");
+          error.__timeout = true;
+          reject(error);
+        }, ms);
+        pending = { resolve, reject, timer };
+      });
+    }
+
+    return { next };
+  }
+
+  async function fetchParams() {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      try {
+        const response = await fetch("/params.json", { cache: "no-store" });
+        const json = await response.json();
+        if (json
+            && typeof json.peer_max_datagram_frame_size === "number"
+            && typeof json.max_datagram_frame_size_advertised === "number") {
+          return json;
+        }
+      } catch (error) {
+        // The harness may not have logged the handshake yet; retry.
+      }
+      await sleep(100);
+    }
+    return null;
+  }
+
+  function bytesEqual(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
+  async function runB1(transport) {
+    const datagrams = transport.datagrams;
+    const writer = datagrams.writable.getWriter();
+    const echoes = makeEchoQueue(datagrams.readable);
+
+    const params = await fetchParams();
+    if (!params) {
+      result.b1.status = "fail";
+      fail("B1", "GAP-M3-B1-01", "harness log did not expose the handshake datagram values");
+      return;
+    }
+    result.b1.params = params;
+
+    // RFC 9221 section 3: max_datagram_frame_size is a receive limit. The
+    // direction Chrome -> harness is bounded by the harness advertisement and
+    // the echo direction by Chrome's; the useful negotiated tier is the
+    // smaller of the two. The loopback derivation is reused: the QUIC datagram
+    // payload needs 32 bytes of quinn-proto accounting and the HTTP Datagram
+    // payload then spends one byte on the quarter stream ID.
+    const effective = Math.min(
+      params.peer_max_datagram_frame_size,
+      params.max_datagram_frame_size_advertised
+    );
+    const wtMax = effective - 32 - 1;
+    const derivation = "min(peer_max_datagram_frame_size="
+      + params.peer_max_datagram_frame_size
+      + ", max_datagram_frame_size_advertised="
+      + params.max_datagram_frame_size_advertised
+      + ") - 32 (QUIC datagram accounting) - 1 (quarter stream ID) = "
+      + wtMax;
+    result.b1.derivation = derivation;
+    note("B1 params: " + JSON.stringify(params));
+    note("B1 negotiated tier: " + derivation);
+
+    if (wtMax < 1) {
+      result.b1.status = "fail";
+      fail("B1", "GAP-M3-B1-01", "derived negotiated payload is not positive: " + derivation);
+      return;
+    }
+
+    const count = 1000;
+    const tiers = [
+      { label: "1", payload_bytes: 1 },
+      { label: "1000", payload_bytes: 1000 },
+      { label: "negotiated", payload_bytes: wtMax }
+    ];
+    let failed = false;
+
+    for (const tier of tiers) {
+      const payload = pattern(tier.payload_bytes);
+      const payloadSha = await sha256Hex(payload);
+      let sends = 0;
+      let echoesReceived = 0;
+      let timeouts = 0;
+      let consecutiveTimeouts = 0;
+      let sendErrors = 0;
+      let mismatches = 0;
+      const mismatchSamples = [];
+      let aborted = false;
+      const started = Date.now();
+
+      for (let i = 0; i < count; i += 1) {
+        try {
+          await writer.write(payload);
+          sends += 1;
+        } catch (error) {
+          sendErrors += 1;
+          fail("B1", "GAP-M3-B1-01", "tier " + tier.label + " datagram send " + i + " failed: " + errText(error));
+          failed = true;
+          aborted = true;
+          break;
+        }
+        try {
+          const echo = await echoes.next(200);
+          echoesReceived += 1;
+          consecutiveTimeouts = 0;
+          if (!bytesEqual(echo, payload)) {
+            mismatches += 1;
+            if (mismatchSamples.length < 20) {
+              mismatchSamples.push({ sequence: i, echo_bytes: echo.length });
+            }
+          }
+        } catch (error) {
+          if (error && error.__timeout) {
+            timeouts += 1;
+            consecutiveTimeouts += 1;
+            if (consecutiveTimeouts >= 20) {
+              aborted = true;
+              note("tier " + tier.label + " aborted after 20 consecutive missing echoes");
+              break;
+            }
+          } else {
+            fail("B1", "GAP-M3-B1-01", "tier " + tier.label + " datagram read failed: " + errText(error));
+            failed = true;
+            aborted = true;
+            break;
+          }
+        }
+        if (Date.now() - started > 60000) {
+          aborted = true;
+          note("tier " + tier.label + " aborted after the 60 s tier budget");
+          break;
+        }
+      }
+
+      const tierPass = sends === count && echoesReceived > 0 && !aborted;
+      if (!tierPass) failed = true;
+      result.b1.tiers.push({
+        label: tier.label,
+        payload_bytes: tier.payload_bytes,
+        payload_sha256: payloadSha,
+        sends,
+        expected_echoes: count,
+        echoes_received: echoesReceived,
+        echoes_expected_lost: count - echoesReceived,
+        echo_timeouts: timeouts,
+        echo_mismatches: mismatches,
+        mismatch_samples: mismatchSamples,
+        send_errors: sendErrors,
+        sequence: "strict alternation: send i, then verify echo i before send i+1",
+        status: tierPass ? "pass" : "fail"
+      });
+      note("B1 tier " + tier.label + " bytes=" + tier.payload_bytes
+        + " sends=" + sends + " echoes=" + echoesReceived
+        + " lost=" + (count - echoesReceived)
+        + " mismatches=" + mismatches + " timeouts=" + timeouts
+        + " sha256=" + payloadSha);
+      if (failed) break;
+    }
+
+    result.b1.status = failed ? "fail" : "pass";
+    if (failed) {
+      fail("B1", "GAP-M3-B1-01", "DATAGRAM matrix did not complete; see b1.tiers");
+    }
+  }
+
+  function startCollectors(transport) {
+    (async () => {
+      const reader = transport.incomingUnidirectionalStreams.getReader();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const entry = {
+          order: result.b2.uni_streams.length,
+          status: "reading",
+          bytes: 0,
+          sha256: null,
+          error: null
+        };
+        result.b2.uni_streams.push(entry);
+        (async () => {
+          const read = await readAll(value);
+          entry.bytes = read.bytes;
+          entry.error = read.error;
+          if (read.error === null) {
+            entry.sha256 = await sha256Hex(concatChunks(read.chunks, read.bytes));
+            entry.status = "done";
+          } else {
+            entry.status = "error";
+          }
+        })();
+      }
+    })().catch((error) => {
+      note("incoming unidirectional collector ended: " + errText(error));
+    });
+
+    (async () => {
+      const reader = transport.incomingBidirectionalStreams.getReader();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const entry = {
+          order: result.b2.bi_streams.length,
+          status: "reading",
+          bytes: 0,
+          sha256: null,
+          error: null,
+          reset_code: null
+        };
+        result.b2.bi_streams.push(entry);
+        (async () => {
+          const read = await readAll(value.readable);
+          entry.bytes = read.bytes;
+          entry.error = read.error;
+          entry.reset_code = read.reset_code;
+          if (read.error === null) {
+            entry.sha256 = await sha256Hex(concatChunks(read.chunks, read.bytes));
+            entry.status = "done";
+          } else {
+            entry.status = "reset";
+          }
+        })();
+      }
+    })().catch((error) => {
+      note("incoming bidirectional collector ended: " + errText(error));
+    });
+  }
+
+  async function waitFor(predicate, ms, label) {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      if (predicate()) return true;
+      await sleep(50);
+    }
+    note("timeout waiting for " + label);
+    return false;
+  }
+
+  async function runB2(transport) {
+    const items = result.b2.items;
+    let failed = false;
+    const sent = pattern(MIB);
+    const sentSha = await sha256Hex(sent);
+
+    // ---- server-initiated unidirectional stream (1 MiB, opened per session)
+    const autoUniReady = await waitFor(
+      () => result.b2.uni_streams.some((entry) => entry.status === "done" && entry.bytes === MIB),
+      30000,
+      "server-initiated 1 MiB unidirectional stream"
+    );
+    const autoEntry = result.b2.uni_streams.find(
+      (entry) => entry.status === "done" && entry.bytes === MIB
+    ) || null;
+    items.server_uni = {
+      status: autoUniReady ? "pass" : "fail",
+      bytes: autoEntry ? autoEntry.bytes : 0,
+      sha256: autoEntry ? autoEntry.sha256 : null,
+      expected_sha256: sentSha,
+      detail: "harness opens one 0x54 unidirectional stream per session"
+    };
+    if (!autoUniReady) {
+      failed = true;
+      fail("B2", "GAP-M3-B2-01", "server-initiated 1 MiB unidirectional stream did not arrive intact");
+    }
+
+    // ---- client-initiated unidirectional stream (1 MiB, half-close, echo)
+    const before = result.b2.uni_streams.filter(
+      (entry) => entry.status === "done" && entry.bytes === MIB
+    ).length;
+    try {
+      const stream = await transport.createUnidirectionalStream();
+      const writer = stream.getWriter();
+      await writeAll(writer, sent);
+      await writer.close();
+      const echoReady = await waitFor(
+        () => result.b2.uni_streams.filter(
+          (entry) => entry.status === "done" && entry.bytes === MIB
+        ).length > before,
+        30000,
+        "client uni 1 MiB echo"
+      );
+      const echoEntry = result.b2.uni_streams.filter(
+        (entry) => entry.status === "done" && entry.bytes === MIB
+      )[before] || null;
+      const pass = echoReady
+        && echoEntry !== null
+        && echoEntry.sha256 === sentSha;
+      items.client_uni = {
+        status: pass ? "pass" : "fail",
+        sent_bytes: MIB,
+        sent_sha256: sentSha,
+        echo_bytes: echoEntry ? echoEntry.bytes : 0,
+        echo_sha256: echoEntry ? echoEntry.sha256 : null,
+        half_close: true,
+        detail: "client FIN, harness echoes on a new 0x54 stream"
+      };
+      if (!pass) {
+        failed = true;
+        fail("B2", "GAP-M3-B2-01", "client uni 1 MiB echo missing or has a different SHA-256");
+      }
+      note("B2 client uni: sent 1048576 SHA-256=" + sentSha
+        + " echo " + (echoEntry ? echoEntry.bytes : 0) + " SHA-256="
+        + (echoEntry ? echoEntry.sha256 : "none"));
+    } catch (error) {
+      items.client_uni = { status: "fail", error: errText(error) };
+      failed = true;
+      fail("B2", "GAP-M3-B2-01", "client uni 1 MiB failed: " + errText(error));
+    }
+
+    // ---- client-initiated bidirectional stream (1 MiB, half-close, echo)
+    try {
+      const { readable, writable } = await transport.createBidirectionalStream();
+      const writer = writable.getWriter();
+      await writeAll(writer, sent);
+      await writer.close();
+      const echo = await withTimeout(readAll(readable), 60000, "client bi 1 MiB echo");
+      const pass = echo.error === null
+        && echo.bytes === MIB
+        && (await sha256Hex(concatChunks(echo.chunks, echo.bytes))) === sentSha;
+      items.client_bi = {
+        status: pass ? "pass" : "fail",
+        sent_bytes: MIB,
+        sent_sha256: sentSha,
+        echo_bytes: echo.bytes,
+        echo_error: echo.error,
+        half_close: true
+      };
+      if (!pass) {
+        failed = true;
+        fail("B2", "GAP-M3-B2-01", "client bi 1 MiB echo missing or has a different SHA-256: " + (echo.error || "short read"));
+      }
+      note("B2 client bi: sent 1048576 echo_bytes=" + echo.bytes + " error=" + (echo.error || "none"));
+    } catch (error) {
+      items.client_bi = { status: "fail", error: errText(error) };
+      failed = true;
+      fail("B2", "GAP-M3-B2-01", "client bi 1 MiB failed: " + errText(error));
+    }
+
+    // ---- 10 concurrent bidirectional streams, 1 MiB each
+    const concurrent = [];
+    const concurrentErrors = [];
+    try {
+      const jobs = [];
+      for (let i = 0; i < 10; i += 1) {
+        jobs.push((async () => {
+          const { readable, writable } = await transport.createBidirectionalStream();
+          const writer = writable.getWriter();
+          await writeAll(writer, sent);
+          await writer.close();
+          const echo = await withTimeout(readAll(readable), 60000, "concurrent bi echo " + i);
+          const sha = echo.error === null ? await sha256Hex(concatChunks(echo.chunks, echo.bytes)) : null;
+          concurrent.push({ index: i, bytes: echo.bytes, sha256: sha, error: echo.error });
+          if (echo.error !== null || echo.bytes !== MIB || sha !== sentSha) {
+            concurrentErrors.push({ index: i, bytes: echo.bytes, sha256: sha, error: echo.error });
+          }
+        })());
+      }
+      await Promise.all(jobs);
+      const pass = concurrentErrors.length === 0 && concurrent.length === 10;
+      items.concurrent_bi = {
+        status: pass ? "pass" : "fail",
+        streams: 10,
+        bytes_per_stream: MIB,
+        sent_sha256: sentSha,
+        completed: concurrent.length,
+        mismatches: concurrentErrors
+      };
+      if (!pass) {
+        failed = true;
+        fail("B2", "GAP-M3-B2-01", "10 concurrent bi 1 MiB streams failed: " + JSON.stringify(concurrentErrors));
+      }
+      note("B2 concurrent bi: " + concurrent.length + "/10 streams verified");
+    } catch (error) {
+      items.concurrent_bi = { status: "fail", error: errText(error), completed: concurrent.length };
+      failed = true;
+      fail("B2", "GAP-M3-B2-01", "10 concurrent bi streams failed: " + errText(error));
+    }
+
+    // ---- client reset
+    try {
+      const { readable, writable } = await transport.createBidirectionalStream();
+      const writer = writable.getWriter();
+      await writer.write(pattern(64 * 1024));
+      await writer.abort();
+      items.client_reset = {
+        status: "reset_sent",
+        bytes_before_reset: 64 * 1024,
+        detail: "writable.abort() -> RESET_STREAM; the harness log must show role=client"
+      };
+      if (typeof readable.cancel === "function") {
+        readable.cancel().catch(() => {});
+      }
+      note("B2 client reset sent (64 KiB before reset)");
+    } catch (error) {
+      items.client_reset = { status: "fail", error: errText(error) };
+      failed = true;
+      fail("B2", "GAP-M3-B2-01", "client reset failed: " + errText(error));
+    }
+
+    // ---- server reset (harness opens a bi stream, writes 4096 bytes, resets)
+    const resetReady = await waitFor(
+      () => result.b2.bi_streams.some((entry) => entry.status === "reset"),
+      15000,
+      "server reset observation"
+    );
+    const resetEntry = result.b2.bi_streams.find((entry) => entry.status === "reset") || null;
+    items.server_reset = {
+      status: resetReady ? "pass" : "fail",
+      observed: resetReady,
+      bytes_before_reset: resetEntry ? resetEntry.bytes : 0,
+      reset_code: resetEntry ? resetEntry.reset_code : null,
+      other_streams_unaffected: items.concurrent_bi ? items.concurrent_bi.status === "pass" : false,
+      detail: "harness writes 4096 bytes then RESET_STREAM code 7 on a server 0x41 bi stream"
+    };
+    if (!resetReady) {
+      failed = true;
+      fail("B2", "GAP-M3-B2-01", "server reset on the harness bidirectional stream was not observed by Chrome");
+    }
+    note("B2 server reset observed=" + resetReady + " bytes_before_reset="
+      + (resetEntry ? resetEntry.bytes : 0) + " reset_code="
+      + (resetEntry ? resetEntry.reset_code : "none"));
+
+    result.b2.status = failed ? "fail" : "pass";
+  }
+
+  async function finalize(reason) {
+    if (finalized) return;
+    finalized = true;
+    result.finished = true;
+    result.finalize_reason = reason;
+    result.duration_ms = Date.now() - t0;
+    result.finished_at = new Date().toISOString();
+    const pass = result.b0.status === "pass"
+      && result.b1.status === "pass"
+      && result.b2.status === "pass"
+      && result.failures.length === 0;
+    result.verdict = pass ? "pass" : "fail";
+    window.__rtx_result = result;
+    note("RESULT_JSON " + JSON.stringify(result));
+    try {
+      await fetch("/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result)
+      });
+    } catch (error) {
+      console.error("[rtx-m3] result post failed: " + errText(error));
+    }
+  }
+
+  // Bounded watchdog: a hung stream or a stalled handshake still produces a
+  // machine-readable FAIL instead of an unanswered run script.
+  setTimeout(() => {
+    if (!finalized) {
+      fail("run", B0_GAP, "page watchdog fired after 240 s; see console for the last step");
+      if (result.b0.status === "pending") result.b0.status = "fail";
+      if (result.b1.status === "pending") result.b1.status = "not_run";
+      if (result.b2.status === "pending") result.b2.status = "not_run";
+      finalize("watchdog");
+    }
+  }, 240000);
+
+  (async () => {
+    note("phase=" + phase + " url=" + url);
+    let transport = null;
+    try {
+      transport = new WebTransport(url);
+    } catch (error) {
+      result.b0.status = "fail";
+      result.b0.error = "constructor threw: " + errText(error);
+      fail("B0", B0_GAP, result.b0.error);
+      await finalize("constructor_failed");
+      return;
+    }
+
+    transport.closed.then((info) => {
+      result.session_close.closed_event = info
+        ? { close_code: info.closeCode, reason: info.reason }
+        : null;
+    }).catch((error) => {
+      result.session_close.closed_event = { error: errText(error) };
+    });
+
+    try {
+      await withTimeout(transport.ready, 30000, "WebTransport.ready");
+      result.b0.status = "pass";
+      result.b0.ready_ms = Date.now() - t0;
+      note("B0 session established in " + result.b0.ready_ms + " ms");
+    } catch (error) {
+      result.b0.status = "fail";
+      result.b0.error = errText(error);
+      fail("B0", B0_GAP, "WebTransport.ready rejected: " + errText(error));
+      note("B0 session not established: " + errText(error));
+      result.b1.status = "not_run";
+      result.b2.status = "not_run";
+      result.session_close.status = "not_run";
+      result.second_session.status = "not_run";
+      await finalize("b0_failed");
+      return;
+    }
+
+    startCollectors(transport);
+
+    try {
+      await runB1(transport);
+    } catch (error) {
+      result.b1.status = "fail";
+      fail("B1", "GAP-M3-B1-01", "B1 raised: " + errText(error));
+    }
+
+    try {
+      await runB2(transport);
+    } catch (error) {
+      result.b2.status = "fail";
+      fail("B2", "GAP-M3-B2-01", "B2 raised: " + errText(error));
+    }
+
+    // ---- WT_CLOSE_SESSION, then a second session on the same harness process
+    try {
+      transport.close();
+      result.session_close.status = "closed_by_client";
+      note("WT_CLOSE_SESSION sent (transport.close())");
+    } catch (error) {
+      result.session_close.status = "fail";
+      result.session_close.error = errText(error);
+      fail("B0", B0_GAP, "transport.close() failed: " + errText(error));
+    }
+    await sleep(500);
+
+    try {
+      const second = new WebTransport(url);
+      await withTimeout(second.ready, 30000, "second WebTransport.ready");
+      result.second_session.status = "pass";
+      result.second_session.ready = true;
+      note("second session established on the same harness process");
+      second.close();
+      await sleep(500);
+    } catch (error) {
+      result.second_session.status = "fail";
+      result.second_session.error = errText(error);
+      fail("B0", B0_GAP, "second session did not establish: " + errText(error));
+    }
+
+    await finalize("matrix_complete");
+  })().catch(async (error) => {
+    fail("run", B0_GAP, "page raised: " + errText(error));
+    await finalize("page_error");
+  });
+})();
+</script>
+</body>
+</html>

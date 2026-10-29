@@ -1,0 +1,22 @@
+ts_ms=1793275755021 event=server_listening addr=127.0.0.1:4433 alpn=h3
+ts_ms=1793275755021 event=config_loaded max_datagram_frame_size_advertised=1100 webtransport_max_sessions=100 server_uni_payload_bytes=1048576 server_reset_payload_bytes=4096
+ts_ms=1793275755817 event=quic_connection_accepted connection=0
+ts_ms=1793275755827 event=quic_handshake_complete connection=0 alpn=Some([104, 51]) datagram_supported=true peer_max_datagram_frame_size=65536
+ts_ms=1793275755827 event=stream_opened connection=0 stream=2 kind=uni role=client
+ts_ms=1793275755827 event=stream_classified connection=0 stream=2 kind=uni role=control
+ts_ms=1793275755827 event=h3_control_frame_ignored connection=0 frame_type=0x1778a7836f
+ts_ms=1793275755827 event=h3_settings_frame_received connection=0 payload_bytes=41 items=7
+ts_ms=1793275755827 event=h3_setting connection=0 id=0x1 value=65536 class=known ignored=false
+ts_ms=1793275755827 event=h3_setting connection=0 id=0x6 value=16384 class=known ignored=false
+ts_ms=1793275755827 event=h3_setting connection=0 id=0x7 value=100 class=known ignored=false
+ts_ms=1793275755827 event=h3_setting connection=0 id=0x33 value=1 class=known ignored=false
+ts_ms=1793275755827 event=h3_setting connection=0 id=0xffd277 value=1 class=deprecated ignored=true
+ts_ms=1793275755827 event=h3_setting connection=0 id=0x2b603742 value=1 class=deprecated ignored=true
+ts_ms=1793275755827 event=h3_setting connection=0 id=0x7a7a5799e value=1968668620 class=grease ignored=true
+ts_ms=1793275755827 event=h3_client_qpack_capacity connection=0 max_table_capacity=65536 blocked_streams=100 max_field_section_size=16384
+ts_ms=1793275755827 event=server_settings_sent connection=0 control_stream=3 items=5 payload_bytes=18 frame_bytes=20
+ts_ms=1793275755827 event=server_setting connection=0 id=0x1 value=0
+ts_ms=1793275755827 event=server_setting connection=0 id=0x7 value=0
+ts_ms=1793275755827 event=server_setting connection=0 id=0x8 value=1
+ts_ms=1793275755827 event=server_setting connection=0 id=0x33 value=1
+ts_ms=1793275755827 event=server_setting connection=0 id=0xc671706a value=100

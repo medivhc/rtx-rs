@@ -1,0 +1,65 @@
+{
+  "phase": "baseline",
+  "url": "https://127.0.0.1:4433/session",
+  "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "started_at": "2026-10-29T11:47:54.547Z",
+  "b0": {
+    "status": "fail",
+    "ready_ms": null,
+    "error": "Opening handshake failed."
+  },
+  "b1": {
+    "status": "not_run",
+    "params": null,
+    "derivation": null,
+    "tiers": []
+  },
+  "b2": {
+    "status": "not_run",
+    "items": {},
+    "uni_streams": [],
+    "bi_streams": []
+  },
+  "session_close": {
+    "status": "not_run",
+    "error": null,
+    "closed_event": {
+      "error": "Opening handshake failed."
+    }
+  },
+  "second_session": {
+    "status": "not_run",
+    "error": null
+  },
+  "failures": [
+    {
+      "item": "B0",
+      "gap": "GAP-M3-B0-01",
+      "detail": "WebTransport.ready rejected: Opening handshake failed."
+    }
+  ],
+  "finished": true,
+  "verdict": "fail",
+  "finalize_reason": "b0_failed",
+  "duration_ms": 33,
+  "finished_at": "2026-10-29T11:47:54.579Z",
+  "b3": {
+    "status": "NOT DETERMINED",
+    "detail": "no Firefox binary found (checked command -v firefox, /usr/lib/firefox/firefox, ~/.cache/ms-playwright/firefox-*/firefox/firefox, /snap/bin/firefox)",
+    "gap": "GAP-M3-B3-01"
+  },
+  "gaps": [
+    {
+      "item": "B0",
+      "gap": "GAP-M3-B0-01",
+      "detail": "WebTransport.ready rejected: Opening handshake failed."
+    },
+    {
+      "item": "B3",
+      "gap": "GAP-M3-B3-01",
+      "detail": "Firefox NOT DETERMINED: no Firefox binary found (checked command -v firefox, /usr/lib/firefox/firefox, ~/.cache/ms-playwright/firefox-*/firefox/firefox, /snap/bin/firefox); escalated to coordinator xc review"
+    }
+  ],
+  "blocking_gap_count": 1,
+  "server_alive_after_matrix": true
+}
