@@ -525,7 +525,7 @@ fn error_type_is_copy_and_debug() {
     let error = CryptoError::BackendFailure;
     let copied = error;
     assert_eq!(error, copied);
-    assert!(!format!("{error:?}").is_empty());
+    assert_ne!(format!("{error:?}"), "");
 }
 
 // L1-ERR-003 — 算法枚举穷举互异（新增变体时强制同步）。

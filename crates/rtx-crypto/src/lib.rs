@@ -269,7 +269,7 @@ mod tests {
         let error = CryptoError::Unsupported;
         let copied = error; // Copy
         assert_eq!(error, copied);
-        assert!(!format!("{error:?}").is_empty());
+        assert_ne!(format!("{error:?}"), "");
     }
 
     // ---- CRYPTO-ALG -------------------------------------------------------
@@ -309,7 +309,7 @@ mod tests {
     /// 断言所有元素两两互异且可 Debug 输出。
     fn assert_pairwise_distinct<T: PartialEq + core::fmt::Debug>(values: &[T]) {
         for (index, left) in values.iter().enumerate() {
-            assert!(!format!("{left:?}").is_empty());
+            assert_ne!(format!("{left:?}"), "");
             for (other, right) in values.iter().enumerate() {
                 if index != other {
                     assert_ne!(left, right);
@@ -1371,7 +1371,7 @@ mod tests {
         let mut secret = [0u8; SECRET_LEN];
         provider.agree(KeyExchangeAlgorithm::X25519, &private, &public, &mut secret)?;
 
-        assert!(!provider.name().is_empty());
+        assert_ne!(provider.name(), "");
         Ok(())
     }
 

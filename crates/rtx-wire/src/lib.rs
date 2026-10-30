@@ -200,7 +200,7 @@ mod tests {
         let error = WireError::UnexpectedEnd;
         let copied = error; // Copy
         assert_eq!(error, copied);
-        assert!(!format!("{error:?}").is_empty());
+        assert_ne!(format!("{error:?}"), "");
     }
 
     // ---- WIRE-CUR ---------------------------------------------------------
@@ -371,7 +371,7 @@ mod tests {
         {
             let writer = Writer::new(&mut output);
             assert_eq!(writer.offset(), 0);
-            assert!(!format!("{writer:?}").is_empty());
+            assert_ne!(format!("{writer:?}"), "");
         }
     }
 

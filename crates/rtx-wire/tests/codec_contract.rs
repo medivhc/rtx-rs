@@ -321,7 +321,7 @@ fn wire_it_008_error_variant_matrix() {
     for variant in variants {
         let copied = variant; // Copy
         assert_eq!(variant, copied);
-        assert!(!format!("{variant:?}").is_empty());
+        assert_ne!(format!("{variant:?}"), "");
     }
 }
 

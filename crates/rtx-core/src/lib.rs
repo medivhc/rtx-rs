@@ -463,7 +463,7 @@ mod tests {
         assert_eq!(loopback, IpAddr::V4([127, 0, 0, 1]));
         assert_eq!(IpAddr::V6([0; 16]), IpAddr::V6([0; 16]));
         assert_ne!(loopback, IpAddr::V6([0; 16]));
-        assert!(!format!("{loopback:?}").is_empty());
+        assert_ne!(format!("{loopback:?}"), "");
     }
 
     // CORE-ADDR-002 — SocketAddr::new 与字段访问（含 const 构造）。
@@ -515,7 +515,7 @@ mod tests {
         with_ecn.ecn = Some(EcnCodepoint::Ce);
         assert_ne!(without_ecn, with_ecn);
         assert_eq!(without_ecn.ecn, None); // 原值未被触碰
-        assert!(!format!("{with_ecn:?}").is_empty());
+        assert_ne!(format!("{with_ecn:?}"), "");
     }
 
     // CORE-ADDR-005 — EcnCodepoint 三变体互异。
@@ -544,7 +544,7 @@ mod tests {
             } => assert_eq!(borrowed, &[1, 2, 3]),
             Input::Timeout(_) => panic!("expected a datagram input"),
         }
-        assert!(!format!("{datagram:?}").is_empty());
+        assert_ne!(format!("{datagram:?}"), "");
 
         let timeout = Input::Timeout(Timestamp::from_micros(1_000));
         match timeout {
@@ -566,7 +566,7 @@ mod tests {
         let action = RuntimeAction::WakeAt(deadline);
         let copied = action; // Copy
         assert_eq!(action, copied);
-        assert!(!format!("{action:?}").is_empty());
+        assert_ne!(format!("{action:?}"), "");
     }
 
     // CORE-SM-003 支撑 mock：最小 Sans-I/O 状态机。

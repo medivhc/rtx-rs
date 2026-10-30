@@ -538,7 +538,7 @@ mod tests {
         assert_eq!(event.plaintext(), b"hello");
         assert!(machine.poll_event().is_none());
         assert!(machine.next_wakeup().is_none());
-        assert!(!format!("{machine:?}").is_empty());
+        assert_ne!(format!("{machine:?}"), "");
         assert!(format!("{event:?}").contains("plaintext_len"));
     }
 

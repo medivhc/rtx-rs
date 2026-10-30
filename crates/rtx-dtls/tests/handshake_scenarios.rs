@@ -584,7 +584,7 @@ fn established_machines_are_quiet() {
         .expect("server ignores after establishment");
     assert!(client.poll_event().is_none());
     assert!(server.poll_event().is_none());
-    assert!(!format!("{client:?}").is_empty());
+    assert_ne!(format!("{client:?}"), "");
 }
 
 // DTLS-HS-INT-016 — a datagram with several records is walked in order.

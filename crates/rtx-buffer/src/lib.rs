@@ -161,8 +161,8 @@ mod tests {
         assert_ne!(exceeds, insufficient);
         let copied = exceeds; // Copy
         assert_eq!(exceeds, copied);
-        assert!(!format!("{exceeds:?}").is_empty());
-        assert!(!format!("{insufficient:?}").is_empty());
+        assert_ne!(format!("{exceeds:?}"), "");
+        assert_ne!(format!("{insufficient:?}"), "");
     }
 
     // ---- BUF-FIXED --------------------------------------------------------

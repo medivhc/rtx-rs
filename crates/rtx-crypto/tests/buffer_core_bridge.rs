@@ -370,7 +370,7 @@ where
     let mut secret = [0u8; SECRET_LEN];
     crypto.agree(KEX_SUPPORTED, &private, &public, &mut secret)?;
 
-    assert!(!crypto.name().is_empty());
+    assert_ne!(crypto.name(), "");
     Ok(())
 }
 

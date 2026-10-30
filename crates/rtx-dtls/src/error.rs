@@ -84,7 +84,7 @@ mod tests {
             RecordError::Crypto(CryptoError::BackendFailure),
         ];
         for (index, left) in variants.iter().enumerate() {
-            assert!(!format!("{left:?}").is_empty());
+            assert_ne!(format!("{left:?}"), "");
             for (other, right) in variants.iter().enumerate() {
                 if index != other {
                     assert_ne!(left, right);
