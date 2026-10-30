@@ -107,6 +107,11 @@ $ cargo fmt --all -- --check
 5. **REMB 零 mantissa 怪癖**：编码 0 bit/s 得 mantissa=0/exp=0，解码时上游对
    mantissa=0 跳过归一化 → 得 2^23 = 8388608.0，**0 无法往返**。为与上游比特级
    一致，原样复刻该怪癖（测试 006 显式断言 8388608.0 并注释原因）。
+   **（2026-10-30 修订）**该怪癖已被 fuzz 证伪并修复：exp≥58、mantissa=0 的线上包
+   经怪癖解出超过编码钳制上限的值（exp=62 时为 2^85），往返不一致
+   （CI run 41019685733 的 rtcp_compound 崩溃）。现解码按草案语义
+   mantissa=0 → 0.0（有意偏离上游），回归测试 RTCP-REMB-013；
+   测试 004/006 的期望已同步更新。
 6. **REMB 比特率表示**：`Remb` 以 `bitrate_bits: u32`（f32 原始位）存储而非
    `f32` 字段——否则 `f32` 破坏 `Eq`，`RtcpPacket` 枚举将无法 derive `Eq`。
 7. **REMB SSRC 条数上限**：`Num SSRC` 仅 1 字节，>255 条时上游静默截断；

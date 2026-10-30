@@ -23,12 +23,18 @@
 //! mantissa and a 6-bit exponent (draft-alvestrand-rmcat-remb-03).
 //! This module converts between that fixed-point form and `f32`
 //! bits/s with [`Remb::bitrate`] / [`Remb::new`], mirroring the
-//! upstream webrtc-rs reference implementation bit for bit,
-//! including its two quirks:
+//! upstream webrtc-rs reference implementation bit for bit, with
+//! one deliberate deviation and one retained quirk:
 //!
-//! 1. **Zero mantissa on decode**: a mantissa of 0 keeps the biased
-//!    exponent as-is (no implicit leading bit normalization), which
-//!    decodes to a tiny denormal-ish float rather than 0.
+//! 1. **Zero mantissa on decode (deviation)**: upstream keeps the
+//!    biased exponent as-is when the mantissa is 0, decoding it to
+//!    `2^(exp + 23)` instead of 0. That contradicts the draft
+//!    semantics (`0 * 2^exp = 0`), turns a zero estimate into up
+//!    to `2^86` bit/s out of attacker-controlled RTCP, and for
+//!    `exp >= 58` exceeds the encode clamp below, so such a packet
+//!    cannot round-trip (fuzz target `rtcp_compound`, CI run
+//!    41019685733). Here a mantissa of 0 decodes to `0.0` for
+//!    every exponent.
 //! 2. **Clamp on encode**: bitrates above `BITRATE_MAX` are clamped
 //!    instead of rejected, so `f32::MAX` round-trips through the
 //!    largest representable value.
@@ -275,17 +281,21 @@ impl<'a> Decode<'a> for Remb<'a> {
         // 18-bit mantissa: top 2 bits in b17, then 16 more.
         let mut mantissa = (u32::from(b17 & 0x3) << 16) | (u32::from(b18) << 8) | u32::from(b19);
 
-        if mantissa != 0 {
+        let bitrate_bits = if mantissa == 0 {
+            // Draft semantics: 0 * 2^exp = 0 for every exponent.
+            // Deliberate deviation from upstream, which keeps the
+            // biased exponent and decodes 2^(exp + 23) instead —
+            // see the module docs for why that cannot round-trip.
+            0
+        } else {
             // IEEE-754 requires an implicit leading bit: normalize until
-            // bit 23 is set, shifting the exponent down. (Upstream quirk:
-            // a zero mantissa skips this entirely.)
+            // bit 23 is set, shifting the exponent down.
             while (mantissa & (MANTISSA_MAX + 1)) == 0 {
                 exp -= 1;
                 mantissa <<= 1;
             }
-        }
-
-        let bitrate_bits = (exp << 23) | (mantissa & MANTISSA_MAX);
+            (exp << 23) | (mantissa & MANTISSA_MAX)
+        };
 
         let ssrcs = cursor.take(ssrc_count * 4)?;
 
@@ -341,7 +351,8 @@ mod tests {
     ];
 
     /// Differential vector: upstream `receiver_estimated_maximum_bitrate_test.rs:93-97`
-    /// (exp=47, mantissa=0 → the zero-mantissa quirk).
+    /// (exp=47, mantissa=0; decode expectation here deliberately
+    /// deviates from upstream — see RTCP-REMB-004).
     const REMB_ZERO_MANTISSA: [u8; 20] = [
         143, 206, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 82, 69, 77, 66, 0, 188, 0, 0,
     ];
@@ -419,7 +430,7 @@ mod tests {
         assert_f32_eq(again.bitrate(), 8_927_104.0);
     }
 
-    // RTCP-REMB-004 — 差分：上游 overflow 向量（f32::MAX 钳制 + 零 mantissa 怪癖）。
+    // RTCP-REMB-004 — 差分：上游 overflow 向量（f32::MAX 钳制保留；零 mantissa 按草案语义偏离上游）。
     #[test]
     fn rtcp_remb_004_upstream_overflow_vector() {
         let remb = Remb::new(0, f32::MAX, &[]);
@@ -436,9 +447,11 @@ mod tests {
         decoded.encode(&mut again).expect("re-encode REMB overflow");
         assert_eq!(again, REMB_OVERFLOW);
 
-        // 上游最后一个向量：exp=47、mantissa=0 时不做归一化。
+        // 上游最后一个向量：exp=47、mantissa=0。上游经零尾数怪癖解出
+        // from_bits(0x6280_0000)（2^70）；这里按草案语义解为 0（有意偏离，
+        // 理由见模块文档与 RTCP-REMB-013）。
         let (zero_mantissa, _) = Remb::decode(&REMB_ZERO_MANTISSA).expect("decode zero mantissa");
-        assert_f32_eq(zero_mantissa.bitrate(), f32::from_bits(0x6280_0000));
+        assert_f32_eq(zero_mantissa.bitrate(), 0.0);
     }
 
     // RTCP-REMB-005 — 差分：bitrate ↔ (exp, mantissa) 换算（已知定点值）。
@@ -473,14 +486,15 @@ mod tests {
         let (remb, _) = Remb::decode(&REMB_MARSHAL).expect("decode");
         assert_f32_eq(remb.bitrate(), 139_487.0 * 64.0);
 
-        // 零 mantissa 怪癖：编码 0 得到 mantissa=0/exp=0，解码时不做归一化，
-        // 于是 exp=150 → 2^23 = 8388608（与上游一致，0 无法往返）。
+        // 零 mantissa：编码 0 得到 mantissa=0/exp=0，解码按草案语义还原
+        // 为 0（偏离上游怪癖——上游解出 8388608.0，0 在上游无法往返）。
         let zero = Remb::new(7, 0.0, &[]);
         let mut output = [0u8; 20];
         zero.encode(&mut output).expect("encode zero");
         assert_eq!(&output[16..20], &[0, 0, 0, 0]);
         let (decoded, _) = Remb::decode(&output).expect("decode zero");
-        assert_f32_eq(decoded.bitrate(), 8_388_608.0);
+        assert_f32_eq(decoded.bitrate(), 0.0);
+        assert_eq!(decoded, zero);
         assert_eq!(decoded.sender_ssrc, 7);
     }
     // RTCP-REMB-007 — 差分：错误路径（nil / 短包 / 坏 magic / media SSRC 非零）。
@@ -597,5 +611,40 @@ mod tests {
 
         // 自洽的原始向量不受影响。
         assert!(Remb::decode(&REMB_MARSHAL).is_ok());
+    }
+
+    // RTCP-REMB-013 — 回归：fuzz 目标 rtcp_compound 在 CI 抓到的崩溃输入
+    // （run 41019685733 的 crash-498c5842…）：exp=62、mantissa=0、4 个 SSRC。
+    // 按草案语义 mantissa * 2^exp = 0，解码必须得到 0，且解码→编码→解码
+    // 必须稳定（旧实现经零尾数怪癖解出 2^85，超过编码钳制上限，往返不一致）。
+    #[test]
+    fn rtcp_remb_013_fuzz_crash_zero_mantissa_high_exp() {
+        const REMB_FUZZ_CRASH: [u8; 36] = [
+            143, 206, 0, 8, // v=2, p=0, FMT=15, PSFB, len=8
+            0, 2, 0, 32, // sender=0x00020020
+            0, 0, 0, 0, // media=0
+            82, 69, 77, 66, // "REMB"
+            4, 248, 0, 0, // num=4, exp=62, mantissa=0
+            0, 254, 255, 255, // ssrc 1
+            255, 90, 214, 214, // ssrc 2
+            0, 35, 160, 66, // ssrc 3
+            4, 0, 0, 28, // ssrc 4
+        ];
+        let (decoded, consumed) = Remb::decode(&REMB_FUZZ_CRASH).expect("decode fuzz crash REMB");
+        assert_eq!(consumed, REMB_FUZZ_CRASH.len());
+        assert_f32_eq(decoded.bitrate(), 0.0);
+        assert_eq!(decoded.ssrc_count(), 4);
+
+        // 重新编码：长度不变，只有 exp/mantissa 三字节归零（0 的规范编码）。
+        let mut output = [0u8; 36];
+        let written = decoded
+            .encode(&mut output)
+            .expect("re-encode fuzz crash REMB");
+        assert_eq!(written, 36);
+        assert_eq!(&output[17..20], &[0, 0, 0]);
+
+        // 再解码必须与第一次解码逐字段一致（fuzz 目标的核心断言）。
+        let (again, _) = Remb::decode(&output).expect("re-decode fuzz crash REMB");
+        assert_eq!(again, decoded);
     }
 }
