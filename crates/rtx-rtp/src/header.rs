@@ -297,7 +297,7 @@ mod tests {
         assert_eq!(header.sequence_number, 27023);
         assert_eq!(header.timestamp, 3_653_407_706);
         assert_eq!(header.ssrc, 476_325_762);
-        assert!(header.csrc.is_empty());
+        assert_eq!(header.csrc, []);
         // Legacy profile 1: opaque data, no element framing.
         assert_eq!(header.extension_profile, 1);
         assert_eq!(header.extension_data, &[0xFF, 0xFF, 0xFF, 0xFF]);

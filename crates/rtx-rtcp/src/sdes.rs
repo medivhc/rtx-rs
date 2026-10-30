@@ -465,7 +465,7 @@ mod tests {
         let items: Vec<SdesItem<'_>> = chunks[0].items().collect();
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].sdes_type, SdesType::Cname);
-        assert!(items[0].text.is_empty());
+        assert_eq!(items[0].text, []);
         assert_eq!(sdes.cname(), Some(&b""[..]));
 
         let mut output = [0u8; 12];

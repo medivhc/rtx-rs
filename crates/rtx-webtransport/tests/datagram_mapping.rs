@@ -28,7 +28,7 @@ fn m3_h8_datagram_mapping_round_trip() {
     let written = datagram::encode(session, b"", 1200, &mut buffer).expect("encode empty");
     let (decoded, consumed) =
         datagram::decode(&buffer[..written], session, 1200).expect("decode empty");
-    assert!(decoded.payload().is_empty());
+    assert_eq!(decoded.payload(), []);
     assert_eq!(consumed, written);
 
     // Both directions honour the caller-supplied negotiated limit exactly.

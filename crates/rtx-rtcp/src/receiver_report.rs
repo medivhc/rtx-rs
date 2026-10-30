@@ -224,7 +224,7 @@ mod tests {
         assert_eq!(consumed, RR_VALID.len());
         assert_eq!(rr.ssrc, 0x902f_9e2e);
         assert_eq!(rr.report_blocks.len(), RECEPTION_REPORT_LENGTH);
-        assert!(rr.profile_extensions.is_empty());
+        assert_eq!(rr.profile_extensions, []);
 
         let reports: Vec<ReceptionReport> = rr.reports().collect();
         assert_eq!(reports.len(), 1);

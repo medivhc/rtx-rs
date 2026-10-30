@@ -1296,8 +1296,8 @@ mod tests {
         assert_eq!(twcc.sender_ssrc, 2_596_996_162);
         assert_eq!(twcc.media_ssrc, 0);
         assert_eq!(twcc.packet_status_count, 0);
-        assert!(twcc.chunks.is_empty());
-        assert!(twcc.recv_deltas.is_empty());
+        assert_eq!(twcc.chunks, []);
+        assert_eq!(twcc.recv_deltas, []);
         assert_eq!(statuses(&twcc), vec![]);
         assert_eq!(twcc.header().length, 4);
     }

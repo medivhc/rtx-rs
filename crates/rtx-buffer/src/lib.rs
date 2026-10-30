@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(buffer.capacity(), 8);
         assert_eq!(buffer.len(), 0);
         assert!(buffer.is_empty());
-        assert!(buffer.as_slice().is_empty());
+        assert_eq!(buffer.as_slice(), []);
         assert_eq!(buffer.remaining_mut(), 8);
 
         let defaulted = FixedBuf::<8>::default();
@@ -228,7 +228,7 @@ mod tests {
         buffer
             .as_mut_slice()
             .copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);
-        assert!(buffer.as_slice().is_empty());
+        assert_eq!(buffer.as_slice(), []);
         buffer.set_len(3).expect("set_len(3)");
         assert_eq!(buffer.as_slice(), &[1, 2, 3]);
         buffer.set_len(8).expect("set_len(8)");
@@ -274,7 +274,7 @@ mod tests {
             .set_len(0)
             .expect("set_len(0) on zero-capacity buffer");
         assert_eq!(buffer.set_len(1), Err(BufferError::LengthExceedsCapacity));
-        assert!(buffer.as_mut_slice().is_empty());
+        assert_eq!(buffer.as_mut_slice(), []);
     }
 
     // ---- BUF-BORROWED -----------------------------------------------------
@@ -287,7 +287,7 @@ mod tests {
         assert_eq!(buffer.capacity(), 16);
         assert_eq!(buffer.len(), 0);
         assert!(buffer.is_empty());
-        assert!(buffer.as_slice().is_empty());
+        assert_eq!(buffer.as_slice(), []);
     }
 
     // BUF-BORROWED-002 — with_len 正常、边界与超限。
@@ -450,7 +450,7 @@ mod tests {
         // 回收复用：再取出的块已重置，旧内容不可见。
         let second = pool.acquire().expect("second acquire");
         assert_eq!(second.len(), 0); // 回收即重置
-        assert!(second.as_slice().is_empty()); // 旧内容不可见
+        assert_eq!(second.as_slice(), []); // 旧内容不可见
 
         // 耗尽：两个槽均已取出，第三次 acquire 返回 None。
         let third = pool.acquire().expect("third acquire");

@@ -857,7 +857,7 @@ fn role_conflicts_return_typed_errors_and_do_not_touch_the_table() {
     );
     assert_eq!(controlled.state(), ChecklistState::Running);
     assert_eq!(controlled.pair(0).expect("pair"), before);
-    assert!(drain(&mut controlled).is_empty());
+    assert_eq!(drain(&mut controlled), [] as [rtx_ice::Event; 0]);
 
     // The complementary case: a controlling agent rejects ICE-CONTROLLING.
     let mut controller = single_pair(Role::Controlling, TIE_CONTROLLING);
@@ -899,7 +899,7 @@ fn role_conflicts_return_typed_errors_and_do_not_touch_the_table() {
         deliver(&mut controlled, T0, A1, B1, &both),
         Err(IceError::RoleConflict(transaction_id))
     );
-    assert!(drain(&mut controlled).is_empty());
+    assert_eq!(drain(&mut controlled), [] as [rtx_ice::Event; 0]);
 }
 
 #[test]
@@ -1118,7 +1118,7 @@ fn malformed_or_unexpected_inbound_messages_are_typed_errors() {
         Err(IceError::UnknownLocalCandidate)
     );
     assert_eq!(controlled.state(), ChecklistState::Running);
-    assert!(drain(&mut controlled).is_empty());
+    assert_eq!(drain(&mut controlled), [] as [rtx_ice::Event; 0]);
 }
 
 #[test]
@@ -1489,7 +1489,7 @@ fn early_and_empty_timeouts_are_no_ops() {
         .handle_input(Input::Timeout(T0))
         .expect("early timeout");
     assert_eq!(running.next_wakeup(), Some(deadline));
-    assert!(drain(&mut running).is_empty());
+    assert_eq!(drain(&mut running), [] as [rtx_ice::Event; 0]);
 
     let mut idle = Checklist::new(Role::Controlling, TIE_CONTROLLING);
     idle.handle_input(Input::Timeout(T0))

@@ -261,7 +261,7 @@ fn stun_rob_008_zero_length_region_edge() {
     let msg = common::assert_verbatim(&buf[..written]);
     let attr = msg.get(ATTR_SOFTWARE).expect("software");
     assert_eq!(attr.length, 0);
-    assert!(attr.value.is_empty());
+    assert_eq!(attr.value, []);
 }
 
 // STUN-ROB-009 — 重复 trailer：FINGERPRINT 后再推 INTEGRITY 必须被拒绝。

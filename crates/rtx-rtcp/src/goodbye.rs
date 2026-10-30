@@ -312,7 +312,7 @@ mod tests {
     fn rtcp_bye_007_empty_packet_round_trip() {
         let (bye, consumed) = Goodbye::decode(&BYE_EMPTY).expect("decode empty BYE");
         assert_eq!(consumed, BYE_EMPTY.len());
-        assert!(bye.sources.is_empty());
+        assert_eq!(bye.sources, []);
         assert_eq!(bye.reason, None);
         assert_eq!(bye.source_iter().count(), 0);
 

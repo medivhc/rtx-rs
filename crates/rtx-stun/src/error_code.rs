@@ -289,7 +289,7 @@ mod tests {
         // 恰好 4 字节（无 reason）合法。
         let empty = ErrorCodeAttribute::from_value(&[0, 0, 4, 1]).expect("decode empty reason");
         assert_eq!(empty.code, ErrorCode(401));
-        assert!(empty.reason.is_empty());
+        assert_eq!(empty.reason, []);
     }
 
     // ERR-ATTR-004 — reason 超长（764 > 763）→ InvalidValue。

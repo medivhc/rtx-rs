@@ -91,7 +91,7 @@ fn wire_it_001_cursor_take_boundaries() {
     let rest = cursor.take(3).expect("take the rest");
     assert_eq!(rest, &[3, 4, 5]);
     assert_eq!(cursor.offset(), 5);
-    assert!(cursor.remaining().is_empty());
+    assert_eq!(cursor.remaining(), []);
 
     // 超尾：UnexpectedEnd，offset 保持不动。
     assert_eq!(cursor.take(1), Err(WireError::UnexpectedEnd));
@@ -342,7 +342,7 @@ fn wire_it_009_cursor_writer_interop() {
     assert_eq!(cursor.u16_be(), Ok(0xADBE));
     assert_eq!(cursor.u32_be(), Ok(0x0BAD_F00D));
     assert_eq!(cursor.take(2), Ok(&b"ef"[..]));
-    assert!(cursor.remaining().is_empty());
+    assert_eq!(cursor.remaining(), []);
 
     // 交错写读：writer 与 cursor 独立推进，互不影响。
     let mut second = [0u8; 8];

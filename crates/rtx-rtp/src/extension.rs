@@ -294,7 +294,10 @@ mod tests {
     #[test]
     fn reserved_id_terminates_parsing() {
         // 0xF0: identifier 15, length nibble 0.
-        assert!(items(EXTENSION_PROFILE_ONE_BYTE, &[0xF0, 0xAA, 0x98]).is_empty());
+        assert_eq!(
+            items(EXTENSION_PROFILE_ONE_BYTE, &[0xF0, 0xAA, 0x98]),
+            [] as [(u8, std::vec::Vec<u8>); 0]
+        );
     }
 
     // RTP-EXT-009 — identifier 0 with a non-zero length nibble terminates
@@ -302,13 +305,19 @@ mod tests {
     #[test]
     fn id_zero_with_length_terminates_parsing() {
         // 0x05: identifier 0, length nibble 5.
-        assert!(items(EXTENSION_PROFILE_ONE_BYTE, &[0x05, 0xAA, 0xBB, 0xCC]).is_empty());
+        assert_eq!(
+            items(EXTENSION_PROFILE_ONE_BYTE, &[0x05, 0xAA, 0xBB, 0xCC]),
+            [] as [(u8, std::vec::Vec<u8>); 0]
+        );
     }
 
     // RTP-EXT-010 — a legacy profile yields no elements (opaque data).
     #[test]
     fn legacy_profile_yields_no_elements() {
-        assert!(items(0x0001, &[0xFF, 0xFF, 0xFF, 0xFF]).is_empty());
+        assert_eq!(
+            items(0x0001, &[0xFF, 0xFF, 0xFF, 0xFF]),
+            [] as [(u8, std::vec::Vec<u8>); 0]
+        );
     }
 
     // RTP-EXT-011 — validate accepts well-formed one-byte blocks.

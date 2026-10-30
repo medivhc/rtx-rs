@@ -121,6 +121,9 @@ impl Counters {
     ///
     /// `live_bytes` saturates at zero, so freeing memory that was allocated
     /// before the counter was reset cannot underflow. It never allocates.
+    // fetch_update is deprecated in Rust 1.99 in favour of try_update, but
+    // try_update is stable only since 1.95 and this crate's MSRV is 1.85.
+    #[allow(deprecated)]
     pub fn record_dealloc(&self, size: usize) {
         let bytes = u64::try_from(size).unwrap_or(u64::MAX);
         self.free_count.fetch_add(1, Ordering::Relaxed);

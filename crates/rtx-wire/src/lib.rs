@@ -239,7 +239,7 @@ mod tests {
         assert_eq!(cursor.offset(), 5);
         assert_eq!(cursor.take(1), Err(WireError::UnexpectedEnd));
         let zero = cursor.take(0).expect("zero-length take at boundary");
-        assert!(zero.is_empty());
+        assert_eq!(zero, []);
         assert_eq!(cursor.offset(), 5);
     }
 
@@ -261,7 +261,7 @@ mod tests {
     fn cursor_empty_input_behavior() {
         let mut cursor = Cursor::new(&[]);
         let zero = cursor.take(0).expect("zero-length take on empty input");
-        assert!(zero.is_empty());
+        assert_eq!(zero, []);
         assert_eq!(cursor.take(1), Err(WireError::UnexpectedEnd));
         assert_eq!(cursor.u8(), Err(WireError::UnexpectedEnd));
         assert_eq!(cursor.offset(), 0);
@@ -340,7 +340,7 @@ mod tests {
         assert_eq!(cursor.offset(), 10);
         assert_eq!(cursor.u8(), Ok(0x09));
         assert_eq!(cursor.offset(), 11);
-        assert!(cursor.remaining().is_empty());
+        assert_eq!(cursor.remaining(), []);
     }
 
     // WIRE-CUR-011 — remaining() 返回与输入同生命周期（借用输入而非游标）。

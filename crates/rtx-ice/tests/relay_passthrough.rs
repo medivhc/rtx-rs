@@ -160,7 +160,7 @@ fn relay_check_event_source_is_relayed_address() {
         &response[..length],
     )
     .expect("mismatched response is ignored");
-    assert!(drain(&mut checklist).is_empty());
+    assert_eq!(drain(&mut checklist), [] as [rtx_ice::Event; 0]);
     assert_eq!(
         checklist.pair(0).expect("pair").state(),
         PairState::InProgress

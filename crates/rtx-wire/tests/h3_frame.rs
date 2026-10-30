@@ -65,7 +65,7 @@ fn m3_h2_truncated_payload_rejected() {
     assert_eq!(Frame::decode(&[0x01, 0x40]), Err(WireError::UnexpectedEnd));
     // A declared length of zero is legal and consumes only the header.
     let (empty, consumed) = Frame::decode(&[0x01, 0x00]).expect("empty payload");
-    assert!(empty.payload().is_empty());
+    assert_eq!(empty.payload(), []);
     assert_eq!(empty.frame_type().get(), 0x01);
     assert_eq!(consumed, 2);
 }
@@ -88,6 +88,6 @@ fn m3_h2_unknown_frame_preserved() {
     // The caller can now skip the unknown frame and read the next one.
     let (next, next_consumed) = Frame::decode(&bytes[consumed..]).expect("next frame");
     assert_eq!(next.frame_type().get(), 0x01);
-    assert!(next.payload().is_empty());
+    assert_eq!(next.payload(), []);
     assert_eq!(next_consumed, 2);
 }

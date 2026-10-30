@@ -262,7 +262,7 @@ mod tests {
         assert_eq!(sr.packet_count, 1);
         assert_eq!(sr.octet_count, 2);
         assert_eq!(sr.report_blocks.len(), RECEPTION_REPORT_LENGTH);
-        assert!(sr.profile_extensions.is_empty());
+        assert_eq!(sr.profile_extensions, []);
 
         let reports: Vec<ReceptionReport> = sr.reports().collect();
         assert_eq!(reports.len(), 1);
@@ -309,7 +309,7 @@ mod tests {
         assert_eq!(sr.rtp_time, 0x2e48_a552);
         assert_eq!(sr.packet_count, 70);
         assert_eq!(sr.octet_count, 4637);
-        assert!(sr.report_blocks.is_empty());
+        assert_eq!(sr.report_blocks, []);
         assert_eq!(sr.reports().count(), 0);
         assert_eq!(sr.profile_extensions.len(), 28);
 

@@ -316,7 +316,7 @@ fn rtp_it_008_empty_payload_packet() {
     assert_eq!(bytes.len(), 12);
     let (decoded, consumed) = RtpPacket::decode(&bytes).expect("decode empty packet");
     assert_eq!(consumed, 12);
-    assert!(decoded.payload.is_empty());
+    assert_eq!(decoded.payload, []);
     assert_eq!(decoded.header.payload_type, 111);
     assert_eq!(decoded.padding_len(), 0);
 }
