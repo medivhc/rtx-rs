@@ -92,7 +92,9 @@ jobs:
           key: ${{ matrix.profile }}
 
       - name: Install cargo-nextest
-        run: cargo install cargo-nextest --locked
+        # Prebuilt binary: `cargo install` from source fails on the MSRV leg
+        # (recent cargo-nextest requires a much newer rustc than 1.85).
+        uses: taiki-e/install-action@nextest
 
       - name: nextest (all features)
         run: cargo nextest run --workspace --all-features --no-fail-fast
