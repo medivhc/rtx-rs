@@ -31,7 +31,7 @@ fn m3_q1_client_server_handshake_completes() {
     let client_info = handshake_info(&client_events).expect("client handshake completed");
     assert_eq!(client_info.alpn.as_deref(), Some(ALPN));
     assert!(client_info.datagram_supported);
-    assert!(!client_info.peer_transport_parameters.as_bytes().is_empty());
+    assert_ne!(client_info.peer_transport_parameters.as_bytes(), []);
 }
 
 #[test]
