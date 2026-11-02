@@ -10,14 +10,14 @@
 //!
 //! | Constant | Identifier | Source |
 //! |---|---|---|
-//! | [`SETTINGS_QPACK_MAX_TABLE_CAPACITY`] | `0x01` | `RFC 9114` section 7.2.4.1 |
+//! | [`SETTINGS_QPACK_MAX_TABLE_CAPACITY`] | `0x01` | `RFC 9204` section 5 |
 //! | [`SETTINGS_MAX_FIELD_SECTION_SIZE`] | `0x06` | `RFC 9114` section 7.2.4.1 |
-//! | [`SETTINGS_QPACK_BLOCKED_STREAMS`] | `0x07` | `RFC 9114` section 7.2.4.1 |
+//! | [`SETTINGS_QPACK_BLOCKED_STREAMS`] | `0x07` | `RFC 9204` section 5 |
 //! | [`SETTINGS_ENABLE_CONNECT_PROTOCOL`] | `0x08` | `RFC 9220` section 3 |
 //! | [`SETTINGS_H3_DATAGRAM`] | `0x33` | `RFC 9297` section 2.1.1 |
-//! | [`SETTINGS_H3_DATAGRAM_DEPRECATED`] | `0xffd277` | pre-RFC `H3_DATAGRAM` identifier (`draft-ietf-masque-h3-datagram-04` to `-06`, IANA registration); replaced by `0x33` in `RFC 9297`. Chrome still sends it: decode-only |
+//! | [`SETTINGS_H3_DATAGRAM_DEPRECATED`] | `0xffd277` | pre-RFC `H3_DATAGRAM` identifier (`draft-ietf-masque-h3-datagram-04` to `-08`, IANA registration); replaced by `0x33` in `RFC 9297`. Chrome still sends it: decode-only |
 //! | [`SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED`] | `0x2b603742` | `ENABLE_WEBTRANSPORT` in `draft-ietf-webtrans-http3-06` (IANA registration), removed after that draft. Chrome still sends it: decode-only |
-//! | [`SETTINGS_WEBTRANSPORT_MAX_SESSIONS`] | `0xc671706a` | `WEBTRANSPORT_MAX_SESSIONS`, IANA registration in `draft-ietf-webtrans-http3-08` to `-12` |
+//! | [`SETTINGS_WEBTRANSPORT_MAX_SESSIONS`] | `0xc671706a` | `WEBTRANSPORT_MAX_SESSIONS`, IANA registration in `draft-ietf-webtrans-http3-07` (section 8.2) to `-12` |
 //!
 //! The deprecated identifiers are decoded (`Settings::deprecated_h3_datagram`
 //! and `Settings::deprecated_webtransport_enable` expose them), but
@@ -29,11 +29,12 @@
 //! # `0xc671706a` provenance note
 //!
 //! `0xc671706a` is the max-sessions setting that gate `M3-H3` requires. Its
-//! registered name and value come from `draft-ietf-webtrans-http3-08` through
-//! `-12`; `-13`/`-14` renamed it to `SETTINGS_WT_MAX_SESSIONS`, and `-15`
-//! removed max-sessions altogether in favour of `SETTINGS_WT_ENABLED`
-//! (`0x2c7cf000`, `draft-ietf-webtrans-http3-15` section 9.2) plus the
-//! flow-control settings of its section 5. The task brief attributes
+//! registered name and value first appear in `draft-ietf-webtrans-http3-07`
+//! (section 8.2) and are used through `-12`; `-13`/`-14` renamed it to
+//! `SETTINGS_WT_MAX_SESSIONS`, and `-15` removed max-sessions altogether in
+//! favour of `SETTINGS_WT_ENABLED` (`0x2c7cf000`,
+//! `draft-ietf-webtrans-http3-15` section 9.2) plus the flow-control settings
+//! of its section 5. The task brief attributes
 //! `0xc671706a` to `draft-15` section 5; the published `draft-15` text does
 //! **not** contain that identifier or a max-sessions setting, so this module
 //! documents the registration value against its actual drafts instead of
@@ -54,20 +55,24 @@
 //! A SETTINGS payload with more than [`MAX_SETTINGS_ITEMS`] pairs is rejected
 //! with [`SettingError::TooManySettings`]; a repeated identifier (known,
 //! GREASE or unknown) is rejected with [`SettingError::DuplicateSetting`],
-//! which is the `H3_SETTINGS_ERROR` condition of `RFC 9114` section 7.2.4.1.
-//! Unknown identifiers are stored verbatim, never interpreted, and never
-//! re-encoded; GREASE identifiers therefore have no observable meaning and no
-//! test asserts their randomised identifier or value. Nothing allocates.
+//! which is the `H3_SETTINGS_ERROR` condition of `RFC 9114` section 7.2.4
+//! paragraph 6. The HTTP/2 reserved identifiers (`0x02`-`0x05`) are accepted
+//! here as unknown identifiers: this crate has no connection state machine, so
+//! the connection-level `H3_SETTINGS_ERROR` that `RFC 9114` section 7.2.4.1
+//! requires for them is out of scope. Unknown identifiers are stored verbatim,
+//! never interpreted, and never re-encoded; GREASE identifiers therefore have
+//! no observable meaning and no test asserts their randomised identifier or
+//! value. Nothing allocates.
 
 use rtx_wire::{WireError, Writer, varint};
 
-/// `SETTINGS_QPACK_MAX_TABLE_CAPACITY` (`RFC 9114` section 7.2.4.1).
+/// `SETTINGS_QPACK_MAX_TABLE_CAPACITY` (`RFC 9204` section 5).
 pub const SETTINGS_QPACK_MAX_TABLE_CAPACITY: u64 = 0x01;
 
 /// `SETTINGS_MAX_FIELD_SECTION_SIZE` (`RFC 9114` section 7.2.4.1).
 pub const SETTINGS_MAX_FIELD_SECTION_SIZE: u64 = 0x06;
 
-/// `SETTINGS_QPACK_BLOCKED_STREAMS` (`RFC 9114` section 7.2.4.1).
+/// `SETTINGS_QPACK_BLOCKED_STREAMS` (`RFC 9204` section 5).
 pub const SETTINGS_QPACK_BLOCKED_STREAMS: u64 = 0x07;
 
 /// `SETTINGS_ENABLE_CONNECT_PROTOCOL` (`RFC 9220` section 3).
@@ -79,7 +84,7 @@ pub const SETTINGS_H3_DATAGRAM: u64 = 0x33;
 /// Deprecated `SETTINGS_H3_DATAGRAM` identifier that Chrome still sends.
 ///
 /// The pre-RFC `H3_DATAGRAM` identifier (`draft-ietf-masque-h3-datagram-04`
-/// to `-06`) was replaced by `0x33` in `RFC 9297`. It is accepted on decode
+/// to `-08`) was replaced by `0x33` in `RFC 9297`. It is accepted on decode
 /// only; see the module documentation.
 pub const SETTINGS_H3_DATAGRAM_DEPRECATED: u64 = 0xFF_D277;
 
@@ -94,9 +99,9 @@ pub const SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED: u64 = 0x2B60_3742;
 /// `M3-H3`.
 ///
 /// The value is the IANA registration of
-/// `draft-ietf-webtrans-http3-08` through `-12`. Later drafts renamed and
-/// then removed the setting; see the module documentation for the full
-/// provenance note.
+/// `draft-ietf-webtrans-http3-07` (section 8.2) through `-12`. Later drafts
+/// renamed and then removed the setting; see the module documentation for the
+/// full provenance note.
 pub const SETTINGS_WEBTRANSPORT_MAX_SESSIONS: u64 = 0xC671_706A;
 
 /// Largest number of identifier/value pairs a [`Settings`] value accepts.
