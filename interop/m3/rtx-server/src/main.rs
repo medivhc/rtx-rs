@@ -85,10 +85,13 @@ const FRAME_WEBTRANSPORT_BI: u64 = 0x41;
 /// `rtx-h3`).
 const SETTINGS_H3_DATAGRAM_DEPRECATED: u64 = 0xFF_D277;
 /// `ENABLE_WEBTRANSPORT`, removed after `draft-ietf-webtrans-http3-06`
-/// (decode-only).
+/// (decode-only in `rtx-h3`; this harness appends it explicitly for Chrome).
 const SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED: u64 = 0x2B60_3742;
 /// The pre-draft-07 max-sessions identifier (decode-only).
 const SETTINGS_WEBTRANSPORT_MAX_SESSIONS_DEPRECATED: u64 = 0x2B60_3743;
+/// Value of the Chrome-compat legacy `ENABLE_WEBTRANSPORT` pair. Chrome for
+/// Testing 155 and 156 both negotiate over the legacy identifier.
+const CHROME_COMPAT_ENABLE_WEBTRANSPORT_VALUE: u64 = 1;
 
 /// `max_datagram_frame_size` this harness advertises (TCP id `0x20`,
 /// `RFC 9221` section 3). It is the receive-buffer budget of the facade's
@@ -108,6 +111,12 @@ const SERVER_UNI_PAYLOAD_LEN: usize = 1024 * 1024;
 /// Bytes written on the server-initiated bidirectional stream before it is
 /// reset (M3-B2's reset coverage).
 const SERVER_RESET_PAYLOAD_LEN: usize = 4096;
+/// Grace period between writing the server-initiated bidirectional stream's
+/// payload and applying its `RESET_STREAM`. Chrome can drop a server-initiated
+/// WebTransport bidirectional stream whose reset reaches the client before the
+/// stream header can be surfaced to the page; the delay gives the header time
+/// to arrive first (M3-B2 server-reset observation).
+const SERVER_RESET_DELAY_MS: u64 = 500;
 /// Application error code used for the deliberate server reset.
 const SERVER_RESET_CODE: u64 = 7;
 /// `WT_SESSION_GONE` (`draft-ietf-webtrans-http3-15` section 8), used when a
@@ -473,7 +482,7 @@ impl ConnState {
         self.read_streams(connection, endpoint, log);
         self.process_streams(connection, now, endpoint, log);
         self.poll_datagrams(connection, endpoint, log);
-        self.flush_writes(connection, endpoint, log);
+        self.flush_writes(connection, now, endpoint, log);
     }
 
     fn accept_new_streams(
@@ -914,7 +923,7 @@ impl ConnState {
                 self.handle_client_settings(connection, now, payload, endpoint, log);
             }
             StreamAction::ConnectHeaders(payload) => {
-                self.handle_connect_headers(connection, id, payload, endpoint, log);
+                self.handle_connect_headers(connection, now, id, payload, endpoint, log);
             }
             StreamAction::Capsules => {
                 self.handle_capsules(connection, id, log);
@@ -1008,14 +1017,52 @@ impl ConnState {
 
         let settings = server_settings();
         let encoded_len = settings.encoded_len();
-        let mut payload = vec![0u8; encoded_len];
-        if let Err(error) = settings.encode(&mut payload) {
+        let compat_id_len = varint::encoded_len(SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED);
+        let compat_value_len = varint::encoded_len(CHROME_COMPAT_ENABLE_WEBTRANSPORT_VALUE);
+        let mut payload = vec![0u8; encoded_len + compat_id_len + compat_value_len];
+        let encoded = match settings.encode(&mut payload) {
+            Ok(encoded) => encoded,
+            Err(error) => {
+                log.line(format!(
+                    "event=server_settings_encode_failed connection={} error={error:?}",
+                    connection.as_u64()
+                ));
+                return;
+            }
+        };
+        debug_assert_eq!(encoded, encoded_len, "Settings::encode length drift");
+
+        // Chrome 155/156 compatibility: append the legacy ENABLE_WEBTRANSPORT
+        // pair after `Settings::encode`. `Settings::set` refuses deprecated
+        // identifiers with `SettingError::NotEncodable` and `Settings::encode`
+        // skips them, so adding it to `server_settings()` alone would be
+        // silently dropped. This is a harness-level frame assembly choice for
+        // Chrome interoperability, not a draft-15 requirement, and it does not
+        // change `rtx-h3`'s emit table or its decode-only policy.
+        let mut scratch = [0u8; 8];
+        if let Err(error) = varint::encode(
+            SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED,
+            &mut scratch[..compat_id_len],
+        ) {
             log.line(format!(
                 "event=server_settings_encode_failed connection={} error={error:?}",
                 connection.as_u64()
             ));
             return;
         }
+        payload[encoded..encoded + compat_id_len].copy_from_slice(&scratch[..compat_id_len]);
+        if let Err(error) = varint::encode(
+            CHROME_COMPAT_ENABLE_WEBTRANSPORT_VALUE,
+            &mut scratch[..compat_value_len],
+        ) {
+            log.line(format!(
+                "event=server_settings_encode_failed connection={} error={error:?}",
+                connection.as_u64()
+            ));
+            return;
+        }
+        payload[encoded + compat_id_len..].copy_from_slice(&scratch[..compat_value_len]);
+
         let frame = Frame::new(
             VarInt::new(FRAME_SETTINGS).expect("SETTINGS frame type fits a varint"),
             &payload,
@@ -1049,9 +1096,21 @@ impl ConnState {
                     "event=server_settings_sent connection={} control_stream={} items={} payload_bytes={} frame_bytes={}",
                     connection.as_u64(),
                     stream.as_u64(),
-                    settings.len(),
+                    settings.len() + 1,
                     payload.len(),
                     frame_len
+                ));
+                log.line(format!(
+                    "event=server_settings_payload connection={} payload_bytes={} hex={}",
+                    connection.as_u64(),
+                    payload.len(),
+                    hex_ascii(&payload)
+                ));
+                log.line(format!(
+                    "event=server_settings_chrome_compat connection={} id=0x{:x} value={} reason=legacy-enable-webtransport applied_after=Settings::encode",
+                    connection.as_u64(),
+                    SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED,
+                    CHROME_COMPAT_ENABLE_WEBTRANSPORT_VALUE
                 ));
                 for setting in settings.iter() {
                     log.line(format!(
@@ -1061,6 +1120,12 @@ impl ConnState {
                         setting.value()
                     ));
                 }
+                log.line(format!(
+                    "event=server_setting connection={} id=0x{:x} value={} class=deprecated source=chrome_compat_after_encode",
+                    connection.as_u64(),
+                    SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED,
+                    CHROME_COMPAT_ENABLE_WEBTRANSPORT_VALUE
+                ));
             }
             Err(error) => log.line(format!(
                 "event=server_settings_send_failed connection={} error={error}",
@@ -1072,6 +1137,7 @@ impl ConnState {
     fn handle_connect_headers(
         &mut self,
         connection: ConnectionId,
+        now: Timestamp,
         id: u64,
         payload: Vec<u8>,
         endpoint: &mut Endpoint,
@@ -1152,7 +1218,7 @@ impl ConnState {
         }
 
         self.queue_connect_response(connection, id, 200, log);
-        self.open_auto_streams(connection, session, endpoint, log);
+        self.open_auto_streams(connection, now, session, endpoint, log);
     }
 
     /// Queues a HEADERS frame carrying `:status <status>` on the CONNECT
@@ -1220,10 +1286,13 @@ impl ConnState {
     /// Opens the two server-initiated streams every session gets in this
     /// harness: a 1 MiB unidirectional stream (M3-B2) and a bidirectional
     /// stream that is reset after a short deterministic prefix (M3-B2 reset
-    /// coverage).
+    /// coverage). The reset is applied `SERVER_RESET_DELAY_MS` after the stream
+    /// is opened so Chrome can surface the WebTransport stream header to the
+    /// page before `RESET_STREAM` arrives.
     fn open_auto_streams(
         &mut self,
         connection: ConnectionId,
+        now: Timestamp,
         session: SessionId,
         endpoint: &mut Endpoint,
         log: &mut Log,
@@ -1261,9 +1330,11 @@ impl ConnState {
                     .out_buf
                     .extend_from_slice(&pattern(SERVER_RESET_PAYLOAD_LEN));
                 state.out_reset = Some(SERVER_RESET_CODE);
+                state.reset_not_before =
+                    Some(now + rtx_core::Duration::from_millis(SERVER_RESET_DELAY_MS));
                 self.streams.insert(stream.as_u64(), state);
                 log.line(format!(
-                    "event=stream_opened connection={} session={} stream={} kind=bi role=server bytes={SERVER_RESET_PAYLOAD_LEN} reset_code={SERVER_RESET_CODE}",
+                    "event=stream_opened connection={} session={} stream={} kind=bi role=server bytes={SERVER_RESET_PAYLOAD_LEN} reset_code={SERVER_RESET_CODE} reset_delay_ms={SERVER_RESET_DELAY_MS}",
                     connection.as_u64(),
                     session.get(),
                     stream.as_u64()
@@ -1413,6 +1484,7 @@ impl ConnState {
             state.out_buf.clear();
             state.out_pos = 0;
             state.out_reset = Some(WT_SESSION_GONE_CODE);
+            state.reset_not_before = None;
             log.line(format!(
                 "event=stream_reset connection={} stream={} role=server direction={} code=0x{WT_SESSION_GONE_CODE:x} reason=session_closed",
                 connection.as_u64(),
@@ -1580,7 +1652,13 @@ impl ConnState {
         }
     }
 
-    fn flush_writes(&mut self, connection: ConnectionId, endpoint: &mut Endpoint, log: &mut Log) {
+    fn flush_writes(
+        &mut self,
+        connection: ConnectionId,
+        now: Timestamp,
+        endpoint: &mut Endpoint,
+        log: &mut Log,
+    ) {
         let ids: Vec<u64> = self.streams.keys().copied().collect();
         for id in ids {
             let Some(state) = self.streams.get_mut(&id) else {
@@ -1610,6 +1688,11 @@ impl ConnState {
                 continue;
             }
             if let Some(code) = state.out_reset {
+                if let Some(not_before) = state.reset_not_before {
+                    if now < not_before {
+                        continue;
+                    }
+                }
                 match endpoint.reset_stream(connection, state.id, code) {
                     Ok(()) => log.line(format!(
                         "event=stream_reset connection={} stream={} role=server direction={} code={code}",
@@ -1679,6 +1762,9 @@ struct StreamState {
     out_pos: usize,
     out_finish: bool,
     out_reset: Option<u64>,
+    /// Earliest monotonic time at which `out_reset` may be applied; used to let
+    /// the stream header reach Chrome before `RESET_STREAM` (M3-B2).
+    reset_not_before: Option<Timestamp>,
     out_finished: bool,
     peer_fin: bool,
     finished: bool,
@@ -1697,6 +1783,7 @@ impl StreamState {
             out_pos: 0,
             out_finish: false,
             out_reset: None,
+            reset_not_before: None,
             out_finished: false,
             peer_fin: false,
             finished: false,
@@ -1755,10 +1842,13 @@ enum CapsuleEvent {
 /// Builds the fixed five-item SETTINGS payload.
 ///
 /// `rtx-h3`'s encoder refuses deprecated and unknown identifiers, so this
-/// payload can never grow the deprecated pairs the R6-2c reference server
-/// emits. `0x2c7cf000` (`SETTINGS_WT_ENABLED` in draft-15) is deliberately
-/// absent: Chrome 156 negotiates the deprecated `0x2b603742` signal, and this
-/// harness does not claim an unverified negotiation behaviour (see README).
+/// payload cannot grow the deprecated pairs the R6-2c reference server emits.
+/// Do not add the Chrome-compat legacy `ENABLE_WEBTRANSPORT` (`0x2b603742`) to
+/// this list: `Settings::set` returns `SettingError::NotEncodable` and
+/// `Settings::encode` silently skips it. The pair is appended in
+/// [`ConnState::send_server_settings`] after `Settings::encode`, for Chrome
+/// 155/156 interoperability only; it is not a draft-15 requirement.
+/// `0x2c7cf000` (`SETTINGS_WT_ENABLED` in draft-15) is deliberately absent.
 fn server_settings() -> Settings {
     let mut settings = Settings::new();
     let items = [
@@ -1843,6 +1933,12 @@ fn pattern(len: usize) -> Vec<u8> {
     (0..len)
         .map(|index| u8::try_from(index % PATTERN_PERIOD).unwrap_or(0))
         .collect()
+}
+
+/// Lower-case hex rendering used for the SETTINGS payload log line, so the
+/// evidence report can decode the exact bytes that went on the wire.
+fn hex_ascii(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn wait_duration(now: Timestamp, deadline: Option<Timestamp>) -> Duration {
