@@ -39,7 +39,7 @@ relay 候选在 `rtx-ice` 眼里没有特殊分支：它只是一个 `address` �
 
 ### 2.1 供给时序（全部在 `start` 前完成）
 
-1. **Allocate。** 调用方的 TURN 客户端向自己的 TURN 服务器执行 Allocate（RFC 5766 §5），得到 relayed 传输地址。该地址是 TURN 服务器替该分配收发数据的传输地址；它不是本地 socket 地址，也不是 STUN/TURN 的 mapped address。
+1. **Allocate。** 调用方的 TURN 客户端向自己的 TURN 服务器执行 Allocate（RFC 5766 §6；分配状态见 §5），得到 relayed 传输地址。该地址是 TURN 服务器替该分配收发数据的传输地址；它不是本地 socket 地址，也不是 STUN/TURN 的 mapped address。
 2. **本地 relay 候选入表。**
 
 ```text
@@ -99,7 +99,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 - 响应匹配要求 `pair.local().base() == meta.destination`（§3.2 第 3 条），按 `base = local_socket` 即要求 `meta.destination = local_socket`，而 TURN 服务器实际把内层响应投递到 relayed 地址。调用方只有把 `meta.destination` 填成 `local_socket`（“伪造”一个与实际到达地址不符的值）才能让这条 `base` 比对通过；这等于绕过 §3.2 第 3 条。
 - 入站检查的本地候选查找以 `meta.destination` 为键、由 `position()` 与 `candidate.address()` 比对（§3.2 第 4 条）；`destination` 只是查找键，代码不对它做独立的字段校验。`address` 仍是 relayed 地址，按实际到达地址填 `destination = relayed` 时查找正常；若为凑 `base` 比对而把 `destination` “伪造”成 `local_socket`，查找反而会落空并返回 `IceError::UnknownLocalCandidate`。consent 刷新同样要求 `pair.local().base() == meta.destination`（§3.2 补充），会因 `base = local_socket` 失配。
 
-结论：`base = 本地 TURN socket 地址` 不是合法配置。它只能靠在喂入数据时把 `meta.destination` “伪造”成 `local_socket`（与实际到达地址不符）去凑 `base` 比对，属于自欺，不得使用（决策 §2.B 对同一反例的论证）。
+结论：`base = 本地 TURN socket 地址` 不是合法配置。它只能靠在喂入数据时把 `meta.destination` “伪造”成 `local_socket`（与实际到达地址不符）去凑 `base` 比对，而这样会让入站查找落空（见上条），仍属自欺，不得使用（决策 §2.B 对同一反例的论证）。
 
 ### 3.4 反例 B：base 留空
 
