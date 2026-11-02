@@ -87,15 +87,15 @@ pub enum CandidateType {
     Host,
     /// A translated address learned from a STUN server.
     ///
-    /// This crate does not query a STUN server; the caller supplies the
-    /// address. Server discovery belongs to R4-2.
+    /// This crate does not query a STUN server; the caller discovers the
+    /// server, supplies the address and performs the Binding query.
     ServerReflexive,
     /// A translated address learned from an inbound connectivity check.
     PeerReflexive,
     /// A relayed address allocated by a TURN server.
     ///
-    /// Relay is a type value only: this crate contains no TURN allocation or
-    /// refresh logic. Both belong to R4-2.
+    /// Relay is a type value only: this crate contains no TURN client; the
+    /// whole TURN lifecycle belongs to the caller, not this tree.
     Relay,
 }
 

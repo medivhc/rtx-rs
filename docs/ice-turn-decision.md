@@ -19,7 +19,7 @@
 
 - **门禁没有 TURN 必做项。** `docs/m3-m4-gates.md` 全文大小写不敏感检索 `turn` 只有 1 处命中：第 80 行 M3-Q5 的测试名 `m3_q5_idle_poll_returns_none` 中的子串（`returns` 含 `turn`），与 TURN 无关。M3/M4 门禁中没有“必须实现 TURN 客户端 / relay 分配”的条目。
 - **TURN 客户端语义被明确留到后续里程碑。** `docs/m1-3-implementation-notes.md:96` 把“TURN 客户端语义（Allocate/ChannelData 生命周期）”列为“后续里程碑”；同表第 94 行把“长期密钥 MD5 派生 / `MessageIntegrity::new_long_term` 构造函数”列为未完成项，第 93 行把 RFC 5389 §10.2 的真实 HMAC-SHA1 向量列为未完成项。
-- **R4-1 把收集与 TURN 划给了 R4-2。** `crates/rtx-ice/src/lib.rs:41-45` 明写：socket 候选收集、接口枚举、STUN 服务器发现不在 R4-1；TURN 分配/刷新/权限也不在；`CandidateType::Relay` 只是类型值，TURN 客户端由 R4-2 拥有。`crates/rtx-ice/src/lib.rs:189-194` 的“Split with R4-2”重复了同一划分，并说明 relay 类型存在的目的只是让 R4-2 能插入 relay 候选而不改 API。
+- **R4-1 把收集与 TURN 划给了 R4-2。** `crates/rtx-ice/src/lib.rs:41-49` 明写：socket 候选收集、接口枚举、STUN 服务器发现不在 R4-1；TURN 分配/刷新/权限也不在；`CandidateType::Relay` 只是类型值，树内不含 TURN 客户端。`crates/rtx-ice/src/lib.rs:193-206` 的“Gathering and TURN (R4-2 decision)”段重复了同一划分，并说明 relay 类型存在的目的只是让调用方能插入 relay 候选而不改 API。
 - **计划原文只有一句话。** RTX-COMPLETION-PLAN.md P4 节对本单写的是：“R4-2 TURN 复用决策：先定子集（是否做完整 TURN，还是只做 STUN + 直连 + relay 透传），不要默认做全。”
 
 ### 1.2 消息层证据的边界（不得当作客户端）
@@ -72,7 +72,7 @@ RFC 8445 本身把 relay 定义为可选项：§5.1.1.2 说 agent SHOULD gather 
 
 **依赖**：
 
-- **认证缺口是硬前置。** `crates/rtx-ice/src/lib.rs:51-54` 明写 `USERNAME` 与 `MESSAGE-INTEGRITY` 校验不在 R4-1，“There is no shared credential context in this order... **This crate does not claim an authenticated ICE agent.**”
+- **认证缺口是硬前置。** `crates/rtx-ice/src/lib.rs:55-58` 明写 `USERNAME` 与 `MESSAGE-INTEGRITY` 校验不在 R4-1，“There is no shared credential context in this order... **This crate does not claim an authenticated ICE agent.**”
 - `rtx-stun` 只有 `MessageIntegrity::new_raw`（`crates/rtx-stun/src/integrity.rs:74`）与 `check`（`:123`），没有 `new_long_term`；TURN 场景测试用 XOR 假 MAC（`crates/rtx-stun/tests/common/mod.rs:109`），不是真实 HMAC-SHA1。
 - `rtx-crypto` 的 `HashAlgorithm` 只有 `Sha1` / `Sha256` / `Sha384`，没有 MD5（`crates/rtx-crypto/src/lib.rs:15-19`）；而 RFC 5389 §15.4 的长期凭证密钥需要 `MD5(username ":" realm ":" password)`。`docs/m1-3-implementation-notes.md:93-94` 把真实 HMAC-SHA1 向量与 MD5 派生都列为遗留项。
 - 因此完整 TURN 客户端之前必须先有一个“认证/凭证故事”决策：凭证从哪来（信令？配置？）、realm/nonce 如何存、MD5 是否实现、是否改用其他长期凭证方案。这个决策尚未存在，A 不能先于它开工。
@@ -82,7 +82,7 @@ RFC 8445 本身把 relay 定义为可选项：§5.1.1.2 说 agent SHOULD gather 
 
 - 现有 `rtx-ice` 是 no_std、无 alloc、固定数组：候选表 `[Option<Candidate>; MAX_ICE_CANDIDATES]` × 2（`crates/rtx-ice/src/checklist.rs:942`），pair 表 `[Option<CandidatePair>; MAX_ICE_PAIRS]` + `[u16; MAX_ICE_PAIRS]`（`:985-986`），事件队列 `[Option<Event>; MAX_EVENTS]`（`:1158`），事件内消息缓冲 `MAX_STUN_MESSAGE_SIZE = 64`（`:49`）。
 - TURN 客户端要新增：每个分配的 relayed 地址/生命周期/刷新 deadline、realm 与 nonce（RFC 5389 §15.7 / §15.8 规定两者均小于 128 字符）、长期凭证密钥、权限表（按 peer IP，RFC 5766 §8 权限寿命 5 分钟）、通道绑定表（通道号 0x4000–0x7FFF，RFC 5766 §11 寿命 10 分钟）、事务状态。Send/Data indication 与 ChannelData 要携带媒体，64 字节的事件缓冲不够，需要 MTU 级静态缓冲或新的借用式事件形状。这些都要在 no_std 下用固定数组定界，等于给 Tier B 增加一份新的静态预算，M4 需要重新定界。
-- 定时器模型冲突：R4-1 明确“at most one transaction is outstanding, which keeps the Tier B timer state to one deadline”（`lib.rs:120-122`）。TURN 分配刷新（RFC 5766 §5 默认分配寿命 600 秒，§7.2 规定 Refresh 处理）与事务重传是另一套 deadline；若并入 `Checklist`，会破坏单 deadline 模型；若独立成机器，运行时必须同时驱动两个 sans-IO 机器。
+- 定时器模型冲突：R4-1 明确“at most one transaction is outstanding, which keeps the Tier B timer state to one deadline”（`lib.rs:124-125`）。TURN 分配刷新（RFC 5766 §5 默认分配寿命 600 秒，§7.2 规定 Refresh 处理）与事务重传是另一套 deadline；若并入 `Checklist`，会破坏单 deadline 模型；若独立成机器，运行时必须同时驱动两个 sans-IO 机器。
 
 **对 `rtx-ice` API 的影响**：
 
@@ -155,7 +155,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 |---|---|---|---|
 | `start` 前分配失败 | 没有 relayed 地址 | 无影响 | 不加入 relay 候选；只加 host/srflx |
 | `start` 后分配过期 | 发往/来自 relayed 地址的检查无响应 | 该 pair 按 7 次重传后 `Failed`；其他 pair 继续；全部失败 → `ChecklistFailed` | 停止刷新；按会话失败处理 |
-| 已提名的 relay pair 失效 | 无响应 / consent 超时 | 提名不变；`is_consent_stale` 在超时后返回 true（`lib.rs:143-150`） | 停媒体，走信令重协商/新 ICE 会话；不要原地换候选 |
+| 已提名的 relay pair 失效 | 无响应 / consent 超时 | 提名不变；`is_consent_stale` 在超时后返回 true（`lib.rs:149-153`） | 停媒体，走信令重协商/新 ICE 会话；不要原地换候选 |
 | 表满 | `CandidateTableFull` / `PairTableFull` | 拒绝、不驱逐 | 预分配候选预算；relay 占用 16/64 名额中的一部分 |
 
 **footprint**：树内零新增生产代码、零新增状态、零新增定时器；只增加本文档。relay 候选仍占用既有 `MAX_ICE_CANDIDATES` / `MAX_ICE_PAIRS` 名额。TURN 客户端的内存由调用方承担。
@@ -190,7 +190,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 
 **需要新增的后续单**：无。将来出现真实部署证据时，需要重新开一个决策单，不能在 C 之上直接派实现单。
 
-**相对 B 的缺点**：C 与 B 的树内成本相同（都是零代码），但 C 让 R4-1 预留的 relay 类型变成无契约的死值（`candidate.rs:95-99`、`lib.rs:189-194` 的存在目的落空），且对有 relay 需求的调用方只给出“不支持”，没有可用路径。B 在同一成本下给出了可执行的契约。
+**相对 B 的缺点**：C 与 B 的树内成本相同（都是零代码），但 C 让 R4-1 预留的 relay 类型变成无契约的死值（`candidate.rs:95-99`、`lib.rs:193-206` 的存在目的落空），且对有 relay 需求的调用方只给出“不支持”，没有可用路径。B 在同一成本下给出了可执行的契约。
 
 ### 汇总比较
 
@@ -214,8 +214,8 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 理由：
 
 1. **需求证据不支持 A。** 第 1 节已核实：没有已合入门禁强制 TURN，也没有已登记的公网 P2P 部署目标；唯一与浏览器相关的 P6 互通走 WebTransport，不依赖 ICE/relay。选项 A 的收益（树内自带 TURN 客户端）没有对应的需求证据，违反计划“不要默认做全”。
-2. **A 的依赖链尚未就绪。** A 必须先解决一个尚未决策的认证故事（`USERNAME`/`MESSAGE-INTEGRITY`、长期凭证 MD5、realm/nonce），而 R4-1 明确不声称 authenticated ICE agent（`lib.rs:51-54`），`rtx-stun` 也没有长期凭证构造函数。在认证故事缺位时开工 A 会违反 PIPELINE.md §5“没有设计结论就不派实现单”。
-3. **A 的 footprint 与定时器成本是真实的。** 新增分配/权限/通道状态与 MTU 级缓冲；若并入 `Checklist` 会破坏“单事务 / 单 deadline”模型（`lib.rs:120-122`）；若独立成 crate，P6 仍要解复用并驱动两个机器。A 的“API 零影响”也不是无条件成立——中途更换 relay 候选需要新 API。
+2. **A 的依赖链尚未就绪。** A 必须先解决一个尚未决策的认证故事（`USERNAME`/`MESSAGE-INTEGRITY`、长期凭证 MD5、realm/nonce），而 R4-1 明确不声称 authenticated ICE agent（`lib.rs:55-58`），`rtx-stun` 也没有长期凭证构造函数。在认证故事缺位时开工 A 会违反 PIPELINE.md §5“没有设计结论就不派实现单”。
+3. **A 的 footprint 与定时器成本是真实的。** 新增分配/权限/通道状态与 MTU 级缓冲；若并入 `Checklist` 会破坏“单事务 / 单 deadline”模型（`lib.rs:124-125`）；若独立成 crate，P6 仍要解复用并驱动两个机器。A 的“API 零影响”也不是无条件成立——中途更换 relay 候选需要新 API。
 4. **B 在零成本下给出完整契约。** relay 类型、base 字段、有界表、配对/检查/提名都已存在；本决策只钉住 base = relayed 地址、调用方职责与失败语义。C 与 B 的树内成本相同，却把 R4-1 预留的 relay 类型变成无契约的死值，并让有 relay 需求的调用方得不到明确行为；B 严格优于 C。
 5. **B 不掩盖认证缺口。** 树内仍不认证 ICE 检查，TURN 的长期凭证认证由调用方负责；本文不声称任何 TURN 功能已实现。
 
@@ -235,7 +235,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 
 - `crates/rtx-ice/src/lib.rs:6-8` 定义该 crate 不持有 socket、不读时钟、不分配、不阻塞；收集需要接口枚举、socket 绑定、STUN 事务与重传定时器（RFC 8445 §5.1.1.2 的 Ta 规则），这些都不属于该 crate 的模型。
 - 收集天然平台相关：`docs/m3-m4-gates.md:43` 把 `rtx-linux`、`rtx-embassy`、`rtx-smoltcp` 列为规划中的平台 crate；把接口枚举塞进 `rtx-ice` 会让 no_std 核心绑定平台细节。
-- 归调用方可以保持 R4-1 的边界：“tables filled by the caller”（`lib.rs:189-194`），树内只通过填表 API 接收候选。
+- 归调用方可以保持 R4-1 的边界：“tables filled by the caller”（`lib.rs:193-206`），树内只通过填表 API 接收候选。
 
 ### 4.1 host 候选
 
@@ -270,7 +270,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 | 分配失败后的撤表/更换 | **不支持** | API 无 remove；只能 start 前预置，或会话级重建 |
 | ICE 检查的 `USERNAME` / `MESSAGE-INTEGRITY` | 无人（R4-1 明确缺口） | 本决策不改变 |
 
-与 `crates/rtx-ice/src/lib.rs:175-187` 的责任表不矛盾：该表已把“获取本地/远端候选（socket、STUN、TURN、信令）”的 owner 写成“caller”（`lib.rs:179`）。本决策把该行后半句 “R4-2 adds gathering” 解析为“R4-2 定义收集契约，执行归调用方”，而不是“R4-2 在树内实现收集”。该行措辞与 `lib.rs:189-194` 已过时，其更新由第 6 节的 `R4-2-F1` 单处理；本单按验收不改 `lib.rs`。
+与 `crates/rtx-ice/src/lib.rs:179-191` 的责任表不矛盾：该表已把“获取本地/远端候选（socket、STUN、TURN、信令）”的 owner 写成“caller”（`lib.rs:183`）。本决策把该行的收集归属解析为“R4-2 定义收集契约，执行归调用方”，而不是“R4-2 在树内实现收集”。该行措辞已由第 6 节的 `R4-2-F1` 单按本决策更新（`lib.rs:183` 与 `lib.rs:193-206`）；本单按验收不改 `lib.rs`。
 
 ---
 
@@ -278,10 +278,10 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 
 逐条核对 f6d0cc5，本决策不改变以下任何一项：
 
-1. **relay 类型偏好 0 不变。** `CandidateType::type_preference` 中 `Relay => 0`（`crates/rtx-ice/src/candidate.rs:109-116`），与 RFC 8445 §5.1.2.2 及 `lib.rs:71-73` 一致；本决策不引入新的 type preference，也不改优先级公式。
-2. **pair 优先级公式不变。** `pair_priority` 仍是 RFC 8445 §6.1.2.3 的 `2^32 * MIN + 2 * MAX + (G > D)`（`crates/rtx-ice/src/pair.rs:100-109`；`lib.rs:85-93`）。relay 候选只通过自己的 priority 字段参与，公式不变。
-3. **`MAX_ICE_CANDIDATES` / `MAX_ICE_PAIRS` 不变。** 仍是每侧 16 个候选、64 个 pair（`crates/rtx-ice/src/checklist.rs:28`、`:39`；`lib.rs:99-100`）；relay 候选照常占用名额，本决策不扩容、不驱逐。
-4. **常规提名、重传、consent 语义不变。** 常规提名仍是 controlling 侧对 `Succeeded` pair 发 `USE-CANDIDATE`，controlled 侧只接受 `Succeeded` pair（`lib.rs:137-141`）；`INITIAL_RTO = 500 ms`、`MAX_RTO = 8 s`、`MAX_RETRANSMISSIONS = 7` 不变（`checklist.rs:59`、`:69`、`:78`；`lib.rs:125-131`）；consent 时间戳语义不变（`lib.rs:143-150`；`Checklist::is_consent_stale`）。relay 路径只复用这些机制，不新增提名规则或定时器。
+1. **relay 类型偏好 0 不变。** `CandidateType::type_preference` 中 `Relay => 0`（`crates/rtx-ice/src/candidate.rs:109-116`），与 RFC 8445 §5.1.2.2 及 `lib.rs:75-77` 一致；本决策不引入新的 type preference，也不改优先级公式。
+2. **pair 优先级公式不变。** `pair_priority` 仍是 RFC 8445 §6.1.2.3 的 `2^32 * MIN + 2 * MAX + (G > D)`（`crates/rtx-ice/src/pair.rs:100-109`；`lib.rs:89-93`）。relay 候选只通过自己的 priority 字段参与，公式不变。
+3. **`MAX_ICE_CANDIDATES` / `MAX_ICE_PAIRS` 不变。** 仍是每侧 16 个候选、64 个 pair（`crates/rtx-ice/src/checklist.rs:28`、`:39`；`lib.rs:103-104`）；relay 候选照常占用名额，本决策不扩容、不驱逐。
+4. **常规提名、重传、consent 语义不变。** 常规提名仍是 controlling 侧对 `Succeeded` pair 发 `USE-CANDIDATE`，controlled 侧只接受 `Succeeded` pair（`lib.rs:141-145`）；`INITIAL_RTO = 500 ms`、`MAX_RTO = 8 s`、`MAX_RETRANSMISSIONS = 7` 不变（`checklist.rs:59`、`:69`、`:78`；`lib.rs:129-135`）；consent 时间戳语义不变（`lib.rs:149-153`；`Checklist::is_consent_stale`）。relay 路径只复用这些机制，不新增提名规则或定时器。
 5. **`Candidate::new` 的 base 规则不变。** 代码仍只强制“非 host 必须有 base”（Relay 缺 base 返回 `IceError::MissingBaseAddress`，`candidate.rs:178-181`）；本单不修改该校验，只钉住取值语义：Relay 的 base 必须等于 relayed 传输地址（即与 `address` 相同），依据 RFC 8445 定义节（base for relayed = the relayed candidate）与 §5.1.1.2。
 6. **API、事件与其它常量不变。** 不新增 `Event` / `Input` 变体；`MAX_EVENTS = 8`、`MAX_STUN_MESSAGE_SIZE = 64`、no_std / 无 alloc 均不变（`checklist.rs:42`、`:49`；`lib.rs:1`）；`add_local_candidate` / `add_remote_candidate` 的签名与错误契约不变；本单 PR 不触碰 `crates/**`。
 
@@ -293,7 +293,7 @@ Candidate::new(Relay, COMPONENT_RTP, Transport::Udp,
 
 | 单号（暂定） | 类型 | 内容 | 前置条件 |
 |---|---|---|---|
-| `R4-2-F1` | 文档措辞（只改 `rtx-ice` doc comment） | 把 `lib.rs:189-194` “Split with R4-2” 与责任表 `lib.rs:179` 的 “R4-2 adds gathering” 收敛到本决策的落点（调用方执行、树内无收集/TURN）；不改 API、不改行为 | 本 PR merged |
+| `R4-2-F1` | 文档措辞（只改 `rtx-ice` doc comment） | 把 `lib.rs:193-206` 的 “Gathering and TURN (R4-2 decision)” 段与责任表 `lib.rs:183` 的收集契约行收敛到本决策的落点（调用方执行、树内无收集/TURN）；不改 API、不改行为 | 本 PR merged |
 | `R4-2-F2` | 测试单（test-only） | relay 透传一致性测试：构造 `address = base = relayed` 的本地/远端候选 → 入表 → 配对 → 检查/提名；断言无需新 API；不实现 TURN | 本 PR merged |
 | `R4-2-F3` | 文档/示例单 | 调用方 relay 供给指南：外部 TURN 分配、base 填法、`SendCheck` 封装、Data indication 解封装、刷新失败与会话失败处理；示例可落在平台 crate 或 testkit，但树内不新增 TURN 客户端 | 本 PR merged；可与 F1 并行 |
 | `R4-2-F4`（条件触发，未排期） | 决策/实现评估 | 完整 TURN 客户端评估，仅在出现真实部署证据时立项（门禁新增 TURN 必做项，或归档的部署报告）；若立项，先拆 `AUTH-1`，再 `A1/A2/A3` | `AUTH-1`（认证/凭证故事决策单，暂定名）先 merged；部署证据先入档 |
