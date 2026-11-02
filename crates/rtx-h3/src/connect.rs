@@ -86,7 +86,9 @@ impl<'a> ConnectBuffers<'a> {
 ///
 /// `:method` is always `CONNECT` and is therefore not stored; `protocol` is
 /// the extended CONNECT protocol identifier (`webtransport` for a WebTransport
-/// session).
+/// session). This crate does not validate the `:protocol` value: `RFC 8441`
+/// section 4 takes its values from the HTTP Upgrade Token registry, and
+/// whether a token is acceptable is server policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ConnectRequest<'a> {
     scheme: &'a str,

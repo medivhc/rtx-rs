@@ -34,7 +34,7 @@
 //! | SETTINGS payload | the borrowed frame payload ([`settings::Settings::decode`]); at most [`settings::MAX_SETTINGS_ITEMS`] identifier/value pairs | [`settings::SettingError::TooManySettings`], or [`settings::SettingError::Wire`] when a varint is truncated |
 //! | QPACK field lines per section | [`qpack::MAX_FIELD_LINES`] (64) | [`qpack::QpackError::TooManyFieldLines`] |
 //! | QPACK decoded strings | caller-supplied scratch slice passed to [`qpack::FieldSection::next_field`]; a declared or decoded string longer than the scratch is rejected | [`qpack::QpackError::ScratchTooSmall`] |
-//! | Extended CONNECT field line | decode scratch of [`connect::MAX_FIELD_LINE_LEN`] (1024) bytes; retained pseudo-header values are copied once into the caller-supplied [`connect::ConnectBuffers`] | [`connect::ConnectError::FieldTooLong`] |
+//! | Extended CONNECT field line | decode scratch of [`connect::MAX_FIELD_LINE_LEN`] (1024) bytes; retained pseudo-header values are copied once into the caller-supplied [`connect::ConnectBuffers`] | [`connect::ConnectError::Qpack`] carrying [`qpack::QpackError::ScratchTooSmall`] when the decoded line exceeds the scratch, or [`connect::ConnectError::FieldTooLong`] when a retained value does not fit its caller buffer |
 //!
 //! Nothing grows without a bound: every decoder borrows its input, every
 //! encoder writes into a caller-owned slice, the QPACK string storage is
