@@ -132,7 +132,7 @@
 |---|---|---|---|---|
 | `GAP-M3-B3-01` | 非阻塞（条件适用） | `OPEN` | `docs/m3-m4-gates.md:457`；`interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39/report.md` 状态表 B3 行 | Firefox 互通未判定：未找到可用 Firefox 二进制，B3 记 `NOT DETERMINED`，待有二进制后重测 |
 
-附注（并行未关闭项，只列存在，不在本单处理、未关闭）：PR #2（`test/fuzz-regression-corpus`，OPEN，CI `build / lint (stable)` 失败）；CI-C1（`.github/workflows/ci.yml:212–218`，fuzz job 的 `uses` + `run` 非法 step）；P8 评审非阻塞 N-1…N-8 跟进项；RV-PR15/16/18/23-NB 跟进项。§3 登记的 `GAP-M3-E-01` 是示例缺口，不在本表混列，也不改变本单 FAIL 结论。
+附注（并行未关闭项，只列存在，不在本单处理、未关闭）：PR #2（`test/fuzz-regression-corpus`，OPEN，CI `build / lint (stable)` 失败）；P8 评审非阻塞 N-1…N-8 跟进项；RV-PR15/16/18/23-NB 跟进项。§3 登记的 `GAP-M3-E-01` 是示例缺口，不在本表混列，也不改变本单 FAIL 结论。
 
 ---
 
