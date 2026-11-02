@@ -1,0 +1,4 @@
+1301394 QUIC_SESSION_WEBTRANSPORT_CLIENT_ALIVE {"network_anonymization_key": "https://127.0.0.1 same_site", "url": "https://127.0.0.1:4433/session"}
+1301394 QUIC_SESSION_WEBTRANSPORT_CLIENT_STATE_CHANGED {"last_state": "NEW", "next_state": "CONNECTING"}
+1301417 QUIC_SESSION_WEBTRANSPORT_SESSION_READY {"http_datagram_version": "Rfc", "webtransport_http3_version": "draft-02"}
+1301418 QUIC_SESSION_WEBTRANSPORT_CLIENT_STATE_CHANGED {"last_state": "CONNECTING", "next_state": "CONNECTED"}

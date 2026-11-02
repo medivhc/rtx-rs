@@ -80,10 +80,10 @@ matrix_table() {
   }' "$EVID/hashes.txt"
 }
 
-# The first five server_setting lines are the first connection's SETTINGS; the
+# The first six server_setting lines are the first connection's SETTINGS; the
 # payload is identical for every connection.
 settings_table() {
-  grep 'event=server_setting ' "$EVID/server.log" | head -n5 | sed -E \
+  grep 'event=server_setting ' "$EVID/server.log" | head -n6 | sed -E \
     's/.*id=(0x[0-9a-f]+) value=([0-9]+).*/\1\t\2/' | while IFS=$'\t' read -r id value; do
       case "$id" in
         0x1) name="QPACK_MAX_TABLE_CAPACITY" ;;
@@ -91,6 +91,7 @@ settings_table() {
         0x8) name="ENABLE_CONNECT_PROTOCOL" ;;
         0x33) name="H3_DATAGRAM" ;;
         0xc671706a) name="WEBTRANSPORT_MAX_SESSIONS" ;;
+        0x2b603742) name="ENABLE_WEBTRANSPORT (deprecated, Chrome-compat)" ;;
         *) name="UNEXPECTED" ;;
       esac
       printf '| `%s` | %s | `%s` |\n' "$id" "$value" "$name"
@@ -128,19 +129,23 @@ here, and loopback success must not be written up as a Chrome/M3-B pass.
 
 ## Server SETTINGS actually emitted
 
-\`rtx-h3\`'s encoder drops deprecated and unknown pairs, so the payload contains
-exactly these five items (the R6-2c reference server's six-item payload
-includes deprecated pairs that this codec refuses to emit by design):
+\`rtx-h3\`'s encoder drops deprecated and unknown pairs, so the base payload
+contains exactly these five items. The harness then appends the Chrome-compat
+legacy \`0x2b603742=1\` pair after \`Settings::encode\` (Chrome 155/156
+interoperability; not a draft-15 requirement), giving the six pairs below
+(the R6-2c reference server's six-item payload also includes \`0xffd277\` /
+\`0x2b603743\`, which this codec refuses to emit by design):
 
 | id | value | name |
 |---|---|---|
 $(settings_table)
 
 \`0x2c7cf000\` (\`SETTINGS_WT_ENABLED\` in \`draft-ietf-webtrans-http3-15\`
-section 9.2) is **not** sent. N4 ruling: Chrome 156 negotiates the deprecated
-\`0x2b603742\` signal, so emitting a codepoint no observed peer negotiates
-would be an unverified behaviour. The \`0xc671706a = 100\` value is a harness
-capacity choice for sequential + concurrent loopback sessions, not a protocol
+section 9.2) is **not** sent. N4 ruling: Chrome negotiates the deprecated
+\`0x2b603742\` signal, so that legacy pair is the only Chrome-compat addition;
+emitting \`0x2c7cf000\` without an observed peer negotiating it would be an
+unverified behaviour. The \`0xc671706a = 100\` value is a harness capacity
+choice for sequential + concurrent loopback sessions, not a protocol
 requirement.
 
 ## DATAGRAM budget

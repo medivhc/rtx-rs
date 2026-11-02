@@ -93,7 +93,9 @@ rtx-wt-server --bind 127.0.0.1:0 \
 grep -R "thread::sleep" interop/m3/rtx-server/src   # 无匹配
 ```
 
-## 服务端 SETTINGS（钉死 5 项）
+## 服务端 SETTINGS（5 项基底 + 1 项 Chrome 兼容 legacy 对）
+
+基底 5 项（未变）：
 
 | id | 值 | 名称 |
 |---|---|---|
@@ -103,11 +105,30 @@ grep -R "thread::sleep" interop/m3/rtx-server/src   # 无匹配
 | `0x33` | 1 | `H3_DATAGRAM` |
 | `0xc671706a` | 100 | `WEBTRANSPORT_MAX_SESSIONS`（harness 容量选择，不是协议要求） |
 
-`rtx-h3` 的 `Settings::encode` 按设计丢弃已弃用对与 GREASE 对，所以只能发出
-这 5 项；R6-2c 参考服务端的 6 项含已弃用 `0xffd277` / `0x2b603742` /
-`0x2b603743`，差额是编解码层设计的一致表现，不是缺陷。
+**Chrome 兼容 legacy 对（GAP-M3-B0-02 闭环，2026-11-02 裁决路径 1）**：
 
-**N4 裁决（本单实现）**：不发 `0x2c7cf000`（`draft-ietf-webtrans-http3-15`
+| id | 值 | 名称 |
+|---|---|---|
+| `0x2b603742` | 1 | `ENABLE_WEBTRANSPORT`（`draft-ietf-webtrans-http3-06` 旧标识，`rtx-h3` decode-only） |
+
+编码落点：`send_server_settings` 在 `Settings::encode` 之后把该 varint 对显式
+追加进 SETTINGS 帧 payload，并在 `event=server_settings_chrome_compat` 与完整
+payload 的 `event=server_settings_payload … hex=…` 日志中留证。**不能**只把它
+加进 `server_settings()` 的 items 列表：`Settings::set` 对 deprecated 返回
+`SettingError::NotEncodable`，`Settings::encode` 又跳过 deprecated 项，循环里
+的 `let _ = settings.set(...)` 会让它被静默丢弃，帧里根本不会出现。
+
+该对是 **Chrome 兼容目的**：Chrome for Testing 155 与 156 都走 legacy
+`0x2b603742` 协商，它不是 `draft-ietf-webtrans-http3-15` 的要求。裁决只授权
+`interop/m3/rtx-server` 为 Chrome 互通追加；`crates/rtx-h3` 的 `ENCODABLE`、
+`Settings::set` / `Settings::encode` 与 decode-only 口径均未改动。
+
+`rtx-h3` 的 `Settings::encode` 按设计丢弃已弃用对与 GREASE 对，所以基底 5 项
+之外不会自动出现别的项；R6-2c 参考服务端的 6 项含已弃用 `0xffd277` /
+`0x2b603742` / `0x2b603743`，本 harness 只补 Chrome 实际协商的
+`0x2b603742=1`，其余差额是编解码层设计的一致表现，不是缺陷。
+
+**N4 裁决（仍生效）**：不发 `0x2c7cf000`（`draft-ietf-webtrans-http3-15`
 §9.2 的 `SETTINGS_WT_ENABLED`）。Chrome 156 实际协商的是已弃用
 `0x2b603742`；在“观察到有 Chrome 版本协商 `0x2c7cf000`”之前，发一个对方不协商
 的 codepoint 属于未经验证的行为。评审与 R6-4 不得把这一项当成“draft-15
@@ -190,9 +211,12 @@ session, max_len=1100)`：
   `finish_stream`。新流带 `0x54` + session ID 头。
 - 每个会话建立后，harness **主动**开两条服务端流（R6-4 的 B2 可直接复用）：
   - 单向流：`0x54` + session ID + 1 MiB 确定性载荷（`0..255` 循环）；
-  - 双向流：`0x41` + session ID + 4096 字节载荷，随后 `reset_stream(code=7)`。
-    客户端必须观察到 reset；`RESET_STREAM` 可能丢弃排队数据，所以 reset 流上
-    的 session 头是**可选**的，服务端日志才是权威记录。
+  - 双向流：`0x41` + session ID + 4096 字节载荷，随后在
+    `SERVER_RESET_DELAY_MS = 500` ms 后 `reset_stream(code=7)`。延迟是为了让
+    WebTransport 流头先到达 Chrome 页面：诊断中 reset 先于流头到达时，Chrome
+    会把该服务端发起流整体丢弃（B2 server-reset 观察缺口）。客户端必须观察
+    到 reset；`RESET_STREAM` 可能丢弃排队数据，所以 reset 流上的 session 头是
+    **可选**的，服务端日志才是权威记录。
 
 确定性载荷：从 0 起的 `0..255` 循环，取前 N 字节；因此所有 SHA-256 重跑一致。
 
@@ -219,9 +243,9 @@ session, max_len=1100)`：
 
 `evidence/<date>-loopback/`：
 
-- `report.md`：commit、harness 版本、环境、服务端 SETTINGS 5 项、协商
-  `max_datagram_frame_size`、矩阵逐项（发送/接收/丢失/字节/SHA-256）、N4 裁决
-  复述、未做项。
+- `report.md`：commit、harness 版本、环境、服务端 SETTINGS 基底 5 项 +
+  Chrome 兼容 legacy `0x2b603742=1`、协商 `max_datagram_frame_size`、矩阵逐项
+  （发送/接收/丢失/字节/SHA-256）、N4 裁决复述、未做项。
 - `server.log`：本次运行的服务端结构化日志。
 - `hashes.txt`：矩阵的 TSV（`item, sends, receives, lost, bytes, sha256,
   detail`），重跑复现。
@@ -251,23 +275,46 @@ B0 在 extended CONNECT 之前失败。第二阶段按协调者裁决只改
   `DynamicTableNotSupported` 拒绝。放宽只改变对“对方容量声明”的解读，不改变
   我方编解码能力。
 - 其余分支不变：畸形 SETTINGS 仍记 `h3_settings_frame_rejected` 并关连接；
-  GREASE/已弃用项仍按原分类记录；服务端 SETTINGS 仍为 5 项、不发
-  `0x2c7cf000`；`server_settings_sent` 的发送时机不变。
+  GREASE/已弃用项仍按原分类记录；R6-4 放宽时服务端 SETTINGS 仍为 5 项、不发
+  `0x2c7cf000`（GAP-M3-B0-02 闭环单新增的 Chrome 兼容 legacy 对见下一节，不属
+  本次放宽）；`server_settings_sent` 的发送时机不变。
 
 **放宽不改变回环结论的依据**：回环客户端（`web-transport-proto`）本就不发
 `0x01`/`0x07`，`unwrap_or(0)` 在放宽前后都判 0 通过；放宽后只是新增一行
 `0/0` 的容量记录并继续。放宽后 `run-loopback.sh` 全过，回归日志归档在
 `interop/m3/chrome-rtx/<date>-chrome-<version>/loopback-regression/`；已合并的
-`evidence/2026-10-29-loopback/` 目录未改写。Chrome 阶段证据见
-`interop/m3/chrome-rtx/<date>-chrome-<version>/report.md`；该阶段 B0 仍被
-服务端缺少 legacy `ENABLE_WEBTRANSPORT`（`0x2b603742`）阻塞（Chrome
+`evidence/2026-10-29-loopback/` 目录未改写。R6-4 的 Chrome 阶段证据见
+`interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39/report.md`；R6-4 时 B0
+被服务端缺少 legacy `ENABLE_WEBTRANSPORT`（`0x2b603742`）阻塞（Chrome
 `net::ERR_METHOD_NOT_SUPPORTED`），隔离记录在
-`interop/m3/chrome-rtx/blocker-analysis.md`。补发该设置属于服务端 SETTINGS
-变更，本单未获授权，故按阻塞 GAP 上交协调者。
+`interop/m3/chrome-rtx/blocker-analysis.md`。补发该设置在 R6-4 时属于未授权的
+服务端 SETTINGS 变更，故当时按阻塞 GAP 上交协调者。
+
+## GAP-M3-B0-02 闭环：Chrome 兼容 legacy 对与 server-reset 延迟（2026-11-02）
+
+用户 2026-11-02 选择路径 1，协调者裁决允许本 harness 为 Chrome 兼容目的发送
+legacy `0x2b603742=1`，仅限 `interop/m3/rtx-server`，不改 `crates/rtx-h3` 的库
+行为。本 harness 的对应改动：
+
+- `send_server_settings` 在 `Settings::encode` 之后显式追加
+  `0x2b603742=1`（不是加进 `server_settings()` 列表，见上文编码落点）；
+- `0x2c7cf000` 仍不发，基底 5 项不变；
+- 服务端发起双向流的 `reset_stream(code=7)` 延迟
+  `SERVER_RESET_DELAY_MS = 500` ms，让 WebTransport 流头先到达 Chrome 页面；
+- 日志新增 `event=server_settings_payload … hex=…`、完整 6 对
+  `event=server_setting`（含 `class=deprecated source=chrome_compat_after_encode`）
+  与 `reset_delay_ms`，供证据报告逐字节核对。
+
+新证据：`interop/m3/chrome-rtx/2026-11-02-chrome-155.0.8059.39/report.md`
+（Chrome for Testing 155.0.8059.39）。该报告只记录 B0/B1/B2 实测与
+server-reset 观察，不声明“M3 通过”或“GAP 已关闭”；GAP 状态只由里程碑验收
+PR / 协调者修改。
 
 ## 明确不做
 
-Chrome 实测（R6-4）、B4 `quinn` 参考互通记录（本单的 `quinn` 只是回环客户端）、
-B3 Firefox 判定、基准（P7）、嵌入式移植（P8）、完整 HTTP/3（QPACK 动态表、
-服务端推送、完整 Huffman 编码器）、0-RTT、连接迁移、多会话默认能力、改 CI、
-改任何既有 crate/文档/`interop/m3/chrome/`。
+B3 Firefox 判定、B4 `quinn` 参考互通记录（本 harness 的 `quinn` 只是回环客户
+端）、基准（P7）、嵌入式移植（P8）、完整 HTTP/3（QPACK 动态表、服务端推送、
+完整 Huffman 编码器）、0-RTT、连接迁移、多会话默认能力、改 CI、改任何既有
+crate/文档/`interop/m3/chrome/`。Chrome 实测只由 GAP-M3-B0-02 闭环单按裁决在
+`interop/m3/chrome-rtx/2026-11-02-chrome-155.0.8059.39/` 新目录重跑 B0/B1/B2，
+不改写 R6-4 既有证据目录。

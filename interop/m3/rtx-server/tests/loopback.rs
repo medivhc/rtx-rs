@@ -591,6 +591,7 @@ async fn m3_b_loopback_matrix() {
         "id=0x8 value=1",
         "id=0x33 value=1",
         "id=0xc671706a value=100",
+        "id=0x2b603742 value=1 class=deprecated source=chrome_compat_after_encode",
     ] {
         assert!(log.contains(item), "missing server SETTINGS line {item:?}");
     }
@@ -888,12 +889,23 @@ async fn open_h3(
     let max_sessions = server_settings
         .get(&Setting::WEBTRANSPORT_MAX_SESSIONS)
         .map(|value| value.into_inner());
+    // Chrome-compat legacy pair, appended after `Settings::encode`. The
+    // independent web-transport-proto reader must see it on the wire; adding it
+    // to the `Settings` list alone would be dropped by `rtx-h3`.
+    let webtransport_enable = server_settings
+        .get(&Setting::WEBTRANSPORT_ENABLE_DEPRECATED)
+        .map(|value| value.into_inner());
 
     assert_eq!(qpack_capacity, Some(0), "QPACK dynamic table disabled");
     assert_eq!(qpack_blocked, Some(0), "QPACK blocked streams disabled");
     assert_eq!(connect_protocol, Some(1), "extended CONNECT enabled");
     assert_eq!(datagram, Some(1), "H3 DATAGRAM enabled");
     assert_eq!(max_sessions, Some(100), "WEBTRANSPORT_MAX_SESSIONS value");
+    assert_eq!(
+        webtransport_enable,
+        Some(1),
+        "Chrome-compat legacy ENABLE_WEBTRANSPORT must be decoded from the wire"
+    );
     assert!(
         server_settings
             .get(&Setting(VarInt::from_u32(0x2C7C_F000)))
