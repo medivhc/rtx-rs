@@ -36,7 +36,7 @@
 | P4（R4 ICE / relay） | #15 | `6e4bcd9` | `rtx-ice` 文档措辞收敛到 R4-2 决策（R4-2-F1） |
 | P4（R4 ICE / relay） | #16 | `4bce6f1` | relay 透传一致性测试（R4-2-F2，test-only） |
 | P4（R4 ICE / relay） | #17 | `7647f4f` | 新增 `docs/ice-relay-caller-guide.md`（R4-2-F3，docs-only） |
-| P4（R4 ICE / relay） | #18 | `581f326` | 调用方 relay 指南措辞修正（RV-PR17-NB，docs-only） |
+| P4（R4 ICE / relay） | #18 | `581f326` | 调用方 relay 指南措辞修正（RV-PR17-NB，docs-only）。注：PR #30 描述 NB-C 栏引用的 workspace 404 / std 865 / rtx-ice 35 三数所依基线为 7647f4f；同口径在 93c0030 上为 518 / 957 / 35，派单时基线 3dfc233 复测同为 518 / 957 / 35。 |
 | P5（SCTP 决策） | #19 | `4641cd5` | 新增 `docs/sctp-datachannel-decision.md`：M3 跳过 SCTP 实现的 interim 决策 |
 | P6（R6 QUIC / WebTransport） | #20 | `3983ed6` | 新增 `crates/rtx-quic`：`quinn-proto` 窄外观（M3-Q） |
 | P6（R6 QUIC / WebTransport） | #21 | `d9663e1` | 最小 H3/WebTransport 编解码层（M3-H1/H2/H6/H7/H8） |
