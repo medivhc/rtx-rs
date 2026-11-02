@@ -25,9 +25,11 @@ const LOCAL_RELAYED: SocketAddr = SocketAddr::new(IpAddr::V4([203, 0, 113, 9]), 
 /// Remote relayed transport address: `address` and `base` of the remote relay
 /// candidate.
 const REMOTE_RELAYED: SocketAddr = SocketAddr::new(IpAddr::V4([198, 51, 100, 7]), 4_000);
-/// A local TURN control socket address. No candidate ever carries it as
-/// `base`; it only serves as the negative-control destination for the
-/// response-matching assertion in §2.B point 3.
+/// A local TURN control socket address. No candidate in this file carries it
+/// as an accepted `base`: in test 3 it is only the placeholder address of the
+/// candidates that `add_*` rejects after `start`. In test 2 it serves as the
+/// negative-control destination for the response-matching assertion in §2.B
+/// point 3.
 const LOCAL_TURN_SOCKET: SocketAddr = SocketAddr::new(IpAddr::V4([10, 0, 0, 1]), 5_000);
 const T0: Timestamp = Timestamp::from_micros(1_000_000);
 const ONE_MICRO: rtx_core::Duration = rtx_core::Duration::from_micros(1);
@@ -144,6 +146,9 @@ fn relay_check_event_source_is_relayed_address() {
     let check = sends(&drain(&mut checklist)).remove(0);
     let pair = checklist.pair(0).expect("relay-relay pair");
     assert_eq!(check.source(), Some(LOCAL_RELAYED));
+    // Documents the §2.B argument 2 mapping (`SendCheck.source` is
+    // `pair.local().base()`); it is not an independent discriminator — the
+    // literal assertion above and the negative control below carry that role.
     assert_eq!(check.source(), Some(pair.local().base()));
     assert_eq!(check.destination(), Some(REMOTE_RELAYED));
     assert_eq!(check.nominated(), Some(false));
