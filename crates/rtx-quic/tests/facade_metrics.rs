@@ -129,7 +129,15 @@ fn m3_q8_metrics_reflect_loss_and_rtt() {
         "several later packets are needed for loss detection, got {packets}"
     );
 
-    harness.pump();
+    // Write the extra ack-eliciting byte before the ACKs for the batch above
+    // are pumped back. A zero-delay `pump()` here would acknowledge packets at
+    // the same simulated instant they were sent, which legitimately records
+    // `latest_rtt_micros == Some(0)`; a later positive sample would then
+    // depend on quinn-proto immediately acknowledging the lone extra packet,
+    // which its `max_ack_delay` policy does not guarantee (and this harness
+    // never fires timers). `pump_latency` delivers the batch ACK one one-way
+    // delay after the sends, so every client RTT sample recorded before the
+    // assertion is positive (RV-PR36-NBB).
     harness.clients[index]
         .endpoint
         .write_stream(client_connection, stream, b"x")
