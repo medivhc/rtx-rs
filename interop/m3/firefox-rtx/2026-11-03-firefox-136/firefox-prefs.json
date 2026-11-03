@@ -1,0 +1,136 @@
+{
+  "session_id": "818a4d45-887c-4fa5-ba91-fed0bfd2e3b5",
+  "capabilities": {
+    "acceptInsecureCerts": false,
+    "browserName": "firefox",
+    "browserVersion": "136.0",
+    "platformName": "linux",
+    "unhandledPromptBehavior": "dismiss and notify",
+    "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0",
+    "moz:buildID": "20250227124745",
+    "moz:headless": true,
+    "moz:platformVersion": "5.15.0-139-generic",
+    "moz:processID": 1172846,
+    "moz:profile": "/tmp/tmp.sbmz6nv4Kq/firefox-profile",
+    "moz:shutdownTimeout": 60000,
+    "pageLoadStrategy": "normal",
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "moz:accessibilityChecks": false,
+    "moz:webdriverClick": true,
+    "moz:windowless": false,
+    "proxy": {}
+  },
+  "pref_probe_chrome_context": {
+    "requested": {
+      "dom.webtransport.enabled": "MISSING",
+      "network.http.http3.enable": true,
+      "network.webtransport.enabled": true,
+      "network.webtransport.datagrams.enabled": true
+    },
+    "pref_children": {
+      "dom.webtransport": [],
+      "network.webtransport": [
+        "network.webtransport.datagram_size",
+        "network.webtransport.datagrams.enabled",
+        "network.webtransport.enabled",
+        "network.webtransport.redirect.enabled"
+      ],
+      "network.http.http3": [
+        "network.http.http3.alt-svc-mapping-for-testing",
+        "network.http.http3.backup_timer_delay",
+        "network.http.http3.block_loopback_ipv6_addr",
+        "network.http.http3.cc_algorithm",
+        "network.http.http3.default-max-stream-blocked",
+        "network.http.http3.default-qpack-table-size",
+        "network.http.http3.disable_when_third_party_roots_found",
+        "network.http.http3.ecn",
+        "network.http.http3.enable",
+        "network.http.http3.enable_0rtt",
+        "network.http.http3.enable_kyber",
+        "network.http.http3.enable_qlog",
+        "network.http.http3.force-use-alt-svc-mapping-for-testing",
+        "network.http.http3.has_third_party_roots_found_in_automation",
+        "network.http.http3.max_accumlated_time_ms",
+        "network.http.http3.max_data",
+        "network.http.http3.max_stream_data",
+        "network.http.http3.parallel_fallback_conn_limit",
+        "network.http.http3.priority",
+        "network.http.http3.recvBufferSize",
+        "network.http.http3.retry_different_ip_family",
+        "network.http.http3.send_background_tabs_deprioritization",
+        "network.http.http3.support_version1",
+        "network.http.http3.use_nspr_for_io",
+        "network.http.http3.version_negotiation.enabled"
+      ]
+    },
+    "child_values": {
+      "network.webtransport.datagram_size": 1200,
+      "network.webtransport.datagrams.enabled": true,
+      "network.webtransport.enabled": true,
+      "network.webtransport.redirect.enabled": false
+    },
+    "api_in_chrome_context": {
+      "WebTransport": "function",
+      "WebTransportDatagramDuplexStream": "function",
+      "WebTransportError": "function"
+    }
+  },
+  "content_probe": {
+    "href": "https://127.0.0.1:32879/index.html?port=33539&phase=relaxed&browser=firefox&certhash=7emcnlNoKChni4LnX54N3mBRqlFNXvHBDBZcvezpp6M",
+    "title": "rtx-rs M3-B3 Firefox WebTransport interop (B0/B1/B2 matrix)",
+    "isSecureContext": true,
+    "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0",
+    "WebTransport": "function",
+    "WebTransportDatagramDuplexStream": "function",
+    "WebTransportError": "function",
+    "WebTransport_prototype": [
+      "getStats",
+      "close",
+      "createBidirectionalStream",
+      "createUnidirectionalStream",
+      "ready",
+      "reliability",
+      "congestionControl",
+      "closed",
+      "datagrams",
+      "incomingBidirectionalStreams",
+      "incomingUnidirectionalStreams",
+      "constructor"
+    ],
+    "datagram_stream_prototype": [
+      "readable",
+      "writable",
+      "maxDatagramSize",
+      "incomingMaxAge",
+      "outgoingMaxAge",
+      "incomingHighWaterMark",
+      "outgoingHighWaterMark",
+      "constructor"
+    ],
+    "WebTransportError_prototype": [
+      "source",
+      "streamErrorCode",
+      "constructor"
+    ]
+  },
+  "result_wait": {
+    "reason": "posted",
+    "timeout_s": 120,
+    "elapsed_s": 1.8
+  },
+  "progress": [
+    {
+      "href": "https://127.0.0.1:32879/index.html?port=33539&phase=relaxed&browser=firefox&certhash=7emcnlNoKChni4LnX54N3mBRqlFNXvHBDBZcvezpp6M",
+      "title": "rtx-rs M3-B3 Firefox WebTransport interop (B0/B1/B2 matrix)",
+      "finished": false,
+      "status_tail": "starting\nphase=relaxed url=https://127.0.0.1:33539/session\nB0 session established in 15 ms\nB1 params: {\"peer_max_datagram_frame_size\":1200,\"max_datagram_frame_size_advertised\":1100,\"datagrams_max_datagram_size_api\":1099}\nB1 negotiated tier: min(peer_max_datagram_frame_size=1200, max_datagram_frame_size_advertised=1100) - 32 (QUIC datagram accounting) - 1 (quarter stream ID) = 1067",
+      "t_s": 0.0
+    }
+  ]
+}
