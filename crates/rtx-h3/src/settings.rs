@@ -29,7 +29,7 @@
 //! # `0xc671706a` provenance note
 //!
 //! `0xc671706a` is the max-sessions setting that gate `M3-H3` requires. Its
-//! registered name and value first appear in `draft-ietf-webtrans-http3-07`
+//! identifier and name first appear in `draft-ietf-webtrans-http3-07`
 //! (section 8.2) and are used through `-12`; `-13`/`-14` renamed it to
 //! `SETTINGS_WT_MAX_SESSIONS`, and `-15` removed max-sessions altogether in
 //! favour of `SETTINGS_WT_ENABLED` (`0x2c7cf000`,
@@ -37,7 +37,7 @@
 //! of its section 5. The task brief attributes
 //! `0xc671706a` to `draft-15` section 5; the published `draft-15` text does
 //! **not** contain that identifier or a max-sessions setting, so this module
-//! documents the registration value against its actual drafts instead of
+//! documents the identifier value against its actual drafts instead of
 //! repeating a citation that the draft itself contradicts. The value itself
 //! is implemented as required.
 //!
@@ -90,9 +90,9 @@ pub const SETTINGS_H3_DATAGRAM_DEPRECATED: u64 = 0xFF_D277;
 
 /// Deprecated `ENABLE_WEBTRANSPORT` identifier that Chrome still sends.
 ///
-/// Registered as `ENABLE_WEBTRANSPORT` in `draft-ietf-webtrans-http3-06` and
-/// removed after that draft. It is accepted on decode only; see the module
-/// documentation.
+/// The `ENABLE_WEBTRANSPORT` identifier in `draft-ietf-webtrans-http3-06`
+/// (not listed in the IANA HTTP/3 Settings registry), removed after that
+/// draft. It is accepted on decode only; see the module documentation.
 pub const SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED: u64 = 0x2B60_3742;
 
 /// `WEBTRANSPORT_MAX_SESSIONS`: the max-sessions setting required by
