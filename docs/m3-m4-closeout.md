@@ -132,7 +132,7 @@
 |---|---|---|---|---|
 | `GAP-M3-B3-01` | 非阻塞（条件适用） | `OPEN` | `docs/m3-m4-gates.md:457`；`interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39/report.md` 状态表 B3 行 | Firefox 互通未判定：未找到可用 Firefox 二进制，B3 记 `NOT DETERMINED`，待有二进制后重测 |
 
-附注（并行跟进项状态，只列存在，不在本单处理）：PR #2（`test/fuzz-regression-corpus`）已关闭未合并（closed_at `2026-11-03T11:35:21Z`，头 `74640b8` 未变，分支已从远端删除；语料未进 `main`）；RV-PR15-NB（PR #31，`trae/rv-pr15-nb-wording`）已关闭未合并（closed_at `2026-11-03T11:35:22Z`，头 `406c6b7` 未变，分支已从远端删除；措辞改动未进 `main`，其独立评审 RV-PR31 至关闭时未回齐）；RV-PR16-NB 已由 PR #32 合并、RV-PR18-NB 已由 PR #30 合并、RV-PR23-NB 已由 PR #33 合并（提交 `74523e1`），但 RV-PR23 §7.1「每 draft 一 codepoint」版本协商仍未决；P8 评审非阻塞 N-1…N-8 跟进项（本句只列存在，本单不处理）。§3 登记的 `GAP-M3-E-01` 是示例缺口，不在本表混列；本附注只刷新并行项状态，不改变 §5 缺口表，也不改变 §6 FAIL 结论。
+附注（并行跟进项状态，只列存在，不在本单处理）：PR #2（`test/fuzz-regression-corpus`）已关闭未合并（closed_at `2026-11-03T11:35:21Z`，头 `74640b8` 未变，分支已从远端删除；语料未进 `main`）；RV-PR15-NB（PR #31，`trae/rv-pr15-nb-wording`）已关闭未合并（closed_at `2026-11-03T11:35:22Z`，头 `406c6b7` 未变，分支已从远端删除；措辞改动未进 `main`，其独立评审 RV-PR31 至关闭时未回齐）；RV-PR16-NB 已由 PR #32 合并、RV-PR18-NB 已由 PR #30 合并、RV-PR23-NB 已由 PR #33 合并（头 `74523e1`，合并提交 `3dfc233`），但 RV-PR23 §7.1「每 draft 一 codepoint」版本协商（见 PR #33 正文）仍未决；P8 评审非阻塞 N-1…N-8 跟进项（本句只列存在，本单不处理）。§3 登记的 `GAP-M3-E-01` 是示例缺口，不在本表混列；本附注只刷新并行项状态，不改变 §5 缺口表，也不改变 §6 FAIL 结论。
 
 ---
 
