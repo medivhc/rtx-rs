@@ -15,9 +15,9 @@
 //! | [`SETTINGS_QPACK_BLOCKED_STREAMS`] | `0x07` | `RFC 9204` section 5 |
 //! | [`SETTINGS_ENABLE_CONNECT_PROTOCOL`] | `0x08` | `RFC 9220` section 3 |
 //! | [`SETTINGS_H3_DATAGRAM`] | `0x33` | `RFC 9297` section 2.1.1 |
-//! | [`SETTINGS_H3_DATAGRAM_DEPRECATED`] | `0xffd277` | pre-RFC `H3_DATAGRAM` identifier (`draft-ietf-masque-h3-datagram-04` to `-08`, IANA registration); replaced by `0x33` in `RFC 9297`. Chrome still sends it: decode-only |
-//! | [`SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED`] | `0x2b603742` | `ENABLE_WEBTRANSPORT` in `draft-ietf-webtrans-http3-06` (IANA registration), removed after that draft. Chrome still sends it: decode-only |
-//! | [`SETTINGS_WEBTRANSPORT_MAX_SESSIONS`] | `0xc671706a` | `WEBTRANSPORT_MAX_SESSIONS`, IANA registration in `draft-ietf-webtrans-http3-07` (section 8.2) to `-12` |
+//! | [`SETTINGS_H3_DATAGRAM_DEPRECATED`] | `0xffd277` | pre-RFC `H3_DATAGRAM` identifier (`draft-ietf-masque-h3-datagram-04` to `-08`; not listed in the IANA HTTP/3 Settings registry); replaced by `0x33` in `RFC 9297`. Chrome still sends it: decode-only |
+//! | [`SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED`] | `0x2b603742` | `ENABLE_WEBTRANSPORT` in `draft-ietf-webtrans-http3-06` (not listed in the IANA HTTP/3 Settings registry), removed after that draft. Chrome still sends it: decode-only |
+//! | [`SETTINGS_WEBTRANSPORT_MAX_SESSIONS`] | `0xc671706a` | `WEBTRANSPORT_MAX_SESSIONS` in `draft-ietf-webtrans-http3-07` (section 8.2) to `-12`; not listed in the IANA HTTP/3 Settings registry |
 //!
 //! The deprecated identifiers are decoded (`Settings::deprecated_h3_datagram`
 //! and `Settings::deprecated_webtransport_enable` expose them), but
@@ -98,8 +98,9 @@ pub const SETTINGS_WEBTRANSPORT_ENABLE_DEPRECATED: u64 = 0x2B60_3742;
 /// `WEBTRANSPORT_MAX_SESSIONS`: the max-sessions setting required by
 /// `M3-H3`.
 ///
-/// The value is the IANA registration of
-/// `draft-ietf-webtrans-http3-07` (section 8.2) through `-12`. Later drafts
+/// The value is the identifier used in
+/// `draft-ietf-webtrans-http3-07` (section 8.2) through `-12`; it is not
+/// listed in the IANA HTTP/3 Settings registry. Later drafts
 /// renamed and then removed the setting; see the module documentation for the
 /// full provenance note.
 pub const SETTINGS_WEBTRANSPORT_MAX_SESSIONS: u64 = 0xC671_706A;
