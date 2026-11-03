@@ -137,7 +137,10 @@ fn m3_q8_metrics_reflect_loss_and_rtt() {
     // which its `max_ack_delay` policy does not guarantee (and this harness
     // never fires timers). `pump_latency` delivers the batch ACK one one-way
     // delay after the sends, so every client RTT sample recorded before the
-    // assertion is positive (RV-PR36-NBB).
+    // assertion is positive (RV-PR36-NBB). That same zero-delay confirmation
+    // would also leave a 0 sample that drives `min_rtt_micros` down to 0,
+    // whereas under `pump_latency` every sample is positive and the minimum
+    // stays positive.
     harness.clients[index]
         .endpoint
         .write_stream(client_connection, stream, b"x")
