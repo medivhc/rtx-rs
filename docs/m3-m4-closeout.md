@@ -114,7 +114,7 @@
 
 | 缺口 | 类型 | 状态 | 证据 | 影响 |
 |---|---|---|---|---|
-| `GAP-M3-B0-02` | 阻塞 | `OPEN` | `docs/m3-m4-gates.md:456`；`interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39/report.md` 与同目录 `-baseline/report.md` | Chrome 建立 WebTransport 会话失败：服务端 SETTINGS 不含 legacy `ENABLE_WEBTRANSPORT`（`0x2b603742`），Chrome 以 `net::ERR_METHOD_NOT_SUPPORTED` 拒绝；B1/B2 因此 `not_run` |
+| `GAP-M3-B0-02` | 阻塞 | 已关闭 | `docs/m3-m4-gates.md:456`；`interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39/report.md` 与同目录 `-baseline/report.md` | Chrome 建立 WebTransport 会话失败：服务端 SETTINGS 不含 legacy `ENABLE_WEBTRANSPORT`（`0x2b603742`），Chrome 以 `net::ERR_METHOD_NOT_SUPPORTED` 拒绝；B1/B2 因此 `not_run` |
 | `GAP-M4-T-01` | 阻塞 | `OPEN` | `docs/m4-target-selection.md:284`（§6） | 无 `docs/m4-resource-budget.md`、无 `firmware/`、无 ELF/map；V4 无法判定 |
 | `GAP-M4-T-02` | 阻塞 | `OPEN` | `docs/m4-target-selection.md:285`（§6） | 无 `firmware/m4-smoke`、无 `embedded-build` CI、未做链接实验；V5 无法判定 |
 | `GAP-M4-T-03` | 阻塞 | `OPEN` | `docs/m4-target-selection.md:286`（§6） | 无 `rtx-smoltcp`、无 MAC/PHY 驱动与缓冲区所有权文档；T4/V6 未核实 |
@@ -142,7 +142,7 @@
 
 依据：`docs/m3-m4-gates.md:442`（§4 规则 1）规定存在任一阻塞 GAP 时 §6 结论必须是 FAIL；`docs/m3-m4-gates.md:509`（§6.3）规定结论只能是 PASS 或 FAIL，空白、`TBD` 与含糊措辞均视为 FAIL。当前清单：
 
-- 已登记阻塞 GAP **9 个**：`GAP-M3-B0-02`（门禁 §5，1 个）+ `GAP-M4-T-01`…`GAP-M4-T-08`（选型文档 §6，8 个），均为 `OPEN`。
+- 已登记阻塞 GAP **8 个**：`GAP-M4-T-01`…`GAP-M4-T-08`（选型文档 §6，8 个），均为 `OPEN`；`GAP-M3-B0-02`（门禁 §5，1 个）已关闭（依据 `docs/m3-m4-gates.md:456`）。
 - 另有 2 项未登记 GAP ID 的门禁前置缺失：M3-P 基线缺失、`docs/m3-m4-gates.md` §6.2 必填附件缺失（清单见 §5）。
 
 因此本单结论为 FAIL；本单不填写 `docs/m3-m4-gates.md` §6.1/§6.2/§6.3（`docs/m3-m4-gates.md:38`：复选框只能由里程碑验收 PR 勾选）。
