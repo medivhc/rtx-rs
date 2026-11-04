@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 文档编号 | P8-2 / M4-RB1（资源预算文档） |
-| 基线 | `main` @ `ea870b6`（2026-11-03 合并 PR #42 后的头，本文档起草前以 `git ls-remote` 与本地 HEAD 复核一致） |
+| 基线 | `main` @ `d5f8f4e`（2026-11-05 PR #45 合并后的头；修复前以 `git ls-remote` 与本地 HEAD 复核一致；原稿起草于 `ea870b6`，已 rebase） |
 | 交付形态 | 只新增本文档；不建 `firmware/`、不改 CI、不改门禁、不做选型结论、不合入 |
 | 预算对象 | 候选 A：STM32H723ZG / NUCLEO-H723ZG；候选 B：STM32F767ZI / NUCLEO-F767ZI |
 | 结论 | 目标选择仍为**未选定**；`M4-V4` 仍为**未核实**（须待 T-02 的 ELF/map 与 T-04 之后的栈/堆实测） |
@@ -27,17 +27,18 @@
 
 | 项 | 复核命令/动作 | 结果 |
 |---|---|---|
-| 主线头 | `git ls-remote https://github.com/medivhc/rtx-rs.git HEAD refs/heads/main` | `ea870b607aeb2db26f2096f686c9061612c04190`，与本地 `HEAD` 一致，无漂移 |
+| 主线头 | `git ls-remote https://github.com/medivhc/rtx-rs.git HEAD refs/heads/main` | `d5f8f4e84157911e836077f0a0c7f815a51ddcdc`（PR #45 合并后），与本地 `HEAD` 一致，无漂移 |
 | 选型结论 | 读 `docs/m4-target-selection.md` §5.1 | 仍为**未选定**；A/B 的 T 项 2 通过 / 6 未核实，V 项 6 通过 / 4 未核实；C 被 `M4-V9` 否决 |
-| 预算文档 | `test -e docs/m4-resource-budget.md` | 不存在（本 PR 新建） |
-| 固件目录 | `test -e firmware` | 不存在 |
-| QUIC 决策/内存报告 | `test -e docs/m4-quic-decision.md`、`test -e docs/m4-memory-report.md` | 均不存在（属 T-04 / M4-M，不是本单产物） |
-| CI 作业 | `grep -n '^  [a-z-]*:' .github/workflows/ci.yml` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build` |
-| ELF/map | `find . -name '*.elf' -o -name '*.map'` | 无输出 |
-| PR refs | `git ls-remote ... 'refs/pull/*/head'`，并取 `refs/pull/43/head` 对比 | 最大为 `#43`；`#43` 的 diff 只改 `docs/m3-m4-gates.md` 一行，是 B0-02 验收单，**不是** M4-T-01 的重复单。派前记录中的“最大 #42，无 #43+”以本条复核为准 |
+| 预算文档 | `git cat-file -e d5f8f4e:docs/m4-resource-budget.md` | main 上不存在（本 PR 新建） |
+| 固件目录 | `git ls-tree d5f8f4e -- firmware` | 空输出（main 上不存在） |
+| QUIC 决策/内存报告 | `git cat-file -e d5f8f4e:docs/m4-quic-decision.md`、`git cat-file -e d5f8f4e:docs/m4-memory-report.md` | 均不存在（属 T-04 / M4-M，不是本单产物） |
+| CI 作业 | `git show d5f8f4e:.github/workflows/ci.yml` + `grep -n '^  [a-z-]*:'` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build` |
+| ELF/map | `git ls-tree -r --name-only d5f8f4e -- '*.elf' '*.map'` | 无输出 |
+| PR refs | `git ls-remote origin 'refs/pull/4[0-9]/head'` | 最大为 `#45`（已合并，2026-11-05；只改 `docs/m3-m4-closeout.md`）；`#44` 是本 PR（OPEN）；`#43` 已合并（B0-02 门禁一行）。无 M4-T-01 重复单 |
+| 代码面差异 | `git diff --stat ea870b6 d5f8f4e -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准 |
 | 额外任务列表 | 协调者派前复核（本环境无法访问任务列表） | 无 GAP-M4-T-01 / 资源预算重复项；本单为 M4-T-01 的派单授权 |
 
-> 说明：PR `#43` 的存在只影响“是否有重复单”的事实记录，不影响本单基线；`main` 头仍是 `ea870b6`。若 `#43` 先合并，作者须先 rebase 再复核 §1.2 的缺失项。
+> 说明：PR `#43` 与 `#45` 均已合并，`main` 头为 `d5f8f4e`；本修复已 rebase 到该头。`ea870b6..d5f8f4e` 只改 `docs/m3-m4-closeout.md` 与 `docs/m3-m4-gates.md`，`crates/`、CI、`Cargo.toml`/`Cargo.lock` 0 改动，§2.2 的对象级测量仍有效。若后续 `main` 再漂移，作者须重新 rebase 并重核 §1.2。
 
 ### 1.3 状态口径
 
@@ -117,9 +118,9 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 
 - **最小栈**：本单没有 `-fstack-usage`（Rust 稳定工具链无此选项）、没有链接 map、没有板上高水位扫描，也没有 ISR 代码。最深调用链只能从代码阅读列出构成，不能给出字节数。因此主栈、中断嵌套栈、栈合计一律**未核实**（见各候选表）。E0 只假设一个主任务；若运行时增加任务，每个任务按其最深链另计（同样未核实）。
   - 已阅读的候选最深链：`RecordMachine::handle_input` → `record::decode` → `RecordCipher::open` → `RustCryptoProvider::open_in_place` → `aes-gcm` 解密；ICE 链：`Checklist::handle_input` → `stun::Message::decode` → 属性遍历 → `MessageWriter` 编码。链上没有递归。
-- **最小堆**：E0 内唯一的 `alloc` 使用是 `rtx-crypto-rustcrypto` 的 HMAC 路径：`hmac_parts` 把摘要 `.to_vec()` 成 `Vec<u8>`（`crates/rtx-crypto-rustcrypto/src/lib.rs:214-239`）。摘要长度最大为 SHA-384 的 48 B，因此已知单次分配下界为 **≥48 B**；这不是全路径 `peak_live_bytes`。
+- **最小堆**：E0 内唯一的 `alloc` 使用是 `rtx-crypto-rustcrypto` 的 HMAC 路径：`hmac_parts` 把摘要 `.to_vec()` 成 `Vec<u8>`（`crates/rtx-crypto-rustcrypto/src/lib.rs:214-239`）。E0 实际调用点为 SRTP `HashAlgorithm::Sha1`（`crates/rtx-srtp/src/cipher.rs:149`，20 B）与 DTLS `HashAlgorithm::Sha256`（`crates/rtx-dtls/src/keyschedule.rs:128,145,160`、`crates/rtx-dtls/src/handshake.rs:521`，32 B），因此 **E0 单次分配 ≤32 B（SRTP 20 B / DTLS 32 B）**；SHA-384 的 48 B 仅为 provider 通用面上的摘要长度上界，E0 未选用。这不是全路径 `peak_live_bytes`。
 - **固定堆**：本文件把 E0 的初始固定堆登记为 **64 KiB**（门禁 `M4-RB6` 允许由目标决定并登记）。该值是 E0 的整机堆配置（不是每连接/每流），是配置决策，不是实测结论。
-- **RB6**：没有在宿主上用固定大小堆跑过 E0 的最大负载（E0 的“最大负载”还缺 QUIC/栈/堆路径），因此没有 `measurements/m4/<日期>-<commit>/heap-limit.log`，`M4-RB6` 记未核实。**不得**用 48 B 或 64 KiB 冒充 RB6 的实测日志。
+- **RB6**：没有在宿主上用固定大小堆跑过 E0 的最大负载（E0 的“最大负载”还缺 QUIC/栈/堆路径），因此没有 `measurements/m4/<日期>-<commit>/heap-limit.log`，`M4-RB6` 记未核实。**不得**用 32 B 或 64 KiB 冒充 RB6 的实测日志。
 
 ### 2.4 超限行为口径
 
@@ -159,7 +160,7 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 | 栈合计 | —（主栈 + 中断栈均无来源） | —（未测） | B | 见上两行 | 未核实 | 未核实 | 未核实 |
 | 固定堆大小（初始配置） | 64 | —（系统分配器，未登记上限） | KiB | 本文件 §2.3 登记；`M4-RB6` 允许由目标决定 | 本行只登记大小；耗尽行为见下一行 | 已核实 | 未核实 |
 | `peak_live_bytes` | —（未跑固定堆最大负载） | —（未测） | B | 无 `heap-limit.log` | 未核实 | 未核实 | 未核实 |
-| 已知单次分配下界（HMAC 摘要） | ≥48 | ≥48 | B | 所属 crate：rtx-crypto-rustcrypto；`crates/rtx-crypto-rustcrypto/src/lib.rs:214-239`；SHA-384 摘要 48 B | 不构成本行峰值 | 已核实 | 已核实 |
+| E0 单次分配上界（HMAC 摘要） | ≤32（SRTP 20 / DTLS 32） | ≤32（SRTP 20 / DTLS 32） | B | 所属 crate：rtx-crypto-rustcrypto / rtx-srtp / rtx-dtls；`digest_len`（`crates/rtx-crypto-rustcrypto/src/lib.rs:52-58`）Sha1=20 / Sha256=32 / Sha384=48；SRTP 调用 `HashAlgorithm::Sha1`（`crates/rtx-srtp/src/cipher.rs:149`），DTLS 调用 `HashAlgorithm::Sha256`（`crates/rtx-dtls/src/keyschedule.rs:128,145,160`、`crates/rtx-dtls/src/handshake.rs:521`）；SHA-384 的 48 B 仅为 provider 通用面上界，E0 未选用 | 不构成本行峰值 | 已核实 | 已核实 |
 | 堆耗尽行为 | 未映射到三类结果 | 未映射到三类结果 | — | E0 无 fallible 分配路径、无分配器失败钩子；`to_vec()` 为不可失败接口 | 必须改为背压或类型化错误 | 未核实 | 未核实 |
 | `MAX_ICE_CANDIDATES`（M4-R1） | 16（每侧；机器最多 32） | 16（每侧） | 个 | 所属 crate：rtx-ice；`crates/rtx-ice/src/checklist.rs:28`；`tests/resource_limits.rs::m4_r01_max_ice_candidates_overflow_is_explicit`（本单已跑，2 passed） | 拒绝新候选并返回 `IceError::CandidateTableFull`；已有候选不变；固定数组，无分配（RB3 断言未接入，见 §5.4） | 已核实 | 已核实 |
 | `MAX_ICE_PAIRS`（M4-R2） | 64 | 64 | 对 | 所属 crate：rtx-ice；`crates/rtx-ice/src/checklist.rs:39`；`m4_r02_max_ice_pairs_overflow_is_explicit`（本单已跑） | 拒绝整次生成并返回 `IceError::PairTableFull`；已有 pair 不变；固定数组，无分配（RB3 断言未接入，见 §5.4） | 已核实 | 已核实 |
@@ -208,7 +209,7 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 | 栈合计 | —（主栈 + 中断栈均无来源） | —（未测） | B | 见上两行 | 未核实 | 未核实 | 未核实 |
 | 固定堆大小（初始配置） | 64 | —（系统分配器，未登记上限） | KiB | 本文件 §2.3 登记；`M4-RB6` 允许由目标决定 | 本行只登记大小；耗尽行为见下一行 | 已核实 | 未核实 |
 | `peak_live_bytes` | —（未跑固定堆最大负载） | —（未测） | B | 无 `heap-limit.log` | 未核实 | 未核实 | 未核实 |
-| 已知单次分配下界（HMAC 摘要） | ≥48 | ≥48 | B | 所属 crate：rtx-crypto-rustcrypto；`crates/rtx-crypto-rustcrypto/src/lib.rs:214-239`；SHA-384 摘要 48 B | 不构成本行峰值 | 已核实 | 已核实 |
+| E0 单次分配上界（HMAC 摘要） | ≤32（SRTP 20 / DTLS 32） | ≤32（SRTP 20 / DTLS 32） | B | 所属 crate：rtx-crypto-rustcrypto / rtx-srtp / rtx-dtls；`digest_len`（`crates/rtx-crypto-rustcrypto/src/lib.rs:52-58`）Sha1=20 / Sha256=32 / Sha384=48；SRTP 调用 `HashAlgorithm::Sha1`（`crates/rtx-srtp/src/cipher.rs:149`），DTLS 调用 `HashAlgorithm::Sha256`（`crates/rtx-dtls/src/keyschedule.rs:128,145,160`、`crates/rtx-dtls/src/handshake.rs:521`）；SHA-384 的 48 B 仅为 provider 通用面上界，E0 未选用 | 不构成本行峰值 | 已核实 | 已核实 |
 | 堆耗尽行为 | 未映射到三类结果 | 未映射到三类结果 | — | E0 无 fallible 分配路径、无分配器失败钩子；`to_vec()` 为不可失败接口 | 必须改为背压或类型化错误 | 未核实 | 未核实 |
 | `MAX_ICE_CANDIDATES`（M4-R1） | 16（每侧；机器最多 32） | 16（每侧） | 个 | 所属 crate：rtx-ice；`crates/rtx-ice/src/checklist.rs:28`；`m4_r01_max_ice_candidates_overflow_is_explicit`（本单已跑） | 拒绝新候选并返回 `IceError::CandidateTableFull`；已有候选不变；固定数组，无分配（RB3 断言未接入，见 §5.4） | 已核实 | 已核实 |
 | `MAX_ICE_PAIRS`（M4-R2） | 64 | 64 | 对 | 所属 crate：rtx-ice；`crates/rtx-ice/src/checklist.rs:39`；`m4_r02_max_ice_pairs_overflow_is_explicit`（本单已跑） | 拒绝整次生成并返回 `IceError::PairTableFull`；已有 pair 不变；固定数组，无分配（RB3 断言未接入，见 §5.4） | 已核实 | 已核实 |
@@ -245,9 +246,12 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 | `Endpoint::pending_transmits` | `VecDeque<PendingTransmit>` | rtx-quic | 发送队列 | 无（R8 只覆盖 DATAGRAM 字节） | 否 | `endpoint.rs:92` | 未核实 |
 | `Endpoint::events` | `VecDeque<Event>` | rtx-quic | 事件队列 | 无 | 否 | `endpoint.rs:93` | 未核实 |
 | `PendingTransmit::payload` | `Vec<u8>` | rtx-quic | 待发送载荷 | 无 | 否 | `endpoint.rs:75-78` | 未核实 |
-| `Event::encoded` / `PeerTransportParameters::encoded` | `Vec<u8>` | rtx-quic | 事件与对端 TP 编码 | 无 | 否 | `event.rs:56`、`event.rs:122` | 未核实 |
-| `EndpointConfig::alpn` / `certificate_chain_der` / `client_roots_der` | `Vec<Vec<u8>>` | rtx-quic | 配置期 TLS/ALPN | 无（仅单项 255 B 上限） | 否（列表长度无上限） | `config.rs:62-75` | 未核实 |
-| `RustCryptoProvider::hmac_parts` 的 `written` | `Vec<u8>`（每次调用的临时摘要） | rtx-crypto-rustcrypto | HMAC/AEAD 鉴权 | 无（不在 R1–R12；有界但无 R 条目） | 是（≤48 B，摘要长度） | `crates/rtx-crypto-rustcrypto/src/lib.rs:214-239` | 未核实 |
+| `PeerTransportParameters::encoded` | `Vec<u8>` | rtx-quic | 对端 transport parameters 编码 | 无 | 否 | `crates/rtx-quic/src/event.rs:56` | 未核实 |
+| `CloseReason::Application::reason` | `Vec<u8>` | rtx-quic | 关闭原因字节 | 无 | 否 | `crates/rtx-quic/src/event.rs:122` | 未核实 |
+| `EndpointConfig::alpn` / `certificate_chain_der` / `client_roots_der` | `Vec<Vec<u8>>` | rtx-quic | 配置期 TLS/ALPN | 无（仅单项 255 B 上限） | 否（列表长度无上限） | `crates/rtx-quic/src/config.rs:62-75` | 未核实 |
+| `ServerIdentity::private_key_pkcs8_der` | `Vec<u8>` | rtx-quic | 配置期私钥 DER | 无 | 否（长度无上限） | `crates/rtx-quic/src/config.rs:63`、`crates/rtx-quic/src/config.rs:115` | 未核实 |
+| `HandshakeInfo::alpn` | `Option<Vec<u8>>` | rtx-quic | 握手完成时的协商 ALPN | 无 | 否（单个协议 ≤255 B，堆上限未登记） | `crates/rtx-quic/src/event.rs:38` | 未核实 |
+| `RustCryptoProvider::hmac_parts` 的 `written` | `Vec<u8>`（每次调用的临时摘要） | rtx-crypto-rustcrypto | HMAC/AEAD 鉴权 | 无（不在 R1–R12；有界但无 R 条目） | 是（E0 ≤32 B；provider 通用面 ≤48 B，SHA-384 未选用） | `crates/rtx-crypto-rustcrypto/src/lib.rs:214-239` | 未核实 |
 
 ### 5.2 有界容器与 R 条目
 
@@ -265,8 +269,8 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 
 ### 5.3 映射结论
 
-- **E0（embedded）**：没有“无上限的 `Vec`/`Map`/`Deque`”留在协议状态路径上；R1/R2 有固定数组与测试证据。唯一动态分配是 HMAC 摘要的临时 `Vec`（≤48 B），它没有对应的 R 条目，按 §2.2 要求单列并记未核实。
-- **L0（Linux）**：`rtx-quic::Endpoint` 的 5 个容器 + 2 个 `Vec` 载荷 + 配置 `Vec` 全部**无显式上限**，且没有映射到 R6–R12。Linux profile 的 RB4/RB5 因此未满足、记未核实；修复属后续单，不在本单范围。
+- **E0（embedded）**：没有“无上限的 `Vec`/`Map`/`Deque`”留在协议状态路径上；R1/R2 有固定数组与测试证据。唯一动态分配是 HMAC 摘要的临时 `Vec`（E0 ≤32 B，SRTP 20 B / DTLS 32 B；provider 通用面上界 48 B 未选用），它没有对应的 R 条目，按 §2.2 要求单列并记未核实。
+- **L0（Linux）**：`rtx-quic::Endpoint` 的 5 个 `BTreeMap`/`VecDeque` 容器 + 3 个 `Vec<u8>` 载荷（`PendingTransmit::payload`、`PeerTransportParameters::encoded`、`CloseReason::Application::reason`）+ 5 个配置/握手 `Vec` 字段（`EndpointConfig::alpn`、`certificate_chain_der`、`client_roots_der`、`ServerIdentity::private_key_pkcs8_der`、`HandshakeInfo::alpn`）全部**无显式上限**，且没有映射到 R6–R12。Linux profile 的 RB4/RB5 因此未满足、记未核实；修复属后续单，不在本单范围。
 - R3/R5 的 `rtx-webrtc` 在仓库中不存在，R4 的重排缓冲、R6–R10/R12 的 QUIC 状态也没有实现；这些 R 条目没有“容器 → 上限”可映射，只能记未核实。
 
 ### 5.4 M4-RB1–RB6 状态
@@ -302,8 +306,8 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 ## 7. 协调者需裁决/后续单
 
 1. **R3/R5 的实际拥有 crate**：`rtx-webrtc` 在仓库中不存在，`rtx-rtp` 没有流表、`rtx-rtcp` 没有 NACK 历史表。门禁允许登记“实际拥有流表的 crate”，但当前没有可登记对象；需要在后续 M4-S/移植单中指派拥有者并补 `resource_limits` 测试。
-2. **Linux profile 的无界容器**：`rtx-quic::Endpoint` 的 `connections`/`by_quinn_handle`/`pending_incoming`/`pending_transmits`/`events` 与 `Vec<u8>` 载荷没有上限，RB4/RB5 不能记已核实；本单不修，留给后续单。
-3. **PR #43 记录**：派前记录写“最大 #42，无 #43+”，实际 `refs/pull/43/head` 存在，diff 是 `docs/m3-m4-gates.md` 的 B0-02 验收一行；与本单无重复。若 `#43` 先合并，main 头会漂移，本单需 rebase 后重核 §1.2。
+2. **Linux profile 的无界容器**：`rtx-quic::Endpoint` 的 `connections`/`by_quinn_handle`/`pending_incoming`/`pending_transmits`/`events` 与各 `Vec` 字段（事件/TP/关闭原因、ALPN/证书/私钥）没有上限，RB4/RB5 不能记已核实；本单不修，留给后续单。
+3. **PR 引用现状**：`#43`（B0-02 门禁一行）与 `#45`（closeout 刷新）均已合并，`main` 头为 `d5f8f4e`；`#44` 是本 PR（OPEN）。派前记录中的“最大 #42，无 #43+”已过时，以本条为准。本修复已 rebase 到 `d5f8f4e`，无 M4-T-01 重复单。
 4. **`M4-V4` 的判定边界**：本单只交付预算文档；`M4-V4` 的最终判定必须等 T-02 的 ELF/map 与后续最坏内存实测，不能把本文档合并当成 V4 的结论。
 
 ---
@@ -315,11 +319,14 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 ```bash
 git rev-parse HEAD
 git ls-remote https://github.com/medivhc/rtx-rs.git HEAD refs/heads/main
-for p in docs/m4-resource-budget.md firmware docs/m4-quic-decision.md docs/m4-memory-report.md; do
-  test -e "$p" && echo "EXISTS $p" || echo "MISSING $p"
-done
-grep -n '^  [a-z-]*:' .github/workflows/ci.yml
-find . -name '*.elf' -o -name '*.map'
+git cat-file -e d5f8f4e:docs/m4-resource-budget.md; echo "budget-on-main=$?"
+git cat-file -e d5f8f4e:docs/m4-quic-decision.md; echo "quic-decision-on-main=$?"
+git cat-file -e d5f8f4e:docs/m4-memory-report.md; echo "memory-report-on-main=$?"
+git ls-tree d5f8f4e -- firmware
+git show d5f8f4e:.github/workflows/ci.yml | grep -n '^  [a-z-]*:'
+git ls-tree -r --name-only d5f8f4e | grep -E '\.(elf|map)$'
+git ls-remote origin 'refs/pull/4[0-9]/head'
+git diff --stat ea870b6 d5f8f4e -- crates Cargo.toml Cargo.lock .github
 ```
 
 ### 8.2 R1/R2 超限测试
@@ -369,7 +376,7 @@ grep -n '未选定' docs/m4-resource-budget.md
 grep -n 'M4-V4.*未核实' docs/m4-resource-budget.md
 # 只允许一个新增文件
 git status --porcelain
-git diff --stat ea870b6
+git diff --stat d5f8f4e
 ```
 
 ---
