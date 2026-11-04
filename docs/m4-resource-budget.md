@@ -92,7 +92,7 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 | rtx-stun | 8,660 | 2,662 | 0 | 0 |
 | rtx-webtransport | 2,150 | 272 | 0 | 0 |
 | rtx-wire | 2,058 | 123 | 0 | 0 |
-| RustCrypto 依赖闭包（`aes-gcm`、`aes`、`ctr`、`ghash`、`polyval`、`universal-hash`、`aead`、`cipher`、`crypto-common`、`generic-array`、`typenum`、`subtle`、`zeroize`、`hmac`、`digest`、`sha1`、`sha2`、`block-buffer` 等） | 61,630 | 1,360 | 0 | 0 |
+| RustCrypto 依赖闭包（`aes-gcm`、`aes`、`ctr`、`ghash`、`polyval`、`universal-hash`、`aead`、`cipher`、`inout`、`opaque-debug`、`crypto-common`、`generic-array`、`typenum`、`subtle`、`zeroize`、`hmac`、`digest`、`sha1`、`sha2`、`block-buffer` 等） | 61,630 | 1,360 | 0 | 0 |
 | **合计** | **135,378** | **10,516** | **0** | **0** |
 
 - `.data = 0`：E0 内没有 `static mut`，也没有带初值的可变静态量；`rtx-ice`/`rtx-dtls`/`rtx-srtp` 的状态都是结构体实例，实例化后落 `.bss`。`rtx-quic` 的 `static EPOCH: OnceLock<Instant>`（`crates/rtx-quic/src/time.rs:13`）属 Tier D，不在 E0。
@@ -393,7 +393,7 @@ git diff --stat d5f8f4e
 
 | 编号 | 来源 | 修订版/版本 | 使用页码/位置 | 用于 |
 |---|---|---|---|---|
-| S1 | ST DS13313 `stm32h723zg.pdf` | Rev 5（May 2025） | p1、p14、p18（Table 1） | 候选 A Flash/SRAM/分块/外部 RAM 能力 |
+| S1 | ST DS13313 `stm32h723zg.pdf` | Rev 5（May 2025） | p1、p14、p18–19（Table 1 跨 p18–19，首页 p18） | 候选 A Flash/SRAM/分块/外部 RAM 能力 |
 | S2 | ST DS11532 `stm32f767zi.pdf` | Rev 7（February 2021） | p1、p2（Table 1） | 候选 B Flash/SRAM |
 | S3 | ST UM2407 | Rev 6（April 2026） | p7（Features） | 候选 A 板卡功能页（无外部 RAM 行） |
 | S4 | ST UM1974 | Rev 11 | p6（Features） | 候选 B 板卡功能页（无外部 RAM 行） |
@@ -410,5 +410,5 @@ git diff --stat d5f8f4e
 | S15 | `crates/rtx-dtls/src/machine.rs` | `ea870b6` | 47、115-120 | DTLS 事件队列上限 |
 | S16 | `crates/rtx-srtp/src/lib.rs` | `ea870b6` | 270 | SRTP replay window |
 | S17 | `crates/rtx-h3/src/settings.rs`、`qpack.rs`、`connect.rs` | `ea870b6` | 113、41、52 | H3 固定上限 |
-| S18 | `.github/workflows/ci.yml` | `ea870b6` | 20-210 | 无 `embedded-build` |
+| S18 | `.github/workflows/ci.yml` | `ea870b6` | 按 job 名核查全部 6 个 job：`test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz` | 无 `embedded-build` |
 | S19 | 本单 `cargo`/`size`/`nm` 输出 | rustc 1.92.0、thumbv7em-none-eabihf | §2.2、§8.3、§8.4 | 对象级/类型级数值 |
