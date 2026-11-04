@@ -53,7 +53,7 @@
 
 ### 1.4 数据手册核对方法
 
-- 候选 A 使用 ST **DS13313 Rev 5（May 2025）** 的 `stm32h723zg.pdf`；核对第 1 页（Features）、第 14 页（Description）、第 18 页（Table 1）。`stm32h723zg.pdf` 直链在沙箱内被站点反爬页拦截，本次用同一 ST 官方 PDF 的阅读结果核对页码与文字；未使用第三方改写页。
+- 候选 A 使用 ST **DS13313 Rev 5（May 2025）** 的 `stm32h723zg.pdf`；核对第 1 页（Features）、第 14 页（Description）、第 17 页（Table 1）。`stm32h723zg.pdf` 直链在沙箱内被站点反爬页拦截，本次用同一 ST 官方 PDF 的阅读结果核对页码与文字；未使用第三方改写页。
 - 候选 B 使用 ST **DS11532 Rev 7（February 2021）** 的 `stm32f767zi.pdf`；核对第 1 页（Features）、第 2 页（Table 1 器件汇总）。同族 `stm32f765ig.pdf` 的现行版本为 Rev 9，本单**未采用**，所有 B 的页码均以 Rev 7 为准，不混用两版。
 - 板卡侧：UM2407 Rev 6（April 2026）第 7 页 Features；UM1974 Rev 11 第 6 页 Features。
 - 每个硬件上限数字都带“修订版 + 页码”；软件上限另给代码/测试路径。
@@ -142,12 +142,12 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 
 | 项目 | 数值（embedded） | 数值（Linux） | 单位 | 来源 | 超限行为 | 状态（embedded） | 状态（Linux） |
 |---|---|---|---|---|---|---|---|
-| 数据手册 Flash 总量 | 1024（ZGT 档） | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p1（up to 1 MB）+ Table 1 p18（ZGT/ZET 列：1024/512） | 预算越界 → `M4-V4` 否决 | 已核实 | 已核实 |
-| 数据手册 SRAM 总量 | 564 | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p1、p14、Table 1 p18 | 预算越界 → `M4-V4` 否决 | 已核实 | 已核实 |
-| SRAM 分块 | 128 AXI + 16 SRAM1 + 16 SRAM2 + 16 SRAM4 + 192 shared + 64 ITCM + 128 DTCM + 4 backup = 564 | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p14、Table 1 p18 | 分块用途越界 → 预算修订 | 已核实 | 已核实 |
+| 数据手册 Flash 总量 | 1024（ZGT 档） | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p1（up to 1 MB）+ Table 1 p17（ZGT/ZET 列：1024/512） | 预算越界 → `M4-V4` 否决 | 已核实 | 已核实 |
+| 数据手册 SRAM 总量 | 564 | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p1、p14、Table 1 p17 | 预算越界 → `M4-V4` 否决 | 已核实 | 已核实 |
+| SRAM 分块 | 128 AXI + 16 SRAM1 + 16 SRAM2 + 16 SRAM4 + 192 shared + 64 ITCM + 128 DTCM + 4 backup = 564 | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p14、Table 1 p17 | 分块用途越界 → 预算修订 | 已核实 | 已核实 |
 | 可用 SRAM（剔除 backup） | 560 | 不适用（L0 为宿主） | KB | 564 − 4 的本文档算术；backup 仅低功耗域使用 | 预算越界 → `M4-V4` 否决 | 已核实 | 已核实 |
 | 外部 RAM（FMC） | 不计入 | 不适用（L0 为宿主） | — | DS13313 Rev 5 p1 说明 FMC 能力；UM2407 Rev 6 p7 Features 未列板载外部 RAM | 未核实到板级预留前不纳入预算 | 未核实 | 已核实 |
-| 两处分法对账 | 432 system = 128 AXI + 48 AHB + 192 shared + 64 ITCM；564 = 432 + 128 DTCM + 4 backup | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p1 与 p14/Table 1 p18 的算术对账 | 无冲突；采用 p14/Table 1 的分块明细 | 已核实 | 已核实 |
+| 两处分法对账 | 432 system = 128 AXI + 48 AHB + 192 shared + 64 ITCM；564 = 432 + 128 DTCM + 4 backup | 不适用（L0 为宿主） | KB | DS13313 Rev 5 p1 与 p14/Table 1 p17 的算术对账 | 无冲突；采用 p14/Table 1 的分块明细 | 已核实 | 已核实 |
 | `.text`（对象级合计） | 135,378 | —（未构建 L0） | B | §2.2 的 `size -A` 命令与 per-crate 表；commit `ea870b6` | Flash 越界 → `M4-V4` 否决 | 已核实 | 未核实 |
 | `.rodata`（对象级合计） | 10,516 | —（未构建 L0） | B | 同 `.text` | 同上 | 已核实 | 未核实 |
 | `.data` | 0 | —（未构建 L0） | B | E0 内无 `static mut`；`size -A` 输出 | 同上 | 已核实 | 未核实 |
@@ -393,7 +393,7 @@ git diff --stat d5f8f4e
 
 | 编号 | 来源 | 修订版/版本 | 使用页码/位置 | 用于 |
 |---|---|---|---|---|
-| S1 | ST DS13313 `stm32h723zg.pdf` | Rev 5（May 2025） | p1、p14、p18–19（Table 1 跨 p18–19，首页 p18） | 候选 A Flash/SRAM/分块/外部 RAM 能力 |
+| S1 | ST DS13313 `stm32h723zg.pdf` | Rev 5（May 2025） | p1、p14、p17–19（Table 1 跨 p17–19，首页 p17） | 候选 A Flash/SRAM/分块/外部 RAM 能力 |
 | S2 | ST DS11532 `stm32f767zi.pdf` | Rev 7（February 2021） | p1、p2（Table 1） | 候选 B Flash/SRAM |
 | S3 | ST UM2407 | Rev 6（April 2026） | p7（Features） | 候选 A 板卡功能页（无外部 RAM 行） |
 | S4 | ST UM1974 | Rev 11 | p6（Features） | 候选 B 板卡功能页（无外部 RAM 行） |
