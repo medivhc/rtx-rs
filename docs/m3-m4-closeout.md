@@ -53,7 +53,7 @@
 
 | PR | 分支 | 头 | 状态 | 说明 |
 |---|---|---|---|---|
-| #2 | `test/fuzz-regression-corpus` | `74640b8` | OPEN | fuzz 回归语料库单（任务书编号 R1-3）；CI `build / lint (stable)` 失败，其余 5 个 job skipped；不在 P0–P8 已合并清单内，本单不处理、不修复 |
+| #2 | `test/fuzz-regression-corpus` | `74640b8` | closed_unmerged | fuzz 回归语料库单（任务书编号 R1-3）；CI `build / lint (stable)` 失败，其余 5 个 job skipped；不在 P0–P8 已合并清单内，本单不处理、不修复 |
 
 ---
 
