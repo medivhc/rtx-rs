@@ -115,10 +115,10 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 
 ### 2.3 栈与堆
 
-- **最小栈**：本单没有 `-fstack-usage`（Rust 稳定工具链无此选项）、没有链接 map、没有板上高水位扫描，也没有 ISR 代码。最深调用链只能从代码阅读列出构成，不能给出字节数。因此主栈、中断嵌套栈、栈合计一律**未核实**（见各候选表）。
+- **最小栈**：本单没有 `-fstack-usage`（Rust 稳定工具链无此选项）、没有链接 map、没有板上高水位扫描，也没有 ISR 代码。最深调用链只能从代码阅读列出构成，不能给出字节数。因此主栈、中断嵌套栈、栈合计一律**未核实**（见各候选表）。E0 只假设一个主任务；若运行时增加任务，每个任务按其最深链另计（同样未核实）。
   - 已阅读的候选最深链：`RecordMachine::handle_input` → `record::decode` → `RecordCipher::open` → `RustCryptoProvider::open_in_place` → `aes-gcm` 解密；ICE 链：`Checklist::handle_input` → `stun::Message::decode` → 属性遍历 → `MessageWriter` 编码。链上没有递归。
 - **最小堆**：E0 内唯一的 `alloc` 使用是 `rtx-crypto-rustcrypto` 的 HMAC 路径：`hmac_parts` 把摘要 `.to_vec()` 成 `Vec<u8>`（`crates/rtx-crypto-rustcrypto/src/lib.rs:214-239`）。摘要长度最大为 SHA-384 的 48 B，因此已知单次分配下界为 **≥48 B**；这不是全路径 `peak_live_bytes`。
-- **固定堆**：本文件把 E0 的初始固定堆登记为 **64 KiB**（门禁 `M4-RB6` 允许由目标决定并登记）。该值是配置决策，不是实测结论。
+- **固定堆**：本文件把 E0 的初始固定堆登记为 **64 KiB**（门禁 `M4-RB6` 允许由目标决定并登记）。该值是 E0 的整机堆配置（不是每连接/每流），是配置决策，不是实测结论。
 - **RB6**：没有在宿主上用固定大小堆跑过 E0 的最大负载（E0 的“最大负载”还缺 QUIC/栈/堆路径），因此没有 `measurements/m4/<日期>-<commit>/heap-limit.log`，`M4-RB6` 记未核实。**不得**用 48 B 或 64 KiB 冒充 RB6 的实测日志。
 
 ### 2.4 超限行为口径
