@@ -7,11 +7,12 @@ harness began appending the Chrome-compat legacy `ENABLE_WEBTRANSPORT`
 counts and SHA-256 values below come from the browser page (`result.json`) and
 the harness log (`server.log`).
 
-**What this does not prove:** that `GAP-M3-B0-02` is closed, that the M3 gate
-passes, B3 Firefox, B4 `quinn` reference interop, benchmarks, embedded use, or
-full HTTP/3. `GAP-M3-B0-02` remains `OPEN` in `docs/m3-m4-gates.md` §5; only a
-milestone acceptance PR / the coordinator changes GAP status. This report is
-re-run evidence for that review.
+**What this does not prove:** that the M3 gate passes, B3 Firefox, B4 `quinn`
+reference interop, benchmarks, embedded use, or full HTTP/3. `GAP-M3-B0-02` was
+`OPEN` when this report was written; it is now closed in `docs/m3-m4-gates.md`
+§5 by PR #43 (merge commit `33268ff`, gates :456). This status note is a
+post-merge synchronization; the measurements below are unchanged pre-closure
+re-run evidence. Closing that one GAP line is not M3 acceptance.
 
 ## First-page summary
 
@@ -29,8 +30,10 @@ observed by the harness; server reset observed by Chrome after the new 500 ms
 delay (4096 bytes then `RESET_STREAM`; Chrome exposed `streamErrorCode=0`, the
 harness logged code 7 — see the server-reset section).
 
-**Registered GAP:** `GAP-M3-B0-02` is still `OPEN`; this run has 0 failures in
-B0/B1/B2. The GAP status is not changed by this PR.
+**Registered GAP:** `GAP-M3-B0-02` was `OPEN` when this report was written; it
+is now closed in `docs/m3-m4-gates.md` §5 by PR #43 (merge commit `33268ff`,
+gates :456). This run has 0 failures in B0/B1/B2; the closure came from the
+gates change, not from this report.
 
 ## Status
 
@@ -41,7 +44,7 @@ B0/B1/B2. The GAP status is not changed by this PR.
 | B2 | pass | 6 stream/reset items; server-reset observed with a 500 ms delay |
 | B3 | not_run | Firefox not exercised by this unit (out of scope) |
 | B4 | not_run | `quinn` reference interop not exercised by this unit (out of scope) |
-| B5 | GAP listed | `GAP-M3-B0-02` remains OPEN; status change belongs to acceptance |
+| B5 | GAP closed | `GAP-M3-B0-02` closed by PR #43 (`33268ff`), gates §5 :456; was OPEN when this report was generated |
 
 ## Environment
 
@@ -237,10 +240,11 @@ is abandoned with `WT_SESSION_GONE` when the session closes immediately).
 
 | GAP | item | status in this run | detail |
 |---|---|---|---|
-| `GAP-M3-B0-02` | B0 | `OPEN` (unchanged by this PR) | R6-4 recorded B0 failure without legacy `0x2b603742`; this re-run at `aae52dc` establishes the session with the Chrome-compat pair, B1/B2 pass. Status change belongs to the milestone acceptance PR / coordinator. |
+| `GAP-M3-B0-02` | B0 | closed (PR #43, `33268ff`) | R6-4 recorded B0 failure without legacy `0x2b603742`; this re-run at `aae52dc` establishes the session with the Chrome-compat pair, B1/B2 pass. `OPEN` when this report was written; closed afterwards by PR #43 (merge commit `33268ff`), which changes the B0-02 line in `docs/m3-m4-gates.md` §5 (gates :456). |
 
-Failures recorded by the page in this run: **0**. This table does not close
-`GAP-M3-B0-02`; it supplies the re-run evidence the acceptance review needs.
+Failures recorded by the page in this run: **0**. This table records the run
+evidence only; `GAP-M3-B0-02` was closed separately by PR #43 (merge commit
+`33268ff`, gates §5 :456).
 Other registered GAPs (including `GAP-M3-B3-01`) were not exercised and are
 untouched by this unit.
 
