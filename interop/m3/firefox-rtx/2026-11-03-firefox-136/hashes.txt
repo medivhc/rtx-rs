@@ -1,0 +1,14 @@
+# item	sends	receives	lost	bytes	sha256	detail
+b0_session	1	1	0	0	-	extended CONNECT; ready + server connect_request_decoded/200
+datagram_firefox_to_server_tier_1	1000	1000	0	1000	6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d	server.log datagram_received bytes=1; strict alternation: send i, then verify echo i before send i+1
+datagram_server_echo_tier_1	1000	999	1	999	6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d	server.log datagram_sent bytes=2 (wire incl. quarter stream ID); page echoes_received=999
+datagram_firefox_to_server_tier_1000	1000	1000	0	1000000	a8af099bf2e878609558dbf69d8f88f4a31040a8cf84b549a0cfa912f12ffc3f	server.log datagram_received bytes=1000; strict alternation: send i, then verify echo i before send i+1
+datagram_server_echo_tier_1000	1000	1000	0	1000000	a8af099bf2e878609558dbf69d8f88f4a31040a8cf84b549a0cfa912f12ffc3f	server.log datagram_sent bytes=1001 (wire incl. quarter stream ID); page echoes_received=1000
+datagram_firefox_to_server_tier_negotiated	1000	1000	0	1067000	6ddba3c6303155a171c056307637a56d40e8f65b15a27e5daeca478c35222490	server.log datagram_received bytes=1067; strict alternation: send i, then verify echo i before send i+1
+datagram_server_echo_tier_negotiated	1000	1000	0	1067000	6ddba3c6303155a171c056307637a56d40e8f65b15a27e5daeca478c35222490	server.log datagram_sent bytes=1068 (wire incl. quarter stream ID); page echoes_received=1000
+server_uni	1	1	0	1048576	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	pass
+client_uni	1	1	0	1048576	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	pass
+client_bi	1	1	0	1048576	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	pass
+concurrent_bi	10	10	0	10485760	fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83	pass
+client_reset	1	1	0	65536	-	server log stream_reset role=client count=1
+server_reset	1	1	0	4096	-	reset_code=0; server log server_reset count=1

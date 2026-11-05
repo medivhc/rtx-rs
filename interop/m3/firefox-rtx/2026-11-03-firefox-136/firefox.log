@@ -1,0 +1,15 @@
+*** You are running in headless mode.
+[GFX1-]: glxtest: Unable to open a connection to the X server
+[GFX1-]: More than 1 GPU vendor detected via PCI, cannot deduce vendor
+
+[GFX1-]: PCI candidate 0x8086/0x4680
+
+[GFX1-]: PCI candidate 0x10de/0x2188
+
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+Exiting due to channel error.
+Exiting due to channel error.
+Exiting due to channel error.
+Exiting due to channel error.
+Exiting due to channel error.
+Exiting due to channel error.

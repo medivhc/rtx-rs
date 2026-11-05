@@ -1,0 +1,8 @@
+$ /usr/bin/firefox --version
+Mozilla Firefox 136.0
+
+$ /usr/lib/firefox/application.ini (excerpt)
+Version=136.0
+BuildID=20250227124745
+SourceRepository=https://hg.mozilla.org/releases/mozilla-release
+SourceStamp=2da0b1797683d2fa353390e70080c29b97a63a91
