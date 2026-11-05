@@ -34,7 +34,7 @@
 | QUIC 决策/内存报告 | `git cat-file -e d5f8f4e:docs/m4-quic-decision.md`、`git cat-file -e d5f8f4e:docs/m4-memory-report.md` | 均不存在（属 T-04 / M4-M，不是本单产物） |
 | CI 作业 | `git show d5f8f4e:.github/workflows/ci.yml` + `grep -n '^  [a-z-]*:'` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build` |
 | ELF/map | `git ls-tree -r --name-only d5f8f4e -- '*.elf' '*.map'` | 无输出 |
-| PR refs | `git ls-remote origin 'refs/pull/4[0-9]/head'` | 最大为 `#45`（已合并，2026-11-05；只改 `docs/m3-m4-closeout.md`）；`#44` 是本 PR（OPEN）；`#43` 已合并（B0-02 门禁一行）。无 M4-T-01 重复单 |
+| PR refs | `git ls-remote origin 'refs/pull/4[0-9]/head'` | 最大为 `#45`（已合并，2026-11-05；只改 `docs/m3-m4-closeout.md`）；`#44` 是本 PR（已合并）；`#43` 已合并（B0-02 门禁一行）。无 M4-T-01 重复单 |
 | 代码面差异 | `git diff --stat ea870b6 d5f8f4e -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准 |
 | 额外任务列表 | 协调者派前复核（本环境无法访问任务列表） | 无 GAP-M4-T-01 / 资源预算重复项；本单为 M4-T-01 的派单授权 |
 
@@ -307,7 +307,7 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 
 1. **R3/R5 的实际拥有 crate**：`rtx-webrtc` 在仓库中不存在，`rtx-rtp` 没有流表、`rtx-rtcp` 没有 NACK 历史表。门禁允许登记“实际拥有流表的 crate”，但当前没有可登记对象；需要在后续 M4-S/移植单中指派拥有者并补 `resource_limits` 测试。
 2. **Linux profile 的无界容器**：`rtx-quic::Endpoint` 的 `connections`/`by_quinn_handle`/`pending_incoming`/`pending_transmits`/`events` 与各 `Vec` 字段（事件/TP/关闭原因、ALPN/证书/私钥）没有上限，RB4/RB5 不能记已核实；本单不修，留给后续单。
-3. **PR 引用现状**：`#43`（B0-02 门禁一行）与 `#45`（closeout 刷新）均已合并，`main` 头为 `d5f8f4e`；`#44` 是本 PR（OPEN）。派前记录中的“最大 #42，无 #43+”已过时，以本条为准。本修复已 rebase 到 `d5f8f4e`，无 M4-T-01 重复单。
+3. **PR 引用现状**：`#43`（B0-02 门禁一行）与 `#45`（closeout 刷新）均已合并，`main` 头为 `d5f8f4e`；`#44` 是本 PR（已合并）。派前记录中的“最大 #42，无 #43+”已过时，以本条为准。本修复已 rebase 到 `d5f8f4e`，无 M4-T-01 重复单。
 4. **`M4-V4` 的判定边界**：本单只交付预算文档；`M4-V4` 的最终判定必须等 T-02 的 ELF/map 与后续最坏内存实测，不能把本文档合并当成 V4 的结论。
 
 ---
