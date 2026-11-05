@@ -454,7 +454,7 @@ ARCH §16 的 11 个 `MAX_*` 是门禁下限，不得改名或省略。另因 AR
 | ID | 类型 | 摘要 | 状态 | 证据 |
 |---|---|---|---|---|
 | GAP-M3-B0-02 | 阻塞 | Chrome 建立 WebTransport 会话失败：服务端 SETTINGS 不含 legacy ENABLE_WEBTRANSPORT（0x2b603742），Chrome 以 net::ERR_METHOD_NOT_SUPPORTED 拒绝，B1/B2 因此 not_run（被 B0 阻塞，未执行） | 已关闭 | PR #25（合并 ddc43e4）：interop/m3/chrome-rtx/2026-10-29-chrome-155.0.8059.39/report.md（放宽相位）+ 同目录 -baseline/report.md（基线相位 H3_SETTINGS_ERROR 0x0101）；Chrome for Testing 155.0.8059.39 PR #29（合并 93c0030）：interop/m3/chrome-rtx/2026-11-02-chrome-155.0.8059.39/report.md（重跑证据，Chrome for Testing 155.0.8059.39）：B0 PASS（extended CONNECT 200，ready 69ms）、B1 PASS（1B/1000B/协商 1067B 三档各 1000 发/1000 回，0 丢失 0 错配，服务端计数 3000/3000）、B2 PASS（单向/双向/10 并发各 1MiB，SHA-256 对上，客户端 reset 与服务端 reset 均观测到，服务端 reset 为 500ms 延迟后观测：4096 字节后 RESET_STREAM，Chrome streamErrorCode=0，harness 记 code 7）。 |
-| GAP-M3-B3-01 | 非阻塞（条件适用） | Firefox 互通未判定：未找到可用的 Firefox 二进制（已查 command -v firefox、/usr/lib/firefox/firefox、Playwright 缓存、/snap/bin/firefox），B3 按条件适用项记 NOT DETERMINED，待有 Firefox 二进制后重测 | OPEN | PR #25（合并 ddc43e4）：同上放宽相位 report.md 状态表 B3 行 |
+| GAP-M3-B3-01 | 非阻塞（条件适用） | Firefox 互通未判定：未找到可用的 Firefox 二进制（已查 command -v firefox、/usr/lib/firefox/firefox、Playwright 缓存、/snap/bin/firefox），B3 按条件适用项记 NOT DETERMINED，待有 Firefox 二进制后重测 | `OPEN` | PR #25（合并 ddc43e4）：同上放宽相位 report.md 状态表 B3 行 |
 
 ---
 
