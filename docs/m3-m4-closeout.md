@@ -49,7 +49,7 @@
 
 计数：P0–P8 共 **26 个已合并 PR**（P0 2 + P1 2 + P2 3 + P3 4 + P4 6 + P5 1 + P6 6 + P7 1 + P8 1）。P6 另有 1 个直接提交到 `main` 的 commit `6c69657`（`docs(gates): register GAP-M3-B0-02 (blocking) and GAP-M3-B3-01 (conditional) from R6-4 PR #25`），无 PR、无 merge commit，故不计入 PR 计数。
 
-### 仍 open 的 PR（不属已合并清单）
+### 不在已合并清单内的 PR
 
 | PR | 分支 | 头 | 状态 | 说明 |
 |---|---|---|---|---|
