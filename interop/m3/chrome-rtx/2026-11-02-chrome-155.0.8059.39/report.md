@@ -44,7 +44,7 @@ gates change, not from this report.
 | B2 | pass | 6 stream/reset items; server-reset observed with a 500 ms delay |
 | B3 | not_run | Firefox not exercised by this unit (out of scope) |
 | B4 | not_run | `quinn` reference interop not exercised by this unit (out of scope) |
-| B5 | GAP closed | `GAP-M3-B0-02` closed by PR #43 (`33268ff`), gates §5 :456; was OPEN when this report was generated |
+| B5 | GAP closed | `GAP-M3-B0-02` closed by PR #43 (`33268ff`), gates §5 :456; was OPEN when this report was written |
 
 ## Environment
 
