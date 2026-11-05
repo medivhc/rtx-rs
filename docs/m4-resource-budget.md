@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 文档编号 | P8-2 / M4-RB1（资源预算文档） |
-| 基线 | `main` @ `d5f8f4e`（2026-11-05 PR #45 合并后的头；修复前以 `git ls-remote` 与本地 HEAD 复核一致；原稿起草于 `ea870b6`，已 rebase） |
+| 基线 | `main` @ `52e4ac9`（2026-11-05 PR #52 合并后的头；派单前以 `git ls-remote` 与本地 HEAD 复核一致；原稿起草于 `ea870b6`，已 rebase） |
 | 交付形态 | 只新增本文档；不建 `firmware/`、不改 CI、不改门禁、不做选型结论、不合入 |
 | 预算对象 | 候选 A：STM32H723ZG / NUCLEO-H723ZG；候选 B：STM32F767ZI / NUCLEO-F767ZI |
 | 结论 | 目标选择仍为**未选定**；`M4-V4` 仍为**未核实**（须待 T-02 的 ELF/map 与 T-04 之后的栈/堆实测） |
@@ -27,18 +27,18 @@
 
 | 项 | 复核命令/动作 | 结果 |
 |---|---|---|
-| 主线头 | `git ls-remote https://github.com/medivhc/rtx-rs.git HEAD refs/heads/main` | `d5f8f4e84157911e836077f0a0c7f815a51ddcdc`（PR #45 合并后），与本地 `HEAD` 一致，无漂移 |
+| 主线头 | `git ls-remote https://github.com/medivhc/rtx-rs.git HEAD refs/heads/main` | `52e4ac9269d2237d803c070e4a2c3137b7456470`（PR #52 合并后），与本地 `HEAD` 一致，无漂移 |
 | 选型结论 | 读 `docs/m4-target-selection.md` §5.1 | 仍为**未选定**；A/B 的 T 项 2 通过 / 6 未核实，V 项 6 通过 / 4 未核实；C 被 `M4-V9` 否决 |
-| 预算文档 | `git cat-file -e d5f8f4e:docs/m4-resource-budget.md` | main 上不存在（本 PR 新建） |
-| 固件目录 | `git ls-tree d5f8f4e -- firmware` | 空输出（main 上不存在） |
-| QUIC 决策/内存报告 | `git cat-file -e d5f8f4e:docs/m4-quic-decision.md`、`git cat-file -e d5f8f4e:docs/m4-memory-report.md` | 均不存在（属 T-04 / M4-M，不是本单产物） |
-| CI 作业 | `git show d5f8f4e:.github/workflows/ci.yml` + `grep -n '^  [a-z-]*:'` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build` |
-| ELF/map | `git ls-tree -r --name-only d5f8f4e -- '*.elf' '*.map'` | 无输出 |
-| PR refs | `git ls-remote origin 'refs/pull/4[0-9]/head'` | 最大为 `#45`（已合并，2026-11-05；只改 `docs/m3-m4-closeout.md`）；`#44` 是本 PR（已合并）；`#43` 已合并（B0-02 门禁一行）。无 M4-T-01 重复单 |
-| 代码面差异 | `git diff --stat ea870b6 d5f8f4e -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准 |
+| 预算文档 | `git cat-file -e 52e4ac9:docs/m4-resource-budget.md` | 存在（`budget-on-main=0`）；本文档已在 main 上，本单只刷新基线快照 |
+| 固件目录 | `git ls-tree 52e4ac9 -- firmware` | 空输出（main 上不存在） |
+| QUIC 决策/内存报告 | `git cat-file -e 52e4ac9:docs/m4-quic-decision.md`、`git cat-file -e 52e4ac9:docs/m4-memory-report.md` | 均不存在（属 T-04 / M4-M，不是本单产物） |
+| CI 作业 | `git show 52e4ac9:.github/workflows/ci.yml` + `grep -n '^  [a-z-]*:'` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build` |
+| ELF/map | `git ls-tree -r --name-only 52e4ac9 -- '*.elf' '*.map'` | 无输出 |
+| PR refs | `git ls-remote origin 'refs/pull/4[0-9]/head' 'refs/pull/5[0-9]/head'` | 最大为 `#52`（已合并，2026-11-05；只改 Chrome 互操作报告）；`#46`–`#51` 亦已合并（只改文档/互操作报告）；`#43` 已合并（B0-02 门禁一行）；`#44` 为本文档原始 PR（已合并）。无 M4-T-01 重复单 |
+| 代码面差异 | `git diff --stat ea870b6 52e4ac9 -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准 |
 | 额外任务列表 | 协调者派前复核（本环境无法访问任务列表） | 无 GAP-M4-T-01 / 资源预算重复项；本单为 M4-T-01 的派单授权 |
 
-> 说明：PR `#43` 与 `#45` 均已合并，`main` 头为 `d5f8f4e`；本修复已 rebase 到该头。`ea870b6..d5f8f4e` 只改 `docs/m3-m4-closeout.md` 与 `docs/m3-m4-gates.md`，`crates/`、CI、`Cargo.toml`/`Cargo.lock` 0 改动，§2.2 的对象级测量仍有效。若后续 `main` 再漂移，作者须重新 rebase 并重核 §1.2。
+> 说明：PR `#43`–`#52` 均已合并，`main` 头为 `52e4ac9`（PR #52 合并后）；本单已 rebase 到该头。`ea870b6..52e4ac9` 只改 `docs/`、`benchmarks/m3/results/` 与 `interop/m3/` 证据文件（含本文档），`crates/`、CI、`Cargo.toml`/`Cargo.lock` 0 改动，§2.2 的对象级测量仍有效。若后续 `main` 再漂移，作者须重新 rebase 并重核 §1.2。
 
 ### 1.3 状态口径
 
@@ -307,7 +307,7 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 
 1. **R3/R5 的实际拥有 crate**：`rtx-webrtc` 在仓库中不存在，`rtx-rtp` 没有流表、`rtx-rtcp` 没有 NACK 历史表。门禁允许登记“实际拥有流表的 crate”，但当前没有可登记对象；需要在后续 M4-S/移植单中指派拥有者并补 `resource_limits` 测试。
 2. **Linux profile 的无界容器**：`rtx-quic::Endpoint` 的 `connections`/`by_quinn_handle`/`pending_incoming`/`pending_transmits`/`events` 与各 `Vec` 字段（事件/TP/关闭原因、ALPN/证书/私钥）没有上限，RB4/RB5 不能记已核实；本单不修，留给后续单。
-3. **PR 引用现状**：`#43`（B0-02 门禁一行）与 `#45`（closeout 刷新）均已合并，`main` 头为 `d5f8f4e`；`#44` 是本 PR（已合并）。派前记录中的“最大 #42，无 #43+”已过时，以本条为准。本修复已 rebase 到 `d5f8f4e`，无 M4-T-01 重复单。
+3. **PR 引用现状**：`#43`（B0-02 门禁一行）、`#45`（closeout 刷新）、`#46`–`#52`（文档/互操作报告刷新）均已合并，`main` 头为 `52e4ac9`（PR #52 合并后）；`#44` 是本文档原始 PR（已合并）。派前记录中的“最大 #42，无 #43+”已过时，以本条为准。本单已 rebase 到 `52e4ac9`，无 M4-T-01 重复单。
 4. **`M4-V4` 的判定边界**：本单只交付预算文档；`M4-V4` 的最终判定必须等 T-02 的 ELF/map 与后续最坏内存实测，不能把本文档合并当成 V4 的结论。
 
 ---
@@ -319,14 +319,14 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 ```bash
 git rev-parse HEAD
 git ls-remote https://github.com/medivhc/rtx-rs.git HEAD refs/heads/main
-git cat-file -e d5f8f4e:docs/m4-resource-budget.md; echo "budget-on-main=$?"
-git cat-file -e d5f8f4e:docs/m4-quic-decision.md; echo "quic-decision-on-main=$?"
-git cat-file -e d5f8f4e:docs/m4-memory-report.md; echo "memory-report-on-main=$?"
-git ls-tree d5f8f4e -- firmware
-git show d5f8f4e:.github/workflows/ci.yml | grep -n '^  [a-z-]*:'
-git ls-tree -r --name-only d5f8f4e | grep -E '\.(elf|map)$'
-git ls-remote origin 'refs/pull/4[0-9]/head'
-git diff --stat ea870b6 d5f8f4e -- crates Cargo.toml Cargo.lock .github
+git cat-file -e 52e4ac9:docs/m4-resource-budget.md; echo "budget-on-main=$?"
+git cat-file -e 52e4ac9:docs/m4-quic-decision.md; echo "quic-decision-on-main=$?"
+git cat-file -e 52e4ac9:docs/m4-memory-report.md; echo "memory-report-on-main=$?"
+git ls-tree 52e4ac9 -- firmware
+git show 52e4ac9:.github/workflows/ci.yml | grep -n '^  [a-z-]*:'
+git ls-tree -r --name-only 52e4ac9 | grep -E '\.(elf|map)$'
+git ls-remote origin 'refs/pull/4[0-9]/head' 'refs/pull/5[0-9]/head'
+git diff --stat ea870b6 52e4ac9 -- crates Cargo.toml Cargo.lock .github
 ```
 
 ### 8.2 R1/R2 超限测试
@@ -376,7 +376,7 @@ grep -n '未选定' docs/m4-resource-budget.md
 grep -n 'M4-V4.*未核实' docs/m4-resource-budget.md
 # 只允许一个新增文件
 git status --porcelain
-git diff --stat d5f8f4e
+git diff --stat 52e4ac9
 ```
 
 ---
