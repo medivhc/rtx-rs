@@ -1,0 +1,112 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/main.rs (/work/nexus-dev/target/debug/deps/rtx_quinn_interop-712c4c1f0eda6eb5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bi_stream_once.rs (/work/nexus-dev/target/debug/deps/bi_stream_once-7d61291198f9282e)
+
+running 1 test
+test bi_stream_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/datagram_once.rs (/work/nexus-dev/target/debug/deps/datagram_once-df7fb463e969a816)
+
+running 1 test
+test datagram_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/dual_endpoint_smoke.rs (/work/nexus-dev/target/debug/deps/dual_endpoint_smoke-d2bd681697b6f102)
+
+running 1 test
+test dual_endpoints_create ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/endpoint_smoke.rs (/work/nexus-dev/target/debug/deps/endpoint_smoke-a3837f361d989439)
+
+running 1 test
+test rtx_quic_endpoint_creates ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/h3_handshake_once.rs (/work/nexus-dev/target/debug/deps/h3_handshake_once-f9c1cacb1dfeea65)
+
+running 1 test
+test h3_handshake_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/h3_session_close_once.rs (/work/nexus-dev/target/debug/deps/h3_session_close_once-5e172bbca97b9090)
+
+running 1 test
+test h3_session_close_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/h3_session_datagram_once.rs (/work/nexus-dev/target/debug/deps/h3_session_datagram_once-db7fa800507a392e)
+
+running 1 test
+test h3_session_datagram_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/h3_session_wt_stream_once.rs (/work/nexus-dev/target/debug/deps/h3_session_wt_stream_once-9686511aca8b7e1b)
+
+running 1 test
+test h3_session_wt_stream_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/loopback_handshake.rs (/work/nexus-dev/target/debug/deps/loopback_handshake-4291bcec31b5b5cf)
+
+running 1 test
+test loopback_handshake ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/reverse_bi_stream_once.rs (/work/nexus-dev/target/debug/deps/reverse_bi_stream_once-9f0593551a1c6340)
+
+running 1 test
+test reverse_bi_stream_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/reverse_datagram_once.rs (/work/nexus-dev/target/debug/deps/reverse_datagram_once-be83ee9c3a35e99d)
+
+running 1 test
+test reverse_datagram_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/reverse_h3_handshake_once.rs (/work/nexus-dev/target/debug/deps/reverse_h3_handshake_once-f0a7e3825f24fad0)
+
+running 1 test
+test reverse_h3_handshake_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/reverse_loopback_handshake.rs (/work/nexus-dev/target/debug/deps/reverse_loopback_handshake-0f53eed3a07c47a9)
+
+running 1 test
+test reverse_loopback_handshake ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/reverse_uni_stream_once.rs (/work/nexus-dev/target/debug/deps/reverse_uni_stream_once-7cf0a2eb69497fda)
+
+running 1 test
+test reverse_uni_stream_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/uni_stream_once.rs (/work/nexus-dev/target/debug/deps/uni_stream_once-2a4d26705c63aad5)
+
+running 1 test
+test uni_stream_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

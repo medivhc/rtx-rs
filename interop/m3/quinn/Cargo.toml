@@ -1,0 +1,35 @@
+[package]
+name = "rtx-quinn-interop"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "M3-B4 Quinn reference interop harness: QUIC layer and H3/WebTransport layer"
+
+[workspace]
+
+[dependencies]
+rtx-quic = { path = "../../../crates/rtx-quic" }
+rtx-core = { path = "../../../crates/rtx-core" }
+# H3 layer (B4 step 13): rtx-h3 SETTINGS/CONNECT codecs, rtx-webtransport for
+# the SessionId assertion, rtx-wire for the h3_frame/varint framing the rtx-h3
+# payload codecs delegate to. No `std` features: the no_std builds compile as-is.
+rtx-h3 = { path = "../../../crates/rtx-h3" }
+rtx-webtransport = { path = "../../../crates/rtx-webtransport" }
+rtx-wire = { path = "../../../crates/rtx-wire" }
+bytes = "1"
+tokio = { version = "1", features = ["rt", "macros", "time", "io-util", "net"] }
+rcgen = { version = "0.13", default-features = false, features = ["ring"] }
+sha2 = "0.10"
+hex = "0.4"
+
+[dev-dependencies]
+quinn = { git = "https://github.com/quinn-rs/quinn", rev = "9d729c1b6b7ad30d45d40265037eeeb9d98a7420", default-features = false, features = [
+    "runtime-tokio",
+    "rustls-ring",
+] }
+web-transport-proto = { git = "https://github.com/moq-dev/web-transport", rev = "d4e4e458da556ac3033c9b63f6db5110d3ab5adc" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "io-util", "net"] }
+url = "2"
+
+[lints.rust]
+unsafe_code = "forbid"

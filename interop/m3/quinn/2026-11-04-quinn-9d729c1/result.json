@@ -1,0 +1,177 @@
+{
+  "suite": "rtx-quinn-interop",
+  "date": "2026-11-04",
+  "branch": "b4/quinn-interop-evidence",
+  "commit": "ea870b607aeb2db26f2096f686c9061612c04190",
+  "directory": "interop/m3/quinn",
+  "command": "cargo test --all-targets",
+  "log": "cargo-test.log",
+  "upstream_revisions": {
+    "quinn": "9d729c1b6b7ad30d45d40265037eeeb9d98a7420",
+    "web_transport": "d4e4e458da556ac3033c9b63f6db5110d3ab5adc"
+  },
+  "summary": {
+    "total": 15,
+    "passed": 15,
+    "failed": 0,
+    "ignored": 0,
+    "unit_test_binary_tests": 0
+  },
+  "results": [
+    {
+      "name": "endpoint_smoke",
+      "test_fn": "rtx_quic_endpoint_creates",
+      "layer": "quic",
+      "direction": "local-construction",
+      "description": "仅构造 rtx-quic endpoint，无网络",
+      "payload": null,
+      "result": "pass"
+    },
+    {
+      "name": "dual_endpoint_smoke",
+      "test_fn": "dual_endpoints_create",
+      "layer": "quic",
+      "direction": "local-construction",
+      "description": "rtx-quic + quinn 双端构造，无网络",
+      "payload": null,
+      "result": "pass"
+    },
+    {
+      "name": "loopback_handshake",
+      "test_fn": "loopback_handshake",
+      "layer": "quic",
+      "direction": "quinn-client -> rtx-quic-server",
+      "description": "ALPN h3 握手",
+      "payload": null,
+      "result": "pass"
+    },
+    {
+      "name": "datagram_once",
+      "test_fn": "datagram_once",
+      "layer": "quic",
+      "direction": "quinn -> rtx",
+      "description": "DATAGRAM 一次性收发",
+      "payload": "datagram-once-payload (21 bytes)",
+      "result": "pass"
+    },
+    {
+      "name": "uni_stream_once",
+      "test_fn": "uni_stream_once",
+      "layer": "quic",
+      "direction": "quinn -> rtx",
+      "description": "单向流一次性收发",
+      "payload": "uni-stream-once-payload (23 bytes)",
+      "result": "pass"
+    },
+    {
+      "name": "bi_stream_once",
+      "test_fn": "bi_stream_once",
+      "layer": "quic",
+      "direction": "quinn <-> rtx",
+      "description": "双向流：请求 + 应答",
+      "payload": "bi-stream-once-payload (22 bytes) -> bi-stream-once-response (23 bytes)",
+      "result": "pass"
+    },
+    {
+      "name": "reverse_loopback_handshake",
+      "test_fn": "reverse_loopback_handshake",
+      "layer": "quic",
+      "direction": "rtx-client -> quinn-server",
+      "description": "ALPN h3 握手（角色互换）",
+      "payload": null,
+      "result": "pass"
+    },
+    {
+      "name": "reverse_datagram_once",
+      "test_fn": "reverse_datagram_once",
+      "layer": "quic",
+      "direction": "rtx -> quinn",
+      "description": "DATAGRAM 一次性收发（反向）",
+      "payload": "reverse-datagram-once (21 bytes)",
+      "result": "pass"
+    },
+    {
+      "name": "reverse_uni_stream_once",
+      "test_fn": "reverse_uni_stream_once",
+      "layer": "quic",
+      "direction": "rtx -> quinn",
+      "description": "单向流一次性收发（反向）",
+      "payload": "reverse-uni-stream-once (23 bytes)",
+      "result": "pass"
+    },
+    {
+      "name": "reverse_bi_stream_once",
+      "test_fn": "reverse_bi_stream_once",
+      "layer": "quic",
+      "direction": "rtx <-> quinn",
+      "description": "双向流：请求 + 应答（反向）",
+      "payload": "reverse-bi-stream-once (22 bytes) -> reverse-bi-response",
+      "result": "pass"
+    },
+    {
+      "name": "h3_handshake_once",
+      "test_fn": "h3_handshake_once",
+      "layer": "h3",
+      "direction": "quinn-client(web-transport-proto) <-> rtx-quic-server(rtx-h3)",
+      "description": "SETTINGS 双向、扩展 CONNECT、SessionId::new(0)、200 响应、双侧关闭",
+      "payload": null,
+      "result": "pass"
+    },
+    {
+      "name": "reverse_h3_handshake_once",
+      "test_fn": "reverse_h3_handshake_once",
+      "layer": "h3",
+      "direction": "rtx-client(rtx-h3) <-> quinn-server(web-transport-proto)",
+      "description": "SETTINGS 双向、CONNECT、SessionId::new(0)、200 响应",
+      "payload": null,
+      "result": "pass"
+    },
+    {
+      "name": "h3_session_datagram_once",
+      "test_fn": "h3_session_datagram_once",
+      "layer": "h3",
+      "direction": "quinn -> rtx (session 0)",
+      "description": "H3 会话 session 0 内 DATAGRAM",
+      "payload": "h3-session-datagram-once (24 bytes)",
+      "result": "pass"
+    },
+    {
+      "name": "h3_session_wt_stream_once",
+      "test_fn": "h3_session_wt_stream_once",
+      "layer": "h3",
+      "direction": "quinn -> rtx (session 0)",
+      "description": "H3 会话 session 0 内 WT 单向数据流，流头 [40 54 00]",
+      "payload": "wt-stream-once-payload (22 bytes), header [0x40,0x54,0x00]",
+      "result": "pass"
+    },
+    {
+      "name": "h3_session_close_once",
+      "test_fn": "h3_session_close_once",
+      "layer": "h3",
+      "direction": "quinn -> rtx (session 0)",
+      "description": "H3 会话 session 0 内关闭 capsule，类型 0x2843、code 420、message h3-session-close-once，包在 H3 DATA 帧内",
+      "payload": "capsule type 0x2843, code 420, message h3-session-close-once",
+      "result": "pass"
+    }
+  ],
+  "layer_summary": {
+    "quic": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0
+    },
+    "h3": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0
+    }
+  },
+  "known_limitations": [
+    "B2 DATAGRAM 前缀口径差异未解决：quinn 用完整 session ID、rtx 用 quarter stream ID；本证据只测 session ID 0（两种编码一致），session ID >= 4 时分叉（流 ID 4：quinn 前缀 0x04 vs rtx 期望 quarter 0x01，解码回 WrongSession）。本报告不得被引用为多会话 DATAGRAM 已互通的证据。",
+    "反向 WT 数据流未测（只测 quinn -> rtx 单向流）。",
+    "反向 WT 会话关闭未测（只测 quinn -> rtx 关闭 capsule）。",
+    "多流并发未测；半关闭/reset 未测；大 payload 未测（各 payload 均为 21-24 字节小量，DATAGRAM 与流均未做 1 MiB 级测试）。",
+    "本报告只是互通证据，不改变门禁 docs/m3-m4-gates.md §5 状态；B4 是否通过由后续验收步骤判定。"
+  ],
+  "conclusion": "全量 15 个集成测试全部通过（15/15，0 fail）。QUIC 层 10/10，H3 层 5/5。结论严格限于本报告测试范围与已知局限，不构成 B4 通过结论。"
+}
