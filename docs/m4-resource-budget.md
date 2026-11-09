@@ -32,7 +32,7 @@
 | 预算文档 | `git cat-file -e 52e4ac9:docs/m4-resource-budget.md` | 存在（`budget-on-main=0`）；本文档已在 main 上，本单只刷新基线快照 |
 | 固件目录 | `git ls-tree 52e4ac9 -- firmware` | 空输出（main 上不存在） |
 | QUIC 决策/内存报告 | `git cat-file -e 52e4ac9:docs/m4-quic-decision.md`、`git cat-file -e 52e4ac9:docs/m4-memory-report.md` | 均不存在（属 T-04 / M4-M，不是本单产物） |
-| CI 作业 | `git show 52e4ac9:.github/workflows/ci.yml` + `grep -n '^  [a-z-]*:'` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build` |
+| CI 作业 | `git show 52e4ac9:.github/workflows/ci.yml` + `grep -n '^  [a-z-]*:'` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build`。注：该 grep 模式另匹配 `push`（:4）、`group`（:10）、`cancel-in-progress`（:11）三个非 job 键，六作业结论以 job 名核对（YAML `jobs` 解析）为准 |
 | ELF/map | `git ls-tree -r --name-only 52e4ac9 -- '*.elf' '*.map'` | 无输出 |
 | PR refs | `git ls-remote origin 'refs/pull/4[0-9]/head' 'refs/pull/5[0-9]/head'` | 最大为 `#52`（已合并，2026-11-05；只改 Chrome 互操作报告）；`#46`–`#51` 亦已合并（只改文档/互操作报告）；`#43` 已合并（B0-02 门禁一行）；`#44` 为本文档原始 PR（已合并）。无 M4-T-01 重复单 |
 | 代码面差异 | `git diff --stat ea870b6 52e4ac9 -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准 |
