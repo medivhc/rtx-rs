@@ -410,5 +410,5 @@ git diff --stat 52e4ac9
 | S15 | `crates/rtx-dtls/src/machine.rs` | `ea870b6` | 47、115-120 | DTLS 事件队列上限 |
 | S16 | `crates/rtx-srtp/src/lib.rs` | `ea870b6` | 270 | SRTP replay window |
 | S17 | `crates/rtx-h3/src/settings.rs`、`qpack.rs`、`connect.rs` | `ea870b6` | 113、41、52 | H3 固定上限 |
-| S18 | `.github/workflows/ci.yml` | `ea870b6` | 按 job 名核查全部 6 个 job：`test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz` | 无 `embedded-build` |
+| S18 | `.github/workflows/ci.yml` | `52e4ac9` | 按 job 名核查全部 6 个 job：`test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz` | 无 `embedded-build` |
 | S19 | 本单 `cargo`/`size`/`nm` 输出 | rustc 1.92.0、thumbv7em-none-eabihf | §2.2、§8.3、§8.4 | 对象级/类型级数值 |
