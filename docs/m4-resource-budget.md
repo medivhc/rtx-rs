@@ -35,7 +35,7 @@
 | CI 作业 | `git show 52e4ac9:.github/workflows/ci.yml` + `grep -n '^  [a-z-]*:'` | 只有 `test`、`suite`、`coverage`、`crypto-vectors`、`proptest`、`fuzz`；无 `embedded-build`。注：该 grep 模式另匹配 `push`（:4）、`group`（:10）、`cancel-in-progress`（:11）三个非 job 键，六作业结论以 job 名核对（YAML `jobs` 解析）为准 |
 | ELF/map | `git ls-tree -r --name-only 52e4ac9 -- '*.elf' '*.map'` | 无输出 |
 | PR refs | `git ls-remote origin 'refs/pull/4[0-9]/head' 'refs/pull/5[0-9]/head'` | 最大为 `#52`（已合并，2026-11-05；只改 Chrome 互操作报告）；`#46`–`#51` 亦已合并（只改文档/互操作报告）；`#43` 已合并（B0-02 门禁一行）；`#44` 为本文档原始 PR（已合并）。无 M4-T-01 重复单 |
-| 代码面差异 | `git diff --stat ea870b6 52e4ac9 -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准 |
+| 代码面差异 | `git diff --stat ea870b6 52e4ac9 -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准。口径限定：该命令的 pathspec 中 `Cargo.toml` 只匹配根 `Cargo.toml`；`ea870b6..52e4ac9` 在 `interop/m3/quinn/Cargo.toml` 新增 35 行（quinn 互通 harness 的独立 `[workspace]`，不在根 workspace 成员内、不在 `crates/` 下），不在该命令覆盖范围内 |
 | 额外任务列表 | 协调者派前复核（本环境无法访问任务列表） | 无 GAP-M4-T-01 / 资源预算重复项；本单为 M4-T-01 的派单授权 |
 
 > 说明：PR `#43`–`#52` 均已合并，`main` 头为 `52e4ac9`（PR #52 合并后）；本单已 rebase 到该头。`ea870b6..52e4ac9` 只改 `docs/`、`benchmarks/m3/results/` 与 `interop/m3/` 证据文件（含本文档），`crates/`、CI、`Cargo.toml`/`Cargo.lock` 0 改动，§2.2 的对象级测量仍有效。若后续 `main` 再漂移，作者须重新 rebase 并重核 §1.2。
