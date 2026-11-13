@@ -139,8 +139,11 @@ fn m3_q8_metrics_reflect_loss_and_rtt() {
     // delay after the sends, so every client RTT sample recorded before the
     // assertion is positive (RV-PR36-NBB). That same zero-delay confirmation
     // would also leave a 0 sample that drives `min_rtt_micros` down to 0,
-    // whereas under `pump_latency` every client sample is positive and the minimum
-    // stays positive.
+    // whereas under `pump_latency` every client sample is positive and the
+    // minimum stays positive. That describes the mechanism only: under
+    // `pump_latency` every client sample is positive, so the minimum is too.
+    // It is not an assertion in this test; `min_rtt_micros` is asserted in
+    // `m3_q8_metrics_after_handshake` (line 34), not here.
     harness.clients[index]
         .endpoint
         .write_stream(client_connection, stream, b"x")
