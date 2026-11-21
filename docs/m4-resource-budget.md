@@ -38,7 +38,7 @@
 | 代码面差异 | `git diff --stat ea870b6 52e4ac9 -- crates Cargo.toml Cargo.lock .github` | 0 改动；§2.2 的对象级测量仍以 `ea870b6` 工作树为准。口径限定：该命令的 pathspec 中 `Cargo.toml` 只匹配根 `Cargo.toml`；`ea870b6..52e4ac9` 在 `interop/m3/quinn/Cargo.toml` 新增 35 行（quinn 互通 harness 的独立 `[workspace]`，不在根 workspace 成员内、不在 `crates/` 下），不在该命令覆盖范围内 |
 | 额外任务列表 | 协调者派前复核（本环境无法访问任务列表） | 无 GAP-M4-T-01 / 资源预算重复项；本单为 M4-T-01 的派单授权 |
 
-> 说明：PR `#43`–`#63` 均已合并，`main` 头为 `147b9fc`（PR #63 合并后）；本单已 rebase 到该头。`ea870b6..52e4ac9` 只改 `docs/`、`benchmarks/m3/results/` 与 `interop/m3/` 证据文件（含本文档），`crates/`、CI、`Cargo.toml`/`Cargo.lock` 0 改动；`52e4ac9..b3522c7` 只改 `docs/m3-m4-gates.md`、`docs/m4-resource-budget.md`、`docs/m4-target-selection.md` 这 3 个 .md 文件的文档措辞/排版，以及 `docs/m4-resource-budget.md` 的文档头 `基线` 行、§1.2 快照值、:41（说明行的区间/现状陈述）、:310（§7 PR 引用现状行）、§8.1 基线复核命令块（:319–:330）与 §8.5 自查命令（:379）的同类快照值刷新（#53，全单 20+/20-，无预算数值/选型结论/GAP 状态变更）及 `crates/rtx-quic/tests/facade_metrics.rs` 的注释；`b3522c7..f96382a` 只改 `docs/m4-resource-budget.md` 的文档措辞与 `crates/rtx-quic/tests/facade_metrics.rs` 的注释；`f96382a..ad7ee89` 只改 `docs/m4-resource-budget.md` 的文档措辞（PR #61，RV-PR60-NB 捆绑措辞单，3+/3-），`crates/` 库代码、CI、`Cargo.toml`/`Cargo.lock` 0 改动，§2.2 的对象级测量仍有效。若后续 `main` 再漂移，作者须重新 rebase 并重核 §1.2。
+> 说明：PR `#43`–`#64` 均已合并，`main` 头为 `9aaac3f`（PR #64 合并后）；本单已 rebase 到该头。`ea870b6..52e4ac9` 只改 `docs/`、`benchmarks/m3/results/` 与 `interop/m3/` 证据文件（含本文档），`crates/`、CI、`Cargo.toml`/`Cargo.lock` 0 改动；`52e4ac9..b3522c7` 只改 `docs/m3-m4-gates.md`、`docs/m4-resource-budget.md`、`docs/m4-target-selection.md` 这 3 个 .md 文件的文档措辞/排版，以及 `docs/m4-resource-budget.md` 的文档头 `基线` 行、§1.2 快照值、:41（说明行的区间/现状陈述）、:310（§7 PR 引用现状行）、§8.1 基线复核命令块（:319–:330）与 §8.5 自查命令（:379 单行）的同类快照值刷新（其中 #53 单 PR 全单 20+/20-，无预算数值/选型结论/GAP 状态变更；本区间 52e4ac9..b3522c7 共 4 文件 36+/33-）及 `crates/rtx-quic/tests/facade_metrics.rs` 的注释；`b3522c7..f96382a` 只改 `docs/m4-resource-budget.md` 的文档措辞与 `crates/rtx-quic/tests/facade_metrics.rs` 的注释；`f96382a..ad7ee89` 只改 `docs/m4-resource-budget.md` 的文档措辞（PR #61，RV-PR60-NB 捆绑措辞单，3+/3-），`crates/` 库代码、CI、`Cargo.toml`/`Cargo.lock` 0 改动，§2.2 的对象级测量仍有效。若后续 `main` 再漂移，作者须重新 rebase 并重核 §1.2。
 
 ### 1.3 状态口径
 
@@ -307,7 +307,7 @@ E0 的“单会话”是预算单位，不是产品结论：每增加一条 RTP 
 
 1. **R3/R5 的实际拥有 crate**：`rtx-webrtc` 在仓库中不存在，`rtx-rtp` 没有流表、`rtx-rtcp` 没有 NACK 历史表。门禁允许登记“实际拥有流表的 crate”，但当前没有可登记对象；需要在后续 M4-S/移植单中指派拥有者并补 `resource_limits` 测试。
 2. **Linux profile 的无界容器**：`rtx-quic::Endpoint` 的 `connections`/`by_quinn_handle`/`pending_incoming`/`pending_transmits`/`events` 与各 `Vec` 字段（事件/TP/关闭原因、ALPN/证书/私钥）没有上限，RB4/RB5 不能记已核实；本单不修，留给后续单。
-3. **PR 引用现状**：`#43`（B0-02 门禁一行）、`#45`（closeout 刷新）、`#46`–`#52`（文档/互操作报告刷新）、`#53`（§1.2 快照刷新；6 处落点见 :41 穷尽式标签）、`#54`–`#58`（文档措辞/排版刷新）、`#59`（facade_metrics 注释）、`#60`（文档措辞与注释）、`#61`（RV-PR60-NB 捆绑措辞单，文档措辞）、`#62`（RV-PR61-NB1 单项措辞单，文档措辞，1 文件 +2/-2）、`#63`（RV-PR62-N1/N-2 捆绑措辞单，文档措辞，1 文件 +2/-2）均已合并，`main` 头为 `147b9fc`（PR #63 合并后）；`#44` 是本文档原始 PR（已合并）。派前记录中的“最大 #42，无 #43+”已过时，以本条为准。本单已 rebase 到 `147b9fc`，无 M4-T-01 重复单。
+3. **PR 引用现状**：`#43`（B0-02 门禁一行）、`#45`（closeout 刷新）、`#46`–`#52`（文档/互操作报告刷新）、`#53`（§1.2 快照刷新；6 处落点见 :41 穷尽式标签）、`#54`–`#58`（文档措辞/排版刷新）、`#59`（facade_metrics 注释）、`#60`（文档措辞与注释）、`#61`（RV-PR60-NB 捆绑措辞单，文档措辞）、`#62`（RV-PR61-NB1 单项措辞单，文档措辞，1 文件 +2/-2）、`#63`（RV-PR62-N1/N-2 捆绑措辞单，文档措辞，1 文件 +2/-2）、`#64`（RV-PR63-N1/N-2 捆绑措辞单，文档措辞，1 文件 +2/-2）均已合并，`main` 头为 `9aaac3f`（PR #64 合并后）；`#44` 是本文档原始 PR（已合并）。派前记录中的“最大 #42，无 #43+”已过时，以本条为准。本单已 rebase 到 `9aaac3f`，无 M4-T-01 重复单。
 4. **`M4-V4` 的判定边界**：本单只交付预算文档；`M4-V4` 的最终判定必须等 T-02 的 ELF/map 与后续最坏内存实测，不能把本文档合并当成 V4 的结论。
 
 ---
